@@ -187,20 +187,14 @@ export interface MatchingPost {
 
 export interface CoupangProduct {
   id: string;
-  title: string;
   category: '전체' | '클럽' | '공인구' | '가방·파우치' | '장갑·잡화' | '의류·신발' | '기타';
-  price: string;
-  originalPrice?: string;
-  discountRate?: string;
-  deliveryType: '로켓배송' | '로켓와우' | '무료배송' | '일반배송';
-  badge?: string;
-  imageUrl: string;
-  productUrl: string;
-  description?: string;
-  rating?: number;
-  reviewCount?: number;
-  isPopular?: boolean;
-  htmlSnippet?: string;
+  // 쿠팡파트너스가 발급한 위젯(iframe) 주소입니다. 쿠팡 서버가 상품 이미지·이름·가격·
+  // "쇼핑하기" 버튼까지 전부 렌더링해서 보내주기 때문에, 우리 쪽에서 별도로 상품 정보를
+  // 입력하거나 가져올 필요가 없습니다.
+  embedUrl: string;
+  embedWidth: number;
+  embedHeight: number;
+  createdAt: string;
 }
 
 export interface AdItem {

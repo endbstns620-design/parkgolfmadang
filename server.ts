@@ -349,19 +349,44 @@ async function startServer() {
 
   app.post("/api/coupang-products", requireAdmin, (req, res) => {
     const body = req.body || {};
-    if (!body.title || !body.productUrl || !body.imageUrl) {
-      return res.status(400).json({ success: false, error: "상품명, 상품 이미지 URL, 쿠팡파트너스 링크는 필수입니다." });
+    const rawInput = (body.rawInput || '').trim();
+    if (!rawInput) {
+      return res.status(400).json({ success: false, error: "쿠팡파트너스 링크 또는 iframe 코드를 입력해주세요." });
     }
+
+    // 관리자가 iframe 코드를 통째로 붙여넣었으면 src만 뽑아내고, 그냥 링크만 붙여넣었으면 그대로 씁니다.
+    let embedUrl = rawInput;
+    let embedWidth = 120;
+    let embedHeight = 240;
+    const iframeMatch = rawInput.match(/<iframe[^>]*src="([^"]+)"[^>]*>/i);
+    if (iframeMatch) {
+      embedUrl = iframeMatch[1];
+      const widthMatch = rawInput.match(/width="(\d+)"/i);
+      const heightMatch = rawInput.match(/height="(\d+)"/i);
+      if (widthMatch) embedWidth = parseInt(widthMatch[1], 10);
+      if (heightMatch) embedHeight = parseInt(heightMatch[1], 10);
+    }
+
+    // 실제 쿠팡파트너스 링크가 맞는지만 최소한으로 확인합니다 (다른 사이트 iframe 삽입 방지).
+    let isCoupangLink = false;
+    try {
+      const host = new URL(embedUrl).hostname;
+      isCoupangLink = host.endsWith("coupang.com") || host.endsWith("coupa.ng");
+    } catch {
+      isCoupangLink = false;
+    }
+    if (!isCoupangLink) {
+      return res.status(400).json({ success: false, error: "쿠팡파트너스(coupang.com 또는 coupa.ng) 링크만 등록할 수 있습니다." });
+    }
+
     const products = readJsonFile<CoupangProduct[]>("coupang-products.json", []);
     const newProduct: CoupangProduct = {
       id: `coupang-${Date.now()}`,
-      title: body.title,
       category: body.category || '기타',
-      price: body.price || '',
-      deliveryType: body.deliveryType || '로켓배송',
-      imageUrl: body.imageUrl,
-      productUrl: body.productUrl,
-      description: body.description || ''
+      embedUrl,
+      embedWidth,
+      embedHeight,
+      createdAt: new Date().toISOString().slice(0, 10)
     };
     products.unshift(newProduct);
     writeJsonFile("coupang-products.json", products);

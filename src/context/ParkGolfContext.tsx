@@ -112,7 +112,7 @@ interface ParkGolfContextType {
   deleteAd: (id: string) => void;
   toggleAdStatus: (id: string) => void;
   coupangProducts: CoupangProduct[];
-  addCoupangProduct: (productData: Omit<CoupangProduct, 'id'>) => Promise<boolean>;
+  addCoupangProduct: (input: { rawInput: string; category?: CoupangProduct['category'] }) => Promise<boolean>;
   deleteCoupangProduct: (id: string) => void;
   restaurants: RestaurantPost[];
   addRestaurant: (postData: Omit<RestaurantPost, 'id' | 'createdAt'>) => Promise<boolean>;
@@ -774,12 +774,12 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // 쿠팡파트너스 상품 CRUD (등록·삭제는 관리자만 가능 — 서버에서도 requireAdmin으로 이중 검증)
-  const addCoupangProduct = async (productData: Omit<CoupangProduct, 'id'>): Promise<boolean> => {
+  const addCoupangProduct = async (input: { rawInput: string; category?: CoupangProduct['category'] }): Promise<boolean> => {
     try {
       const res = await fetch('/api/coupang-products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
-        body: JSON.stringify(productData)
+        body: JSON.stringify(input)
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
