@@ -217,6 +217,20 @@ export interface AdItem {
   isActive: boolean;
 }
 
+export interface RestaurantPost {
+  id: string;
+  courseName: string;
+  region: string;
+  restaurantName: string;
+  menu: string;
+  address: string;
+  phoneNumber: string;
+  businessHours: string;
+  description: string;
+  authorName: string;
+  createdAt: string;
+}
+
 export type FontSizeOption = 'normal' | 'large' | 'xlarge';
 
 export interface AssociationItem {

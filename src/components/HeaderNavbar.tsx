@@ -178,9 +178,10 @@ export const HeaderNavbar: React.FC = () => {
           </div>
         </div>
 
-        {/* Category Navigation Bar (Desktop & Tablet only: hidden on mobile per user request) */}
+        {/* Category Navigation Bar — 항상 한 줄로 유지됩니다. 탭이 늘어나면 폭이 줄어들거나
+            (넓은 화면) 가로 스크롤(좁은 화면)로 대응하며, 절대 두 줄로 줄바꿈되지 않습니다. */}
         <nav className="hidden md:block border-t border-green-100/90 py-1 sm:py-1.5 w-full">
-          <div className="grid grid-cols-6 gap-0.5 sm:gap-1 md:gap-1.5 w-full items-center">
+          <div className="flex flex-nowrap gap-0.5 sm:gap-1 md:gap-1.5 w-full items-center overflow-x-auto">
             {visibleNavItems.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -190,7 +191,7 @@ export const HeaderNavbar: React.FC = () => {
                   id={`nav-tab-${item.id}`}
                   onClick={() => handleNavClick(item.id)}
                   title={item.title}
-                  className={`w-full flex items-center justify-center gap-0.5 sm:gap-1 px-0.5 sm:px-1 md:px-1.5 py-1.5 sm:py-2 rounded-lg font-extrabold transition-all text-[9.5px] sm:text-xs md:text-xs lg:text-sm border text-center cursor-pointer whitespace-nowrap overflow-hidden ${
+                  className={`flex-1 min-w-[64px] shrink-0 flex items-center justify-center gap-0.5 sm:gap-1 px-0.5 sm:px-1 md:px-1.5 py-1.5 sm:py-2 rounded-lg font-extrabold transition-all text-[9.5px] sm:text-xs md:text-xs lg:text-sm border text-center cursor-pointer whitespace-nowrap overflow-hidden ${
                     isActive
                       ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-1 ring-blue-400/50'
                       : 'bg-stone-50/90 text-slate-800 border-slate-200/90 hover:bg-blue-50 hover:text-blue-950 hover:border-blue-300'

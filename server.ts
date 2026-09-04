@@ -5,6 +5,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { readJsonFile, writeJsonFile } from "./server-lib/jsonStore";
+import { RESTAURANT_SEED } from "./server-lib/restaurantSeed";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
 
 dotenv.config();
@@ -281,6 +282,61 @@ async function startServer() {
     const ads = readJsonFile<AdItem[]>("ads.json", []);
     const filtered = ads.filter(a => a.id !== req.params.id);
     writeJsonFile("ads.json", filtered);
+    res.json({ success: true });
+  });
+
+  // ---- 구장 근처 맛집 게시판 ----
+  // 방문자 누구나 글을 쓸 수 있고(스팸 필터만 적용), 본인 글은 삭제 토큰으로 직접 삭제할 수 있습니다.
+  // 서버에 저장된 데이터가 없으면 사전 조사한 30곳(RESTAURANT_SEED)으로 시작합니다.
+  app.get("/api/restaurants", (_req, res) => {
+    const restaurants = readJsonFile<any[]>("restaurants.json", RESTAURANT_SEED);
+    const publicList = restaurants.map(({ deleteToken, ...rest }: any) => rest);
+    res.json({ success: true, restaurants: publicList });
+  });
+
+  app.post("/api/restaurants", (req, res) => {
+    const body = req.body || {};
+    const moderation = validatePostContent({
+      title: body.restaurantName,
+      authorName: body.authorName,
+      content: body.description
+    });
+    if (!moderation.isValid) {
+      return res.status(400).json({ success: false, error: moderation.reason || "부적절한 내용이 포함되어 있습니다." });
+    }
+    if (!body.restaurantName || !body.courseName) {
+      return res.status(400).json({ success: false, error: "구장명과 맛집명은 필수입니다." });
+    }
+    const restaurants = readJsonFile<any[]>("restaurants.json", RESTAURANT_SEED);
+    const deleteToken = crypto.randomBytes(20).toString("hex");
+    const newPost = {
+      ...body,
+      id: `rest-${Date.now()}`,
+      createdAt: new Date().toISOString().slice(0, 10),
+      deleteToken
+    };
+    restaurants.unshift(newPost);
+    writeJsonFile("restaurants.json", restaurants);
+    res.status(201).json({ success: true, restaurant: newPost, deleteToken });
+  });
+
+  app.post("/api/restaurants/:id/self-delete", (req, res) => {
+    const { deleteToken } = req.body || {};
+    const restaurants = readJsonFile<any[]>("restaurants.json", RESTAURANT_SEED);
+    const target = restaurants.find(r => r.id === req.params.id);
+    if (!target) return res.status(404).json({ success: false, error: "게시글을 찾을 수 없습니다." });
+    if (!deleteToken || target.deleteToken !== deleteToken) {
+      return res.status(403).json({ success: false, error: "본인 확인에 실패했습니다." });
+    }
+    const filtered = restaurants.filter(r => r.id !== req.params.id);
+    writeJsonFile("restaurants.json", filtered);
+    res.json({ success: true });
+  });
+
+  app.delete("/api/restaurants/:id", requireAdmin, (req, res) => {
+    const restaurants = readJsonFile<any[]>("restaurants.json", RESTAURANT_SEED);
+    const filtered = restaurants.filter(r => r.id !== req.params.id);
+    writeJsonFile("restaurants.json", filtered);
     res.json({ success: true });
   });
 

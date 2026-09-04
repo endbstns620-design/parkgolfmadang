@@ -76,12 +76,15 @@ export const AdminDashboardModal: React.FC = () => {
   const [editingAd, setEditingAd] = useState<Partial<AdItem> | null>(null);
   const [isNewAd, setIsNewAd] = useState(false);
 
+  // Admin Login 로딩 상태 — 다른 useState들과 함께 컴포넌트 최상단에서 항상 호출되어야 합니다.
+  // (조건부 return 아래에 두면 모달이 열릴 때 hooks 호출 순서가 달라져서 리액트가 크래시합니다)
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   if (!activeModal || activeModal.type !== 'admin') {
     return null;
   }
 
   // Handle Admin Login
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
@@ -202,7 +205,7 @@ export const AdminDashboardModal: React.FC = () => {
               <input
                 id="admin-pin-input"
                 type="password"
-                placeholder="비밀번호 입력 (기본: 1234)"
+                placeholder="비밀번호 입력"
                 value={pinInput}
                 onChange={e => setPinInput(e.target.value)}
                 className="w-full text-center text-2xl tracking-widest font-extrabold p-3.5 rounded-2xl border-2 border-slate-300 focus:border-green-600 focus:outline-none"

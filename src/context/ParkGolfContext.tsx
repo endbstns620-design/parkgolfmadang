@@ -7,6 +7,7 @@ import {
   MatchingPost,
   AdItem,
   CoupangProduct,
+  RestaurantPost,
   FontSizeOption,
   RegionCategory
 } from '../types';
@@ -113,6 +114,10 @@ interface ParkGolfContextType {
   coupangProducts: CoupangProduct[];
   addCoupangProduct: (productData: Omit<CoupangProduct, 'id'>) => Promise<boolean>;
   deleteCoupangProduct: (id: string) => void;
+  restaurants: RestaurantPost[];
+  addRestaurant: (postData: Omit<RestaurantPost, 'id' | 'createdAt'>) => Promise<boolean>;
+  deleteRestaurant: (id: string) => void;
+  isMyRestaurant: (id: string) => boolean;
 }
 
 const ParkGolfContext = createContext<ParkGolfContextType | undefined>(undefined);
@@ -127,7 +132,8 @@ const STORAGE_KEYS = {
   FONT_SIZE: 'parkgolf_madang_fontsize',
   ADMIN_AUTH: 'parkgolf_madang_isadmin',
   ADMIN_TOKEN: 'parkgolf_madang_admin_token',
-  MY_MATCH_TOKENS: 'parkgolf_madang_my_match_tokens'
+  MY_MATCH_TOKENS: 'parkgolf_madang_my_match_tokens',
+  MY_RESTAURANT_TOKENS: 'parkgolf_madang_my_restaurant_tokens'
 };
 
 export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -189,17 +195,19 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   const [coupangProducts, setCoupangProducts] = useState<CoupangProduct[]>([]);
+  const [restaurants, setRestaurants] = useState<RestaurantPost[]>([]);
 
   // 서버에 저장된 리뷰 · 동반자모집 · 광고 · 쿠팡파트너스 상품을 불러옵니다.
   // 이렇게 해야 방문자 A가 남긴 글을 방문자 B도 볼 수 있습니다 (localStorage는 브라우저별로 분리되어 있어 공유되지 않습니다).
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
-          fetch('/api/coupang-products')
+          fetch('/api/coupang-products'),
+          fetch('/api/restaurants')
         ]);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
@@ -219,6 +227,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (coupangRes.ok) {
           const data = await coupangRes.json();
           if (data.success) setCoupangProducts(data.products);
+        }
+        if (restaurantsRes.ok) {
+          const data = await restaurantsRes.json();
+          if (data.success) setRestaurants(data.restaurants);
         }
       } catch (err) {
         // 서버에서 못 가져오면 localStorage에 저장된 값(초기 state)을 그대로 사용합니다.
@@ -792,6 +804,68 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  // 구장 근처 맛집 게시판 — 방문자 누구나 글을 쓸 수 있고, 본인 글은 삭제 토큰으로 직접 삭제합니다.
+  const addRestaurant = async (postData: Omit<RestaurantPost, 'id' | 'createdAt'>): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(postData)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '등록에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      setRestaurants(prev => [data.restaurant, ...prev]);
+      if (data.deleteToken) {
+        const myTokens = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_RESTAURANT_TOKENS) || '{}');
+        myTokens[data.restaurant.id] = data.deleteToken;
+        localStorage.setItem(STORAGE_KEYS.MY_RESTAURANT_TOKENS, JSON.stringify(myTokens));
+      }
+      return true;
+    } catch (err) {
+      console.error('맛집 등록 실패:', err);
+      alert('등록 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const isMyRestaurant = (id: string): boolean => {
+    try {
+      const myTokens = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_RESTAURANT_TOKENS) || '{}');
+      return Boolean(myTokens[id]);
+    } catch {
+      return false;
+    }
+  };
+
+  const deleteRestaurant = (id: string) => {
+    if (!window.confirm('이 글을 삭제하시겠습니까?')) return;
+    setRestaurants(prev => prev.filter(r => r.id !== id));
+
+    const myTokens = JSON.parse(localStorage.getItem(STORAGE_KEYS.MY_RESTAURANT_TOKENS) || '{}');
+    const myToken = myTokens[id];
+
+    if (myToken) {
+      fetch(`/api/restaurants/${id}/self-delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteToken: myToken })
+      })
+        .then(() => {
+          delete myTokens[id];
+          localStorage.setItem(STORAGE_KEYS.MY_RESTAURANT_TOKENS, JSON.stringify(myTokens));
+        })
+        .catch(err => console.error('삭제 실패:', err));
+    } else {
+      fetch(`/api/restaurants/${id}`, { method: 'DELETE', headers: adminAuthHeaders() }).catch(err =>
+        console.error('삭제 실패:', err)
+      );
+    }
+  };
+
   return (
     <ParkGolfContext.Provider
       value={{
@@ -849,7 +923,11 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toggleAdStatus,
         coupangProducts,
         addCoupangProduct,
-        deleteCoupangProduct
+        deleteCoupangProduct,
+        restaurants,
+        addRestaurant,
+        deleteRestaurant,
+        isMyRestaurant
       }}
     >
       {children}
