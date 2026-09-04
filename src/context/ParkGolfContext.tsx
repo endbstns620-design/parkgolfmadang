@@ -89,6 +89,7 @@ interface ParkGolfContextType {
   addTournament: (tour: Omit<Tournament, 'id'>) => void;
   updateTournament: (id: string, tour: Partial<Tournament>) => void;
   deleteTournament: (id: string) => void;
+  searchTournamentsWithAI: (region?: string) => Promise<any[]>;
 
   // CRUD for News
   addNews: (news: Omit<NewsItem, 'id' | 'views'>) => void;
@@ -202,12 +203,13 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
           fetch('/api/coupang-products'),
-          fetch('/api/restaurants')
+          fetch('/api/restaurants'),
+          fetch('/api/tournaments')
         ]);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
@@ -231,6 +233,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (restaurantsRes.ok) {
           const data = await restaurantsRes.json();
           if (data.success) setRestaurants(data.restaurants);
+        }
+        if (tournamentsRes.ok) {
+          const data = await tournamentsRes.json();
+          if (data.success) setTournaments(data.tournaments);
         }
       } catch (err) {
         // 서버에서 못 가져오면 localStorage에 저장된 값(초기 state)을 그대로 사용합니다.
@@ -496,20 +502,69 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Tournament CRUD
   const addTournament = (tourData: Omit<Tournament, 'id'>) => {
-    const newTour: Tournament = {
-      ...tourData,
-      id: `tour-${Date.now()}`
-    };
-    setTournaments(prev => [newTour, ...prev]);
+    const optimisticId = `tour-${Date.now()}`;
+    const optimisticTour: Tournament = { ...tourData, id: optimisticId };
+    setTournaments(prev => [optimisticTour, ...prev]);
+
+    (async () => {
+      try {
+        const res = await fetch('/api/tournaments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+          body: JSON.stringify(tourData)
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.error || '대회 등록에 실패했습니다.');
+          setTournaments(prev => prev.filter(t => t.id !== optimisticId));
+          return;
+        }
+        const data = await res.json();
+        setTournaments(prev => prev.map(t => (t.id === optimisticId ? data.tournament : t)));
+      } catch (err) {
+        console.error('대회 등록 실패:', err);
+      }
+    })();
   };
 
   const updateTournament = (id: string, updated: Partial<Tournament>) => {
     setTournaments(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+    fetch(`/api/tournaments/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('대회 수정 실패:', err));
   };
 
   const deleteTournament = (id: string) => {
     if (window.confirm('정말 이 대회 소식을 삭제하시겠습니까?')) {
       setTournaments(prev => prev.filter(t => t.id !== id));
+      fetch(`/api/tournaments/${id}`, { method: 'DELETE', headers: adminAuthHeaders() }).catch(err =>
+        console.error('대회 삭제 실패:', err)
+      );
+    }
+  };
+
+  // AI + 구글 검색으로 현재 진행되는 실제 대회 후보를 가져옵니다 (자동 등록되지 않고, 관리자가
+  // 확인 후 addTournament로 직접 등록해야 실제로 저장됩니다).
+  const searchTournamentsWithAI = async (region?: string): Promise<any[]> => {
+    try {
+      const res = await fetch('/api/gemini/search-tournaments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ region })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '대회 검색에 실패했습니다.');
+        return [];
+      }
+      const data = await res.json();
+      return data.candidates || [];
+    } catch (err) {
+      console.error('대회 검색 실패:', err);
+      alert('대회 검색 중 오류가 발생했습니다.');
+      return [];
     }
   };
 
@@ -907,6 +962,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addTournament,
         updateTournament,
         deleteTournament,
+        searchTournamentsWithAI,
         addNews,
         updateNews,
         deleteNews,

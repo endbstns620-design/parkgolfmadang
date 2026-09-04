@@ -6,6 +6,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { readJsonFile, writeJsonFile } from "./server-lib/jsonStore";
 import { RESTAURANT_SEED } from "./server-lib/restaurantSeed";
+import { INITIAL_TOURNAMENTS } from "./src/data/initialTournamentsData";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
 
 dotenv.config();
@@ -283,6 +284,76 @@ async function startServer() {
     const filtered = ads.filter(a => a.id !== req.params.id);
     writeJsonFile("ads.json", filtered);
     res.json({ success: true });
+  });
+
+  // ---- 대회 소식 ----
+  // 조회는 누구나, 등록·수정·삭제는 관리자만 가능합니다.
+  // 서버에 데이터가 없으면 기존 INITIAL_TOURNAMENTS로 시작합니다.
+  app.get("/api/tournaments", (_req, res) => {
+    const tournaments = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+    res.json({ success: true, tournaments });
+  });
+
+  app.post("/api/tournaments", requireAdmin, (req, res) => {
+    const body = req.body || {};
+    if (!body.title || !body.eventDate) {
+      return res.status(400).json({ success: false, error: "대회명과 대회 날짜는 필수입니다." });
+    }
+    const tournaments = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+    const newTournament = { ...body, id: `tour-${Date.now()}` };
+    tournaments.unshift(newTournament);
+    writeJsonFile("tournaments.json", tournaments);
+    res.status(201).json({ success: true, tournament: newTournament });
+  });
+
+  app.patch("/api/tournaments/:id", requireAdmin, (req, res) => {
+    const tournaments = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+    const idx = tournaments.findIndex(t => t.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "대회를 찾을 수 없습니다." });
+    tournaments[idx] = { ...tournaments[idx], ...req.body };
+    writeJsonFile("tournaments.json", tournaments);
+    res.json({ success: true, tournament: tournaments[idx] });
+  });
+
+  app.delete("/api/tournaments/:id", requireAdmin, (req, res) => {
+    const tournaments = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+    const filtered = tournaments.filter(t => t.id !== req.params.id);
+    writeJsonFile("tournaments.json", filtered);
+    res.json({ success: true });
+  });
+
+  // AI(Gemini) + 구글 검색으로 "현재 진행 중이거나 예정된 파크골프 대회"를 실제로 검색해서
+  // 후보 목록을 돌려줍니다. 그대로 자동 등록하지 않고, 관리자가 확인한 뒤 등록 버튼을 눌러야
+  // 실제로 저장됩니다 (날짜·장소가 틀리면 실제로 헛걸음하는 분이 생길 수 있어서, AI 결과를
+  // 그대로 믿고 자동발행하지 않는 안전장치입니다).
+  app.post("/api/gemini/search-tournaments", requireAdmin, async (req, res) => {
+    try {
+      const { region } = req.body || {};
+      const prompt = `지금 시점 기준으로, ${region && region !== '전체' ? region + ' 지역의' : '전국의'} 파크골프 대회 중
+아직 열리지 않았거나 곧 열릴 예정인 실제 대회를 구글 검색으로 찾아주세요.
+대한파크골프협회, 각 시·도 파크골프협회·연맹 공식 홈페이지나 공지사항에서 확인되는 대회만 포함하고,
+확실하지 않으면 포함하지 마세요. 최대 5건까지, 아래 JSON 배열 형식으로만 응답하세요:
+[{ "title": "대회명", "organizer": "주최 협회/연맹명", "eventDate": "YYYY-MM-DD", "location": "개최 장소",
+   "registrationPeriod": "접수기간(확인 안 되면 빈 문자열)", "contact": "문의처(확인 안 되면 빈 문자열)",
+   "sourceUrl": "출처 URL" }]`;
+
+      const ai = getGeminiAI();
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }]
+        }
+      });
+
+      const rawText = response.text || "[]";
+      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+      const candidates = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+      res.json({ success: true, candidates });
+    } catch (err: any) {
+      console.error("[gemini] 대회 검색 실패:", err);
+      res.status(500).json({ success: false, error: "대회 검색 중 오류가 발생했습니다." });
+    }
   });
 
   // ---- 구장 근처 맛집 게시판 ----
@@ -830,6 +901,30 @@ async function startServer() {
   }
   purgeExpiredMatches();
   setInterval(purgeExpiredMatches, 24 * 60 * 60 * 1000); // 24시간마다
+
+  // ---- 날짜 지난 대회 실시간 자동 삭제 ----
+  // 서버 시작 시 한 번, 이후로는 1시간마다 확인해서 대회 날짜(eventDate)가 지난 대회를 지웁니다.
+  // 2일 이상 진행되는 대회도 있어서, eventDate 다음날까지는 하루 여유를 두고 지웁니다.
+  function purgePastTournaments() {
+    try {
+      const tournaments = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 1); // 어제 날짜까지 지난 대회만 삭제 (오늘·내일 대회는 유지)
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const kept = tournaments.filter(t => {
+        if (!t.eventDate) return true; // 날짜 정보가 없으면 일단 유지 (실수로 다 지우는 것 방지)
+        return t.eventDate >= cutoffStr;
+      });
+      if (kept.length !== tournaments.length) {
+        writeJsonFile("tournaments.json", kept);
+        console.log(`[purge] 날짜 지난 대회 ${tournaments.length - kept.length}건 자동 삭제`);
+      }
+    } catch (err) {
+      console.error("[purge] 대회 자동 삭제 처리 중 오류:", err);
+    }
+  }
+  purgePastTournaments();
+  setInterval(purgePastTournaments, 60 * 60 * 1000); // 1시간마다
 }
 
 startServer();

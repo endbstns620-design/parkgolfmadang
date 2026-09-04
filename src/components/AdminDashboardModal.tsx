@@ -38,6 +38,7 @@ export const AdminDashboardModal: React.FC = () => {
     addTournament,
     updateTournament,
     deleteTournament,
+    searchTournamentsWithAI,
     news,
     addNews,
     updateNews,
@@ -79,6 +80,8 @@ export const AdminDashboardModal: React.FC = () => {
   // Admin Login 로딩 상태 — 다른 useState들과 함께 컴포넌트 최상단에서 항상 호출되어야 합니다.
   // (조건부 return 아래에 두면 모달이 열릴 때 hooks 호출 순서가 달라져서 리액트가 크래시합니다)
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isSearchingTournaments, setIsSearchingTournaments] = useState(false);
+  const [tournamentCandidates, setTournamentCandidates] = useState<any[]>([]);
 
   if (!activeModal || activeModal.type !== 'admin') {
     return null;
@@ -561,32 +564,109 @@ export const AdminDashboardModal: React.FC = () => {
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setIsNewTour(true);
-                        setEditingTour({
-                          title: '',
-                          organizer: '대한파크골프협회 / 지자체 체육회',
-                          eventDate: '2026-06-01',
-                          dateRange: '2026.06.01 ~ 06.02 (2일간)',
-                          registrationPeriod: '2026.05.01 ~ 05.20',
-                          location: '전국 공인 파크골프장',
-                          status: '접수중',
-                          prizePool: '총상금 1,000만원 상당',
-                          eligibility: '전국 파크골프 동호인 (협회 등록 회원)',
-                          participationFee: '30,000원',
-                          contact: '02-000-0000',
-                          linkUrl: '',
-                          description: '',
-                          isFeatured: true
-                        });
-                      }}
-                      className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>새 대회 등록</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          setIsSearchingTournaments(true);
+                          const results = await searchTournamentsWithAI();
+                          setIsSearchingTournaments(false);
+                          setTournamentCandidates(results);
+                        }}
+                        disabled={isSearchingTournaments}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1 disabled:opacity-60"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>{isSearchingTournaments ? '검색 중...' : 'AI 실시간 검색'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsNewTour(true);
+                          setEditingTour({
+                            title: '',
+                            organizer: '대한파크골프협회 / 지자체 체육회',
+                            eventDate: '2026-06-01',
+                            dateRange: '2026.06.01 ~ 06.02 (2일간)',
+                            registrationPeriod: '2026.05.01 ~ 05.20',
+                            location: '전국 공인 파크골프장',
+                            status: '접수중',
+                            prizePool: '총상금 1,000만원 상당',
+                            eligibility: '전국 파크골프 동호인 (협회 등록 회원)',
+                            participationFee: '30,000원',
+                            contact: '02-000-0000',
+                            linkUrl: '',
+                            description: '',
+                            isFeatured: true
+                          });
+                        }}
+                        className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>새 대회 등록</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {/* AI 검색 결과 — 관리자가 확인하고 "이 대회 등록하기"를 눌러야 실제로 저장됩니다. */}
+                  {tournamentCandidates.length > 0 && (
+                    <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-blue-950 text-sm flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4" />
+                          구글 검색으로 찾은 대회 후보 ({tournamentCandidates.length}건) — 확인 후 등록해주세요
+                        </h4>
+                        <button
+                          onClick={() => setTournamentCandidates([])}
+                          className="text-xs text-blue-700 hover:text-blue-900 font-bold"
+                        >
+                          닫기
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-blue-800">
+                        AI가 실시간 검색으로 찾은 정보라 정확하지 않을 수 있습니다. 날짜·장소를 꼭 확인하시고 등록해주세요.
+                      </p>
+                      {tournamentCandidates.map((c, idx) => (
+                        <div key={idx} className="bg-white rounded-xl p-3.5 border border-blue-200 space-y-1">
+                          <p className="font-extrabold text-slate-900 text-sm">{c.title}</p>
+                          <p className="text-xs text-slate-600">
+                            📅 {c.eventDate} · 📍 {c.location} · 주최: {c.organizer}
+                          </p>
+                          {c.registrationPeriod && <p className="text-xs text-slate-500">접수: {c.registrationPeriod}</p>}
+                          {c.contact && <p className="text-xs text-slate-500">문의: {c.contact}</p>}
+                          {c.sourceUrl && (
+                            <a href={c.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline break-all">
+                              출처: {c.sourceUrl}
+                            </a>
+                          )}
+                          <button
+                            onClick={() => {
+                              setIsNewTour(true);
+                              setEditingTour({
+                                title: c.title || '',
+                                organizer: c.organizer || '',
+                                eventDate: c.eventDate || '2026-06-01',
+                                dateRange: c.eventDate || '',
+                                registrationPeriod: c.registrationPeriod || '',
+                                location: c.location || '',
+                                status: '접수중',
+                                prizePool: '',
+                                eligibility: '',
+                                participationFee: '',
+                                contact: c.contact || '',
+                                linkUrl: c.sourceUrl || '',
+                                description: `※ AI 실시간 검색으로 수집된 정보입니다. 등록 전 출처(${c.sourceUrl || '미확인'})에서 정확한 내용을 다시 확인해주세요.`,
+                                isFeatured: false
+                              });
+                              setTournamentCandidates([]);
+                            }}
+                            className="w-full mt-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
+                          >
+                            이 대회 등록 폼 채우기
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {editingTour && (
                     <div className="bg-amber-50 p-5 rounded-3xl border-2 border-amber-400 space-y-4">
