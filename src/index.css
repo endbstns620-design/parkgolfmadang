@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  :root {
+    --font-sans: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Nanum Gothic', 'Apple SD Gothic Neo', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  }
+
+  *, *::before, *::after {
+    font-family: var(--font-sans) !important;
+  }
+
+  body {
+    font-family: var(--font-sans) !important;
+    color: #0F172A;
+    background-color: #F8FAF8;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    letter-spacing: -0.01em;
+    line-height: 1.7;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, span, div, button, label, a, input, textarea, select {
+    font-family: var(--font-sans) !important;
+    word-break: keep-all;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    line-height: 1.4;
+  }
+}
+
+/* Senior Font Size Scales */
+html.font-normal {
+  font-size: 16px;
+}
+html.font-large {
+  font-size: 18px;
+}
+html.font-xlarge {
+  font-size: 20.5px;
+}
+
+/* Custom smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F0FDF4;
+}
+::-webkit-scrollbar-thumb {
+  background: #86EFAC;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #22C55E;
+}
+
+/* Soft Green Glass & Card Elevation */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.park-card-shadow {
+  box-shadow: 0 4px 20px -2px rgba(22, 101, 52, 0.06), 0 2px 8px -1px rgba(15, 23, 42, 0.04);
+}
+
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -4px rgba(22, 101, 52, 0.12), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+}
+
+

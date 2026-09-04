@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14532d" />
+      <stop offset="50%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#166534" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- Subtle green course wave / hill shape in safe area -->
+  <path d="M 0 380 Q 140 320 256 360 T 512 340 L 512 512 L 0 512 Z" fill="#052e16" opacity="0.4" />
+  <path d="M 0 420 Q 200 380 340 430 T 512 400 L 512 512 L 0 512 Z" fill="#052e16" opacity="0.3" />
+
+  <!-- Outer Ring Accent -->
+  <circle cx="256" cy="230" r="160" fill="none" stroke="#22c55e" stroke-width="4" stroke-dasharray="12 12" opacity="0.4" />
+
+  <!-- Golf Flag & Pin -->
+  <g filter="url(#shadow)">
+    <!-- Flag Pole -->
+    <line x1="210" y1="110" x2="210" y2="330" stroke="#f8fafc" stroke-width="12" stroke-linecap="round" />
+    
+    <!-- Flag Pin Base / Hole Cup -->
+    <ellipse cx="210" cy="330" rx="36" ry="12" fill="#022c22" stroke="#4ade80" stroke-width="4" />
+    
+    <!-- Red/Gold Triangular Flag -->
+    <path d="M 210 120 L 330 165 L 210 210 Z" fill="#ef4444" stroke="#b91c1c" stroke-width="4" stroke-linejoin="round" />
+    <path d="M 210 120 L 290 150 L 210 180 Z" fill="#f87171" />
+    
+    <!-- Golf Ball -->
+    <circle cx="310" cy="310" r="30" fill="#ffffff" stroke="#cbd5e1" stroke-width="4" />
+    <!-- Ball Dimples -->
+    <circle cx="300" cy="302" r="3" fill="#cbd5e1" />
+    <circle cx="316" cy="300" r="3" fill="#cbd5e1" />
+    <circle cx="306" cy="316" r="3" fill="#cbd5e1" />
+    <circle cx="320" cy="314" r="3" fill="#cbd5e1" />
+    <circle cx="298" cy="314" r="3" fill="#cbd5e1" />
+
+    <!-- Golden Trophy Mini Badge -->
+    <circle cx="370" cy="130" r="36" fill="url(#goldGrad)" stroke="#ffffff" stroke-width="4" />
+    <text x="370" y="142" font-family="sans-serif" font-size="34" font-weight="900" text-anchor="middle" fill="#78350f">★</text>
+  </g>
+
+  <!-- App Title Typography on Icon (Bottom Safe Zone) -->
+  <text x="256" y="445" font-family="'Noto Sans KR', 'Pretendard', sans-serif" font-size="44" font-weight="900" text-anchor="middle" fill="#ffffff" letter-spacing="-1">파크골프마당</text>
+  <text x="256" y="475" font-family="sans-serif" font-size="20" font-weight="800" text-anchor="middle" fill="#86efac" letter-spacing="4">PARK GOLF</text>
+</svg>

@@ -1,0 +1,6 @@
+{
+  "name": "파크골프마당",
+  "description": "전국 지자체 직영 파크골프장 정보, 실시간 전국 대회일정, 초보 파크골퍼 이용가이드·장비·규칙, 구장 리뷰, 동호회 매칭 포털",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
