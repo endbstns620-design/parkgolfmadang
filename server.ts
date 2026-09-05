@@ -151,6 +151,7 @@ async function startServer() {
     };
     reviews.unshift(newReview);
     writeJsonFile("reviews.json", reviews);
+    awardPoints(req.currentUser.id, 200);
     res.status(201).json({ success: true, review: newReview });
   });
 
@@ -196,6 +197,7 @@ async function startServer() {
     };
     matches.unshift(newPost);
     writeJsonFile("matches.json", matches);
+    awardPoints(req.currentUser.id, 300);
     // 응답에는 딱 이번 한 번만 deleteToken을 내려줍니다 — 작성자 브라우저가 이걸 저장해뒀다가
     // 나중에 "내 글 삭제하기"를 누르면 이 토큰으로 본인 확인을 합니다.
     res.status(201).json({ success: true, match: newPost, deleteToken });
@@ -427,6 +429,124 @@ async function startServer() {
     }
   });
 
+  // ---- 마당P 교환소 (포인트로 실제 상품 교환 신청) ----
+  interface PointShopItem {
+    id: string;
+    name: string;
+    category: string;
+    pointCost: number;
+    referenceUrl?: string; // 실제 상품을 참고할 수 있는 링크 (쿠팡 등)
+    isActive: boolean;
+  }
+
+  const POINT_SHOP_SEED: PointShopItem[] = [
+    {
+      id: "pshop-1",
+      name: "스타벅스 아메리카노 Tall",
+      category: "카페·음료",
+      pointCost: 3000,
+      isActive: true
+    },
+    {
+      id: "pshop-2",
+      name: "까스텔바작 파크골프 멀티파우치 힙색 (CSW-245)",
+      category: "가방",
+      pointCost: 25000,
+      referenceUrl: "https://www.coupang.com/vp/products/9447375681?itemId=28103214711",
+      isActive: true
+    },
+    {
+      id: "pshop-3",
+      name: "부쿠로혼마 파크골프공 3피스 6cm 4종 세트 (B5FUPB03)",
+      category: "골프공",
+      pointCost: 12000,
+      referenceUrl: "https://www.coupang.com/vp/products/9131079903?itemId=26867746380",
+      isActive: true
+    },
+    {
+      id: "pshop-4",
+      name: "파크골프 공 회수기 4개 세트 (실리콘 집게 볼 픽업기)",
+      category: "용품",
+      pointCost: 8000,
+      referenceUrl: "https://www.coupang.com/vp/products/9169874753?itemId=27023349927",
+      isActive: true
+    },
+    {
+      id: "pshop-5",
+      name: "지맥스 남성용 파크골프 장갑 (양손 세트)",
+      category: "장갑",
+      pointCost: 15000,
+      referenceUrl: "https://www.coupang.com/vp/products/8901077673?itemId=26092981607",
+      isActive: true
+    }
+  ];
+
+  app.get("/api/point-shop", (_req, res) => {
+    const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
+    res.json({ success: true, items });
+  });
+
+  app.post("/api/point-shop", requireAdmin, (req, res) => {
+    const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
+    const newItem: PointShopItem = { ...req.body, id: `pshop-${Date.now()}`, isActive: true };
+    items.push(newItem);
+    writeJsonFile("point-shop.json", items);
+    res.status(201).json({ success: true, item: newItem });
+  });
+
+  app.delete("/api/point-shop/:id", requireAdmin, (req, res) => {
+    const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
+    writeJsonFile("point-shop.json", items.filter(i => i.id !== req.params.id));
+    res.json({ success: true });
+  });
+
+  // 교환 신청 — 실물 발송은 관리자가 직접 처리합니다 (자동 결제·자동발송 시스템이 아닙니다).
+  app.post("/api/point-shop/:id/redeem", requireUser, (req: any, res) => {
+    const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
+    const item = items.find(i => i.id === req.params.id && i.isActive);
+    if (!item) return res.status(404).json({ success: false, error: "상품을 찾을 수 없습니다." });
+
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const idx = users.findIndex(u => u.id === req.currentUser.id);
+    if (idx === -1) return res.status(401).json({ success: false, error: "로그인이 필요합니다." });
+    if ((users[idx].points || 0) < item.pointCost) {
+      return res.status(400).json({ success: false, error: "포인트가 부족합니다." });
+    }
+    users[idx].points -= item.pointCost;
+    writeJsonFile("users.json", users);
+
+    const redemptions = readJsonFile<any[]>("redemptions.json", []);
+    const newRedemption = {
+      id: `redeem-${Date.now()}`,
+      userId: req.currentUser.id,
+      userNickname: req.currentUser.nickname,
+      userPhone: req.currentUser.phone,
+      itemName: item.name,
+      pointCost: item.pointCost,
+      status: "접수됨",
+      createdAt: new Date().toISOString()
+    };
+    redemptions.unshift(newRedemption);
+    writeJsonFile("redemptions.json", redemptions);
+
+    res.json({ success: true, remainingPoints: users[idx].points });
+  });
+
+  // 관리자가 교환 신청 목록을 확인하고 실제 발송 처리하는 화면용
+  app.get("/api/redemptions", requireAdmin, (_req, res) => {
+    const redemptions = readJsonFile<any[]>("redemptions.json", []);
+    res.json({ success: true, redemptions });
+  });
+
+  app.patch("/api/redemptions/:id", requireAdmin, (req, res) => {
+    const redemptions = readJsonFile<any[]>("redemptions.json", []);
+    const idx = redemptions.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "신청 내역을 찾을 수 없습니다." });
+    redemptions[idx].status = req.body.status || redemptions[idx].status;
+    writeJsonFile("redemptions.json", redemptions);
+    res.json({ success: true });
+  });
+
   // ---- 초보가이드 영상 (1~5편, 관리자만 업로드 가능) ----
   // MP4 파일은 용량이 커서 JSON에 담지 않고, 서버 디스크(영구 볼륨)에 직접 저장합니다.
   // ⚠️ Railway 볼륨 용량 제한을 넘으면 업로드가 실패하니, 볼륨 크기를 충분히 늘려주세요.
@@ -521,6 +641,7 @@ async function startServer() {
     };
     restaurants.unshift(newPost);
     writeJsonFile("restaurants.json", restaurants);
+    awardPoints(req.currentUser.id, 150);
     res.status(201).json({ success: true, restaurant: newPost, deleteToken });
   });
 
@@ -676,6 +797,9 @@ async function startServer() {
     preferredRegion?: string; // 선택: 주요 이용 지역
     averageScore?: string; // 선택: 평균 타수
     createdAt: string;
+    founderNumber: number; // 가입 순서(창립회원 번호) — 몇 번째로 가입했는지
+    points: number; // 마당P (실물 없이 배지·등급용으로만 쓰다가, 추후 교환소에서 실제 상품과 교환)
+    badges: string[]; // 활동으로 얻은 배지 목록 (예: '창립회원', '리뷰왕' 등)
   }
 
   function toPublicUser(u: AppUser) {
@@ -687,8 +811,23 @@ async function startServer() {
       nickname: u.nickname,
       preferredRegion: u.preferredRegion || '',
       averageScore: u.averageScore || '',
-      createdAt: u.createdAt
+      createdAt: u.createdAt,
+      founderNumber: u.founderNumber,
+      points: u.points,
+      badges: u.badges || []
     };
+  }
+
+  // 리뷰·동반자모집 등 활동으로 포인트를 적립하고, 조건을 만족하면 배지도 함께 부여합니다.
+  function awardPoints(userId: string, amount: number, newBadge?: string) {
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx === -1) return;
+    users[idx].points = (users[idx].points || 0) + amount;
+    if (newBadge && !(users[idx].badges || []).includes(newBadge)) {
+      users[idx].badges = [...(users[idx].badges || []), newBadge];
+    }
+    writeJsonFile("users.json", users);
   }
 
   function requireUser(req: any, res: any, next: any) {
@@ -740,7 +879,10 @@ async function startServer() {
       passwordHash,
       preferredRegion: preferredRegion ? String(preferredRegion).trim() : undefined,
       averageScore: averageScore ? String(averageScore).trim() : undefined,
-      createdAt: new Date().toISOString().slice(0, 10)
+      createdAt: new Date().toISOString().slice(0, 10),
+      founderNumber: users.length + 1,
+      points: 1000, // 가입축하 마당P
+      badges: ['창립회원']
     };
     users.push(newUser);
     writeJsonFile("users.json", users);
@@ -779,6 +921,13 @@ async function startServer() {
 
   app.get("/api/auth/me", requireUser, (req: any, res) => {
     res.json({ success: true, user: toPublicUser(req.currentUser) });
+  });
+
+  // 실제 가입자 수 — "창립회원 OOO/1,000명" 진행률바에 씁니다. 가짜 숫자를 넣지 않기 위해
+  // 항상 실제 회원 수를 그대로 돌려줍니다.
+  app.get("/api/auth/stats", (_req, res) => {
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    res.json({ success: true, totalUsers: users.length });
   });
 
   // Health check endpoint

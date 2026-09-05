@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { ParkCourse, Tournament, NewsItem, AdItem } from '../types';
 import {
@@ -42,6 +42,8 @@ export const AdminDashboardModal: React.FC = () => {
     deleteTournament,
     searchTournamentsWithAI,
     searchTournamentsAllRegions,
+    fetchRedemptions,
+    updateRedemptionStatus,
     news,
     addNews,
     updateNews,
@@ -60,7 +62,7 @@ export const AdminDashboardModal: React.FC = () => {
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'news' | 'matches' | 'reviews' | 'ads'>('courses');
+  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'news' | 'matches' | 'reviews' | 'ads' | 'redemptions'>('courses');
 
   // Edit / Form state for Course
   const [editingCourse, setEditingCourse] = useState<Partial<ParkCourse> | null>(null);
@@ -89,6 +91,16 @@ export const AdminDashboardModal: React.FC = () => {
   const [isBatchResearching, setIsBatchResearching] = useState(false);
   const [batchResearchResults, setBatchResearchResults] = useState<{ course: any; result: any }[]>([]);
   const [isBatchSearchingTournaments, setIsBatchSearchingTournaments] = useState(false);
+  const [redemptions, setRedemptions] = useState<any[]>([]);
+  const [isLoadingRedemptions, setIsLoadingRedemptions] = useState(false);
+
+  // 관리자 모달이 열려있을 때 교환 신청 배지 숫자(및 목록)를 미리 불러옵니다.
+  useEffect(() => {
+    if (activeModal && activeModal.type === 'admin') {
+      fetchRedemptions().then(setRedemptions);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModal]);
 
   if (!activeModal || activeModal.type !== 'admin') {
     return null;
@@ -249,7 +261,8 @@ export const AdminDashboardModal: React.FC = () => {
                 { id: 'news', label: '📰 뉴스 & AI작성', count: news.length },
                 { id: 'matches', label: '👥 라운딩 매칭', count: matches.length },
                 { id: 'reviews', label: '⭐ 후기 관리', count: reviews.length },
-                { id: 'ads', label: '📣 제휴광고', count: ads.length }
+                { id: 'ads', label: '📣 제휴광고', count: ads.length },
+                { id: 'redemptions', label: '🎁 교환신청', count: redemptions.filter((r: any) => r.status === '접수됨').length }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -1101,6 +1114,75 @@ export const AdminDashboardModal: React.FC = () => {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {activeTab === 'redemptions' && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-slate-900">
+                      마당P 교환 신청 관리 ({redemptions.length}건)
+                    </h3>
+                    <button
+                      onClick={async () => {
+                        setIsLoadingRedemptions(true);
+                        const data = await fetchRedemptions();
+                        setRedemptions(data);
+                        setIsLoadingRedemptions(false);
+                      }}
+                      disabled={isLoadingRedemptions}
+                      className="px-3 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-xs font-bold"
+                    >
+                      {isLoadingRedemptions ? '새로고침 중...' : '새로고침'}
+                    </button>
+                  </div>
+
+                  {redemptions.length === 0 ? (
+                    <p className="text-sm text-slate-400 py-8 text-center">아직 교환 신청이 없습니다.</p>
+                  ) : (
+                    redemptions.map((r: any) => (
+                      <div
+                        key={r.id}
+                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 flex-wrap"
+                      >
+                        <div>
+                          <span
+                            className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1 ${
+                              r.status === '접수됨'
+                                ? 'bg-amber-100 text-amber-800'
+                                : r.status === '발송완료'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {r.status}
+                          </span>
+                          <h5 className="font-bold text-slate-900 text-sm">{r.itemName}</h5>
+                          <p className="text-xs text-slate-500">
+                            신청자: {r.userNickname} · 연락처: {r.userPhone} · {r.pointCost.toLocaleString()}P 사용
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            신청일시: {new Date(r.createdAt).toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+                        {r.status === '접수됨' && (
+                          <button
+                            onClick={async () => {
+                              const ok = await updateRedemptionStatus(r.id, '발송완료');
+                              if (ok) {
+                                setRedemptions(prev =>
+                                  prev.map(x => (x.id === r.id ? { ...x, status: '발송완료' } : x))
+                                );
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+                          >
+                            발송완료 처리
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 

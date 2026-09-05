@@ -9,6 +9,7 @@ import {
   CoupangProduct,
   RestaurantPost,
   AppUser,
+  PointShopItem,
   FontSizeOption,
   RegionCategory
 } from '../types';
@@ -33,6 +34,7 @@ interface ModalState {
     | 'newReview'
     | 'admin'
     | 'auth'
+    | 'myPage'
     | 'aiBot'
     | 'policy'
     | 'appInstall';
@@ -87,6 +89,11 @@ interface ParkGolfContextType {
   }) => Promise<boolean>;
   loginUser: (phone: string, password: string) => Promise<boolean>;
   logoutUser: () => void;
+  pointShopItems: PointShopItem[];
+  redeemPointShopItem: (itemId: string) => Promise<boolean>;
+  totalUsers: number;
+  fetchRedemptions: () => Promise<any[]>;
+  updateRedemptionStatus: (id: string, status: string) => Promise<boolean>;
   loginAdmin: (password: string) => Promise<boolean>;
   logoutAdmin: () => void;
   resetToDefaultData: () => void;
@@ -224,7 +231,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes, pointShopRes, authStatsRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
@@ -232,7 +239,9 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           fetch('/api/restaurants'),
           fetch('/api/tournaments'),
           fetch('/api/course-overrides'),
-          fetch('/api/guide-videos')
+          fetch('/api/guide-videos'),
+          fetch('/api/point-shop'),
+          fetch('/api/auth/stats')
         ]);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
@@ -274,6 +283,14 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const data = await guideVideosRes.json();
           if (data.success) setGuideVideos(data.videos);
         }
+        if (pointShopRes.ok) {
+          const data = await pointShopRes.json();
+          if (data.success) setPointShopItems(data.items);
+        }
+        if (authStatsRes.ok) {
+          const data = await authStatsRes.json();
+          if (data.success) setTotalUsers(data.totalUsers);
+        }
       } catch (err) {
         // 서버에서 못 가져오면 localStorage에 저장된 값(초기 state)을 그대로 사용합니다.
         console.warn('서버에서 공유 데이터를 불러오지 못했습니다. 로컬 데이터로 표시합니다.', err);
@@ -295,6 +312,8 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [activeModal, setActiveModal] = useState<ModalState | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
+  const [pointShopItems, setPointShopItems] = useState<PointShopItem[]>([]);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
   // 저장된 회원 로그인 토큰이 아직 유효한지 서버에 물어봅니다 (탭을 새로고침해도 로그인 유지).
@@ -547,6 +566,57 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     setCurrentUser(null);
     localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
+  };
+
+  // 마당P로 실제 상품을 교환 신청합니다. 자동 결제·자동발송이 아니라, 신청이 접수되면
+  // 관리자가 실제로 확인하고 발송을 처리합니다.
+  const redeemPointShopItem = async (itemId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/point-shop/${itemId}/redeem`, {
+        method: 'POST',
+        headers: userAuthHeaders()
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '교환 신청에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      setCurrentUser(prev => (prev ? { ...prev, points: data.remainingPoints } : prev));
+      alert('교환 신청이 접수되었습니다! 관리자가 확인 후 순차적으로 발송해드립니다.');
+      return true;
+    } catch (err) {
+      console.error('교환 신청 실패:', err);
+      alert('교환 신청 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  // 관리자 전용 — 교환 신청 목록 조회 및 처리 상태 변경
+  const fetchRedemptions = async (): Promise<any[]> => {
+    try {
+      const res = await fetch('/api/redemptions', { headers: adminAuthHeaders() });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.redemptions || [];
+    } catch (err) {
+      console.error('교환 신청 목록 조회 실패:', err);
+      return [];
+    }
+  };
+
+  const updateRedemptionStatus = async (id: string, status: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/redemptions/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ status })
+      });
+      return res.ok;
+    } catch (err) {
+      console.error('교환 신청 상태 변경 실패:', err);
+      return false;
+    }
   };
 
   // 이 브라우저가 해당 동반자 모집글의 작성자인지 (삭제 토큰을 갖고 있는지) 확인합니다.
@@ -1181,6 +1251,11 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         registerUser,
         loginUser,
         logoutUser,
+        pointShopItems,
+        redeemPointShopItem,
+        totalUsers,
+        fetchRedemptions,
+        updateRedemptionStatus,
         loginAdmin,
         logoutAdmin,
         resetToDefaultData,

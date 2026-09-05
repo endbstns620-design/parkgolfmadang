@@ -29,8 +29,7 @@ export const HeaderNavbar: React.FC = () => {
     reviews,
     coupangProducts,
     isAdmin,
-    currentUser,
-    logoutUser
+    currentUser
   } = useParkGolf();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -167,15 +166,12 @@ export const HeaderNavbar: React.FC = () => {
             {currentUser ? (
               <button
                 id="header-user-menu-btn"
-                onClick={() => {
-                  if (window.confirm(`${currentUser.nickname}님, 로그아웃하시겠습니까?`)) {
-                    logoutUser();
-                  }
-                }}
-                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
+                onClick={() => openModal('myPage')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
               >
                 <UserCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                 <span>{currentUser.nickname}님</span>
+                <span className="hidden sm:inline text-amber-600 font-extrabold">· {currentUser.points.toLocaleString()}P</span>
               </button>
             ) : (
               <button

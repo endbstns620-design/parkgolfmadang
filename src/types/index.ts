@@ -6,6 +6,18 @@ export interface AppUser {
   preferredRegion?: string;
   averageScore?: string;
   createdAt: string;
+  founderNumber: number;
+  points: number;
+  badges: string[];
+}
+
+export interface PointShopItem {
+  id: string;
+  name: string;
+  category: string;
+  pointCost: number;
+  referenceUrl?: string;
+  isActive: boolean;
 }
 
 export type RegionCategory =

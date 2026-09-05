@@ -28,6 +28,7 @@ import { ReviewWriteModal } from './components/ReviewWriteModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { PolicyRulesModal } from './components/PolicyRulesModal';
 import { AuthModal } from './components/AuthModal';
+import { MyPageModal } from './components/MyPageModal';
 
 const ParkGolfApp: React.FC = () => {
   const { activeTab } = useParkGolf();
@@ -131,6 +132,7 @@ const ParkGolfApp: React.FC = () => {
       <AdminDashboardModal />
       <PolicyRulesModal />
       <AuthModal />
+      <MyPageModal />
     </div>
   );
 };
