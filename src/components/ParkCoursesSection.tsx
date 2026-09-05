@@ -751,10 +751,6 @@ export const ParkCoursesSection: React.FC = () => {
                             {course.name}
                           </h4>
                         </div>
-                        <div className="flex items-center gap-0.5 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded shrink-0">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span>{course.rating.toFixed(1)}</span>
-                        </div>
                       </div>
 
                       {/* Concise Info Box */}
@@ -850,11 +846,6 @@ export const ParkCoursesSection: React.FC = () => {
                             >
                               {course.name}
                             </h4>
-                            <div className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">
-                              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                              <span>{course.rating.toFixed(1)}</span>
-                              <span className="text-slate-400 font-normal">({course.reviewCount}개 후기)</span>
-                            </div>
                           </div>
                           <p className="text-xs sm:text-sm text-slate-600 font-medium flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />

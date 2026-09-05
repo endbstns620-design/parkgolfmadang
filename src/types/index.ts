@@ -1,3 +1,13 @@
+export interface AppUser {
+  id: string;
+  name: string; // 실명 (본인만 확인 가능, 다른 이용자에게는 비공개)
+  phone: string; // 휴대폰 (본인만 확인 가능, 다른 이용자에게는 비공개)
+  nickname: string; // 사이트에서 공개적으로 쓰이는 이름
+  preferredRegion?: string;
+  averageScore?: string;
+  createdAt: string;
+}
+
 export type RegionCategory =
   | '전체'
   | '서울/경기/인천'
@@ -141,6 +151,7 @@ export interface NewsItem {
 
 export interface ReviewItem {
   id: string;
+  authorUserId?: string;
   courseId: string;
   courseName: string;
   authorName: string;
@@ -167,6 +178,7 @@ export interface MatchingComment {
 
 export interface MatchingPost {
   id: string;
+  authorUserId?: string;
   title: string;
   region: string;
   courseName: string;
@@ -213,6 +225,7 @@ export interface AdItem {
 
 export interface RestaurantPost {
   id: string;
+  authorUserId?: string;
   courseName: string;
   region: string;
   restaurantName: string;

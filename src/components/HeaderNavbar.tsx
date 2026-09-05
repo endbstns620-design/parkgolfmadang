@@ -12,6 +12,8 @@ import {
   Building2,
   ShieldCheck,
   UserCheck,
+  UserCircle2,
+  LogIn,
   UtensilsCrossed,
   ShoppingBag
 } from 'lucide-react';
@@ -26,7 +28,9 @@ export const HeaderNavbar: React.FC = () => {
     matches,
     reviews,
     coupangProducts,
-    isAdmin
+    isAdmin,
+    currentUser,
+    logoutUser
   } = useParkGolf();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -135,7 +139,7 @@ export const HeaderNavbar: React.FC = () => {
           <div
             id="brand-logo"
             onClick={() => {
-              setActiveTab('courses');
+              setActiveTab('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
@@ -160,6 +164,31 @@ export const HeaderNavbar: React.FC = () => {
 
           {/* Right Quick Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {currentUser ? (
+              <button
+                id="header-user-menu-btn"
+                onClick={() => {
+                  if (window.confirm(`${currentUser.nickname}님, 로그아웃하시겠습니까?`)) {
+                    logoutUser();
+                  }
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
+              >
+                <UserCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{currentUser.nickname}님</span>
+              </button>
+            ) : (
+              <button
+                id="header-user-login-btn"
+                onClick={() => openModal('auth')}
+                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
+              >
+                <LogIn className="w-3.5 h-3.5 text-emerald-700" />
+                <span className="hidden sm:inline">로그인 / 회원가입</span>
+                <span className="inline sm:hidden">로그인</span>
+              </button>
+            )}
+
             <button
               id="header-admin-login-btn"
               onClick={() => openModal('admin')}

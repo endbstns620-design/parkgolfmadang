@@ -24,7 +24,7 @@ import { getMeetDateBadgeInfo } from '../utils/matchAutoCleaner';
 import { validatePostContent, ModerationResult } from '../utils/contentModeration';
 
 export const MatchingPostModal: React.FC = () => {
-  const { activeModal, closeModal, addMatch, addMatchComment, matches, updateMatchStatus, deleteMatch, isAdmin, isMyMatch } = useParkGolf();
+  const { activeModal, closeModal, addMatch, addMatchComment, matches, updateMatchStatus, deleteMatch, isAdmin, isMyMatch, currentUser, openModal } = useParkGolf();
 
   // State for writing a new post
   const [newTitle, setNewTitle] = useState('');
@@ -57,14 +57,37 @@ export const MatchingPostModal: React.FC = () => {
   }
 
   const isNewPost = activeModal.type === 'newMatch';
+
+  // 새 글쓰기는 회원만 가능합니다 — 비회원이면 로그인 안내로 대체합니다.
+  if (isNewPost && !currentUser) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={closeModal}>
+        <div className="bg-white rounded-3xl max-w-sm w-full p-7 text-center" onClick={e => e.stopPropagation()}>
+          <p className="text-lg font-extrabold text-slate-900 mb-2">로그인이 필요합니다</p>
+          <p className="text-sm text-slate-500 mb-5">동반자 모집글은 회원만 작성할 수 있습니다.</p>
+          <button
+            onClick={() => {
+              closeModal();
+              openModal('auth');
+            }}
+            className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm cursor-pointer"
+          >
+            로그인 / 회원가입
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const post: MatchingPost | undefined = isNewPost
     ? undefined
     : matches.find(m => m.id === activeModal.data?.id) || activeModal.data;
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newCourseName.trim() || !newAuthorName.trim() || !newAuthorPhone.trim()) {
-      alert('제목, 구장명, 작성자 성함, 연락처를 모두 입력해주세요.');
+    if (!currentUser) return;
+    if (!newTitle.trim() || !newCourseName.trim() || !newAuthorPhone.trim()) {
+      alert('제목, 구장명, 연락처를 모두 입력해주세요.');
       return;
     }
 
@@ -72,7 +95,7 @@ export const MatchingPostModal: React.FC = () => {
     const moderationResult = validatePostContent({
       title: newTitle.trim(),
       courseName: newCourseName.trim(),
-      authorName: newAuthorName.trim(),
+      authorName: currentUser.nickname,
       authorPhone: newAuthorPhone.trim(),
       description: newDescription.trim()
     });
@@ -92,7 +115,7 @@ export const MatchingPostModal: React.FC = () => {
       currentCount: Number(newCurrentCount),
       maxCount: Number(newMaxCount),
       status: '모집중',
-      authorName: newAuthorName.trim(),
+      authorName: currentUser.nickname,
       authorPhone: newAuthorPhone.trim(),
       handicap: newHandicap.trim(),
       costShare: newCostShare.trim(),
@@ -106,14 +129,18 @@ export const MatchingPostModal: React.FC = () => {
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!post) return;
-    if (!commentAuthor.trim() || !commentContent.trim()) {
-      alert('성함과 신청 내용을 입력해주세요.');
+    if (!currentUser) {
+      openModal('auth');
+      return;
+    }
+    if (!commentContent.trim()) {
+      alert('신청 내용을 입력해주세요.');
       return;
     }
 
     // Moderate comments as well
     const moderationResult = validatePostContent({
-      authorName: commentAuthor.trim(),
+      authorName: currentUser.nickname,
       authorPhone: commentPhone.trim(),
       content: commentContent.trim()
     });
@@ -124,7 +151,7 @@ export const MatchingPostModal: React.FC = () => {
     }
 
     addMatchComment(post.id, {
-      authorName: commentAuthor.trim(),
+      authorName: currentUser.nickname,
       authorPhone: commentPhone.trim(),
       content: commentContent.trim()
     });
@@ -277,16 +304,11 @@ export const MatchingPostModal: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1">
-                    작성자 성함/닉네임 *
+                    작성자
                   </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="예: 김*수 (60대)"
-                    value={newAuthorName}
-                    onChange={e => setNewAuthorName(e.target.value)}
-                    className="w-full p-3 rounded-xl border border-slate-300 font-bold"
-                  />
+                  <div className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-600">
+                    {currentUser?.nickname}
+                  </div>
                 </div>
 
                 <div>

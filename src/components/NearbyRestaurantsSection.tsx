@@ -5,7 +5,7 @@ import { UtensilsCrossed, PlusCircle, X, MapPin, Clock, PhoneCall, Trash2, Searc
 import { InlineAdBanner } from './InlineAdBanner';
 
 export const NearbyRestaurantsSection: React.FC = () => {
-  const { restaurants, addRestaurant, deleteRestaurant, isMyRestaurant, isAdmin, ads } = useParkGolf();
+  const { restaurants, addRestaurant, deleteRestaurant, isMyRestaurant, isAdmin, ads, currentUser, openModal } = useParkGolf();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<RestaurantPost | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,8 +19,7 @@ export const NearbyRestaurantsSection: React.FC = () => {
     address: '',
     phoneNumber: '',
     businessHours: '',
-    description: '',
-    authorName: ''
+    description: ''
   });
 
   const filtered = useMemo(() => {
@@ -35,15 +34,28 @@ export const NearbyRestaurantsSection: React.FC = () => {
     );
   }, [restaurants, searchQuery]);
 
+  const handleWriteClick = () => {
+    if (!currentUser) {
+      openModal('auth');
+      return;
+    }
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.courseName.trim() || !form.restaurantName.trim() || !form.authorName.trim()) {
-      alert('구장명, 맛집명, 작성자 닉네임은 필수입니다.');
+    if (!currentUser) {
+      openModal('auth');
+      return;
+    }
+    if (!form.courseName.trim() || !form.restaurantName.trim()) {
+      alert('구장명과 맛집명은 필수입니다.');
       return;
     }
     setIsSubmitting(true);
     const success = await addRestaurant({
       ...form,
+      authorName: currentUser.nickname,
       region: form.region.trim() || form.courseName,
       address: form.address.trim() || '확인 필요',
       phoneNumber: form.phoneNumber.trim() || '확인 필요',
@@ -55,7 +67,7 @@ export const NearbyRestaurantsSection: React.FC = () => {
     if (success) {
       setForm({
         courseName: '', region: '', restaurantName: '', menu: '',
-        address: '', phoneNumber: '', businessHours: '', description: '', authorName: ''
+        address: '', phoneNumber: '', businessHours: '', description: ''
       });
       setShowForm(false);
     }
@@ -79,7 +91,7 @@ export const NearbyRestaurantsSection: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setShowForm(true)}
+          onClick={handleWriteClick}
           className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm shadow transition-all shrink-0 cursor-pointer"
         >
           <PlusCircle className="w-4 h-4" />
@@ -297,13 +309,10 @@ export const NearbyRestaurantsSection: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-xs font-bold text-slate-600 mb-1 block">작성자 닉네임 *</label>
-                <input
-                  type="text"
-                  value={form.authorName}
-                  onChange={e => setForm({ ...form, authorName: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/30"
-                />
+                <label className="text-xs font-bold text-slate-600 mb-1 block">작성자</label>
+                <div className="w-full px-3 py-2.5 border border-slate-200 bg-slate-50 rounded-xl text-sm font-bold text-slate-600">
+                  {currentUser?.nickname}
+                </div>
               </div>
 
               <button

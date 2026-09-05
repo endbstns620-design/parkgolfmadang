@@ -53,6 +53,10 @@ export const ParkDetailModal: React.FC = () => {
 
   const course: ParkCourse = activeModal.data;
   const courseReviews = reviews.filter(r => r.courseId === course.id);
+  const realAverageRating =
+    courseReviews.length > 0
+      ? courseReviews.reduce((sum, r) => sum + r.rating, 0) / courseReviews.length
+      : null;
   const isFree = checkIsFreeCourse(course);
   const structures = getCourseStructure(course);
   const totalPar = structures.reduce((sum, s) => sum + s.par, 0);
@@ -661,8 +665,14 @@ export const ParkDetailModal: React.FC = () => {
                 <div>
                   <div className="text-xs font-extrabold text-slate-500">종합 만족도 평점</div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-3xl font-black text-slate-900">★ {course.rating.toFixed(1)}</span>
-                    <span className="text-xs text-slate-500">({courseReviews.length}개의 생생 방문 후기)</span>
+                    {realAverageRating !== null ? (
+                      <>
+                        <span className="text-3xl font-black text-slate-900">★ {realAverageRating.toFixed(1)}</span>
+                        <span className="text-xs text-slate-500">({courseReviews.length}개의 생생 방문 후기)</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-slate-400 font-bold">아직 등록된 후기가 없습니다</span>
+                    )}
                   </div>
                 </div>
 

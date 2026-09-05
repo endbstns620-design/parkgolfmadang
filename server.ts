@@ -1,12 +1,16 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import crypto from "crypto";
+import multer from "multer";
+import bcrypt from "bcryptjs";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { readJsonFile, writeJsonFile } from "./server-lib/jsonStore";
 import { RESTAURANT_SEED } from "./server-lib/restaurantSeed";
 import { INITIAL_TOURNAMENTS } from "./src/data/initialTournamentsData";
+import { COURSE_OVERRIDES_SEED } from "./server-lib/courseOverridesSeed";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
 
 dotenv.config();
@@ -126,11 +130,12 @@ async function startServer() {
     res.json({ success: true, reviews });
   });
 
-  app.post("/api/reviews", (req, res) => {
+  app.post("/api/reviews", requireUser, (req: any, res) => {
     const body = req.body || {};
+    const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
       title: body.title,
-      authorName: body.authorName,
+      authorName,
       content: body.content
     });
     if (!moderation.isValid) {
@@ -139,6 +144,8 @@ async function startServer() {
     const reviews = readJsonFile<ReviewItem[]>("reviews.json", []);
     const newReview: ReviewItem = {
       ...body,
+      authorName,
+      authorUserId: req.currentUser.id,
       id: `rev-${Date.now()}`,
       createdAt: new Date().toISOString().slice(0, 10)
     };
@@ -162,12 +169,13 @@ async function startServer() {
     res.json({ success: true, matches: publicMatches });
   });
 
-  app.post("/api/matches", (req, res) => {
+  app.post("/api/matches", requireUser, (req: any, res) => {
     const body = req.body || {};
+    const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
       title: body.title,
       courseName: body.courseName,
-      authorName: body.authorName,
+      authorName,
       authorPhone: body.authorPhone,
       description: body.description
     });
@@ -178,6 +186,8 @@ async function startServer() {
     const deleteToken = crypto.randomBytes(20).toString("hex");
     const newPost: MatchingPost & { deleteToken: string } = {
       ...body,
+      authorName,
+      authorUserId: req.currentUser.id,
       id: `match-${Date.now()}`,
       createdAt: new Date().toISOString().slice(0, 10),
       closedAt: body.status === "마감" ? new Date().toISOString() : undefined,
@@ -208,10 +218,11 @@ async function startServer() {
     res.json({ success: true, match: matches[idx] });
   });
 
-  app.post("/api/matches/:id/comments", (req, res) => {
+  app.post("/api/matches/:id/comments", requireUser, (req: any, res) => {
     const body = req.body || {};
+    const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
-      authorName: body.authorName,
+      authorName,
       authorPhone: body.authorPhone,
       content: body.content
     });
@@ -224,7 +235,7 @@ async function startServer() {
     const newComment: MatchingComment = {
       id: `c-${Date.now()}`,
       postId: req.params.id,
-      authorName: body.authorName,
+      authorName,
       authorPhone: body.authorPhone,
       content: body.content,
       createdAt: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })
@@ -291,12 +302,12 @@ async function startServer() {
   // 그래서 관리자가 조사·수정한 내용은 "덮어쓸 내용만" 여기 서버에 저장하고,
   // 방문자가 접속할 때 이 값을 기존 구장 정보 위에 덧씌워서 보여줍니다.
   app.get("/api/course-overrides", (_req, res) => {
-    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", {});
+    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", COURSE_OVERRIDES_SEED);
     res.json({ success: true, overrides });
   });
 
   app.post("/api/course-overrides/:id", requireAdmin, (req, res) => {
-    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", {});
+    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", COURSE_OVERRIDES_SEED);
     overrides[req.params.id] = { ...(overrides[req.params.id] || {}), ...req.body };
     writeJsonFile("course-overrides.json", overrides);
     res.json({ success: true, override: overrides[req.params.id] });
@@ -416,6 +427,65 @@ async function startServer() {
     }
   });
 
+  // ---- 초보가이드 영상 (1~5편, 관리자만 업로드 가능) ----
+  // MP4 파일은 용량이 커서 JSON에 담지 않고, 서버 디스크(영구 볼륨)에 직접 저장합니다.
+  // ⚠️ Railway 볼륨 용량 제한을 넘으면 업로드가 실패하니, 볼륨 크기를 충분히 늘려주세요.
+  const videosDir = path.join(process.cwd(), "data", "videos");
+  if (!fs.existsSync(videosDir)) {
+    fs.mkdirSync(videosDir, { recursive: true });
+  }
+
+  const videoUpload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, videosDir),
+      filename: (req, _file, cb) => cb(null, `guide-${req.params.slot}.mp4`)
+    }),
+    limits: { fileSize: 300 * 1024 * 1024 }, // 편당 최대 300MB
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype !== "video/mp4") {
+        return cb(new Error("MP4 파일만 업로드할 수 있습니다."));
+      }
+      cb(null, true);
+    }
+  });
+
+  // 업로드된 영상 파일을 그대로 내려주는 정적 경로
+  app.use("/videos", express.static(videosDir));
+
+  app.get("/api/guide-videos", (_req, res) => {
+    const meta = readJsonFile<Record<string, { uploadedAt: string; fileName: string }>>("guide-videos.json", {});
+    res.json({ success: true, videos: meta });
+  });
+
+  app.post("/api/guide-videos/:slot", requireAdmin, (req, res) => {
+    const slot = req.params.slot;
+    if (!["1", "2", "3", "4", "5"].includes(slot)) {
+      return res.status(400).json({ success: false, error: "잘못된 편 번호입니다." });
+    }
+    videoUpload.single("video")(req, res, err => {
+      if (err) {
+        return res.status(400).json({ success: false, error: err.message || "업로드에 실패했습니다." });
+      }
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: "영상 파일이 없습니다." });
+      }
+      const meta = readJsonFile<Record<string, any>>("guide-videos.json", {});
+      meta[slot] = { uploadedAt: new Date().toISOString(), fileName: `guide-${slot}.mp4` };
+      writeJsonFile("guide-videos.json", meta);
+      res.status(201).json({ success: true, videoUrl: `/videos/guide-${slot}.mp4` });
+    });
+  });
+
+  app.delete("/api/guide-videos/:slot", requireAdmin, (req, res) => {
+    const slot = req.params.slot;
+    const filePath = path.join(videosDir, `guide-${slot}.mp4`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    const meta = readJsonFile<Record<string, any>>("guide-videos.json", {});
+    delete meta[slot];
+    writeJsonFile("guide-videos.json", meta);
+    res.json({ success: true });
+  });
+
   // ---- 구장 근처 맛집 게시판 ----
   // 방문자 누구나 글을 쓸 수 있고(스팸 필터만 적용), 본인 글은 삭제 토큰으로 직접 삭제할 수 있습니다.
   // 서버에 저장된 데이터가 없으면 사전 조사한 30곳(RESTAURANT_SEED)으로 시작합니다.
@@ -425,11 +495,12 @@ async function startServer() {
     res.json({ success: true, restaurants: publicList });
   });
 
-  app.post("/api/restaurants", (req, res) => {
+  app.post("/api/restaurants", requireUser, (req: any, res) => {
     const body = req.body || {};
+    const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
       title: body.restaurantName,
-      authorName: body.authorName,
+      authorName,
       content: body.description
     });
     if (!moderation.isValid) {
@@ -442,6 +513,8 @@ async function startServer() {
     const deleteToken = crypto.randomBytes(20).toString("hex");
     const newPost = {
       ...body,
+      authorName,
+      authorUserId: req.currentUser.id,
       id: `rest-${Date.now()}`,
       createdAt: new Date().toISOString().slice(0, 10),
       deleteToken
@@ -584,6 +657,128 @@ async function startServer() {
 
   app.get("/api/admin/check", requireAdmin, (_req, res) => {
     res.json({ success: true, isAdmin: true });
+  });
+
+  // =========================================================================
+  // 회원가입 · 로그인 (일반 이용자)
+  // 비회원도 모든 글은 열람할 수 있지만, 글쓰기(동반자모집·구장리뷰·맛집추천 등)는
+  // 회원만 가능합니다. 관리자 인증(requireAdmin)과는 완전히 별개의 시스템입니다.
+  // =========================================================================
+  const userSessions = new Map<string, { userId: string; expiresAt: number }>();
+  const USER_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30일
+
+  interface AppUser {
+    id: string;
+    name: string; // 실명 (본인확인용, 비공개 — 다른 이용자에게 절대 노출되지 않음)
+    phone: string; // 휴대폰 (본인확인용, 비공개)
+    nickname: string; // 사이트에서 공개적으로 쓰이는 이름
+    passwordHash: string;
+    preferredRegion?: string; // 선택: 주요 이용 지역
+    averageScore?: string; // 선택: 평균 타수
+    createdAt: string;
+  }
+
+  function toPublicUser(u: AppUser) {
+    // 본인 화면에는 실명·휴대폰까지 보여주되(본인 확인용), 다른 사람에게는 절대 전달하지 않습니다.
+    return {
+      id: u.id,
+      name: u.name,
+      phone: u.phone,
+      nickname: u.nickname,
+      preferredRegion: u.preferredRegion || '',
+      averageScore: u.averageScore || '',
+      createdAt: u.createdAt
+    };
+  }
+
+  function requireUser(req: any, res: any, next: any) {
+    const authHeader = req.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+    const session = token ? userSessions.get(token) : undefined;
+    if (!session || Date.now() > session.expiresAt) {
+      if (token) userSessions.delete(token);
+      return res.status(401).json({ success: false, error: "로그인이 필요합니다." });
+    }
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const user = users.find(u => u.id === session.userId);
+    if (!user) {
+      return res.status(401).json({ success: false, error: "로그인이 필요합니다." });
+    }
+    req.currentUser = user;
+    next();
+  }
+
+  app.post("/api/auth/register", async (req, res) => {
+    const { name, phone, password, nickname, preferredRegion, averageScore } = req.body || {};
+    if (!name || !phone || !password || !nickname) {
+      return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 비밀번호, 닉네임은 필수입니다." });
+    }
+    const phoneDigits = String(phone).replace(/[^0-9]/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      return res.status(400).json({ success: false, error: "휴대폰번호 형식을 확인해주세요." });
+    }
+    if (String(password).length < 6) {
+      return res.status(400).json({ success: false, error: "비밀번호는 6자 이상이어야 합니다." });
+    }
+    const moderation = validatePostContent({ authorName: nickname });
+    if (!moderation.isValid) {
+      return res.status(400).json({ success: false, error: moderation.reason || "닉네임에 부적절한 내용이 포함되어 있습니다." });
+    }
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    if (users.some(u => u.phone === phoneDigits)) {
+      return res.status(409).json({ success: false, error: "이미 가입된 휴대폰번호입니다." });
+    }
+    if (users.some(u => u.nickname === String(nickname).trim())) {
+      return res.status(409).json({ success: false, error: "이미 사용 중인 닉네임입니다." });
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser: AppUser = {
+      id: `user-${Date.now()}`,
+      name: String(name).trim(),
+      phone: phoneDigits,
+      nickname: String(nickname).trim(),
+      passwordHash,
+      preferredRegion: preferredRegion ? String(preferredRegion).trim() : undefined,
+      averageScore: averageScore ? String(averageScore).trim() : undefined,
+      createdAt: new Date().toISOString().slice(0, 10)
+    };
+    users.push(newUser);
+    writeJsonFile("users.json", users);
+
+    const token = crypto.randomBytes(24).toString("hex");
+    userSessions.set(token, { userId: newUser.id, expiresAt: Date.now() + USER_SESSION_TTL_MS });
+    res.status(201).json({ success: true, token, user: toPublicUser(newUser) });
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    const { phone, password } = req.body || {};
+    if (!phone || !password) {
+      return res.status(400).json({ success: false, error: "휴대폰번호와 비밀번호를 입력해주세요." });
+    }
+    const phoneDigits = String(phone).replace(/[^0-9]/g, "");
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const user = users.find(u => u.phone === phoneDigits);
+    if (!user) {
+      return res.status(401).json({ success: false, error: "휴대폰번호 또는 비밀번호가 올바르지 않습니다." });
+    }
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      return res.status(401).json({ success: false, error: "휴대폰번호 또는 비밀번호가 올바르지 않습니다." });
+    }
+    const token = crypto.randomBytes(24).toString("hex");
+    userSessions.set(token, { userId: user.id, expiresAt: Date.now() + USER_SESSION_TTL_MS });
+    res.json({ success: true, token, user: toPublicUser(user) });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    const authHeader = req.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+    if (token) userSessions.delete(token);
+    res.json({ success: true });
+  });
+
+  app.get("/api/auth/me", requireUser, (req: any, res) => {
+    res.json({ success: true, user: toPublicUser(req.currentUser) });
   });
 
   // Health check endpoint

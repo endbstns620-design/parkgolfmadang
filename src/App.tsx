@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ParkGolfProvider, useParkGolf } from './context/ParkGolfContext';
 import { SeniorAccessibilityBar } from './components/SeniorAccessibilityBar';
 import { HeaderNavbar } from './components/HeaderNavbar';
-import { HeroSearchSection } from './components/HeroSearchSection';
+import { MainHomeSection } from './components/MainHomeSection';
 import { ParkCoursesSection } from './components/ParkCoursesSection';
 import { TournamentSection } from './components/TournamentSection';
-import { NewsSection } from './components/NewsSection';
+import { BeginnerVideoGuideSection } from './components/BeginnerVideoGuideSection';
 import { ReviewsSection } from './components/ReviewsSection';
 import { ClubMatchingSection } from './components/ClubMatchingSection';
 import { AdsSection } from './components/AdsSection';
@@ -27,6 +27,7 @@ import { MatchingPostModal } from './components/MatchingPostModal';
 import { ReviewWriteModal } from './components/ReviewWriteModal';
 import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { PolicyRulesModal } from './components/PolicyRulesModal';
+import { AuthModal } from './components/AuthModal';
 
 const ParkGolfApp: React.FC = () => {
   const { activeTab } = useParkGolf();
@@ -41,19 +42,17 @@ const ParkGolfApp: React.FC = () => {
   // Render the specific active page based on category navigation
   const renderActiveScreen = () => {
     switch (activeTab) {
+      case 'home':
+        return <MainHomeSection />;
+
       case 'courses':
-        return (
-          <div className="space-y-6">
-            <HeroSearchSection />
-            <ParkCoursesSection />
-          </div>
-        );
+        return <ParkCoursesSection />;
 
       case 'tournaments':
         return <TournamentSection />;
 
       case 'news':
-        return <NewsSection />;
+        return <BeginnerVideoGuideSection />;
 
       case 'matching':
         return <ClubMatchingSection />;
@@ -83,12 +82,7 @@ const ParkGolfApp: React.FC = () => {
         return <AssociationRulesGuideSection />;
 
       default:
-        return (
-          <div className="space-y-6">
-            <HeroSearchSection />
-            <ParkCoursesSection />
-          </div>
-        );
+        return <MainHomeSection />;
     }
   };
 
@@ -136,6 +130,7 @@ const ParkGolfApp: React.FC = () => {
       <ReviewWriteModal />
       <AdminDashboardModal />
       <PolicyRulesModal />
+      <AuthModal />
     </div>
   );
 };

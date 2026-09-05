@@ -8,6 +8,7 @@ import {
   AdItem,
   CoupangProduct,
   RestaurantPost,
+  AppUser,
   FontSizeOption,
   RegionCategory
 } from '../types';
@@ -31,6 +32,7 @@ interface ModalState {
     | 'newMatch'
     | 'newReview'
     | 'admin'
+    | 'auth'
     | 'aiBot'
     | 'policy'
     | 'appInstall';
@@ -74,6 +76,17 @@ interface ParkGolfContextType {
 
   // Admin
   isAdmin: boolean;
+  currentUser: AppUser | null;
+  registerUser: (input: {
+    name: string;
+    phone: string;
+    password: string;
+    nickname: string;
+    preferredRegion?: string;
+    averageScore?: string;
+  }) => Promise<boolean>;
+  loginUser: (phone: string, password: string) => Promise<boolean>;
+  logoutUser: () => void;
   loginAdmin: (password: string) => Promise<boolean>;
   logoutAdmin: () => void;
   resetToDefaultData: () => void;
@@ -86,6 +99,9 @@ interface ParkGolfContextType {
   deleteCourse: (id: string) => void;
   researchCourseWithAI: (courseName: string, address: string, silent?: boolean) => Promise<any | null>;
   researchCoursesBatch: (count: number, onProgress: (item: { course: ParkCourse; result: any | null }) => void) => Promise<void>;
+  guideVideos: Record<string, { uploadedAt: string; fileName: string }>;
+  uploadGuideVideo: (slot: string, file: File) => Promise<boolean>;
+  deleteGuideVideo: (slot: string) => Promise<void>;
 
   // CRUD for Tournaments
   addTournament: (tour: Omit<Tournament, 'id'>) => void;
@@ -136,6 +152,7 @@ const STORAGE_KEYS = {
   FONT_SIZE: 'parkgolf_madang_fontsize',
   ADMIN_AUTH: 'parkgolf_madang_isadmin',
   ADMIN_TOKEN: 'parkgolf_madang_admin_token',
+  USER_TOKEN: 'parkgolf_madang_user_token',
   MY_MATCH_TOKENS: 'parkgolf_madang_my_match_tokens',
   MY_RESTAURANT_TOKENS: 'parkgolf_madang_my_restaurant_tokens'
 };
@@ -200,20 +217,22 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [coupangProducts, setCoupangProducts] = useState<CoupangProduct[]>([]);
   const [restaurants, setRestaurants] = useState<RestaurantPost[]>([]);
+  const [guideVideos, setGuideVideos] = useState<Record<string, { uploadedAt: string; fileName: string }>>({});
 
   // 서버에 저장된 리뷰 · 동반자모집 · 광고 · 쿠팡파트너스 상품을 불러옵니다.
   // 이렇게 해야 방문자 A가 남긴 글을 방문자 B도 볼 수 있습니다 (localStorage는 브라우저별로 분리되어 있어 공유되지 않습니다).
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
           fetch('/api/coupang-products'),
           fetch('/api/restaurants'),
           fetch('/api/tournaments'),
-          fetch('/api/course-overrides')
+          fetch('/api/course-overrides'),
+          fetch('/api/guide-videos')
         ]);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
@@ -251,6 +270,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             );
           }
         }
+        if (guideVideosRes.ok) {
+          const data = await guideVideosRes.json();
+          if (data.success) setGuideVideos(data.videos);
+        }
       } catch (err) {
         // 서버에서 못 가져오면 localStorage에 저장된 값(초기 state)을 그대로 사용합니다.
         console.warn('서버에서 공유 데이터를 불러오지 못했습니다. 로컬 데이터로 표시합니다.', err);
@@ -259,7 +282,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   // UI state
-  const [activeTab, setActiveTab] = useState<string>('courses');
+  const [activeTab, setActiveTab] = useState<string>('home');
   const [fontSize, setFontSizeState] = useState<FontSizeOption>(() => {
     return (localStorage.getItem(STORAGE_KEYS.FONT_SIZE) as FontSizeOption) || 'normal';
   });
@@ -271,7 +294,29 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [activeModal, setActiveModal] = useState<ModalState | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+
+  // 저장된 회원 로그인 토큰이 아직 유효한지 서버에 물어봅니다 (탭을 새로고침해도 로그인 유지).
+  useEffect(() => {
+    const token = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) setCurrentUser(data.user);
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
+        }
+      } catch {
+        // 서버 확인 실패 시 로그인 상태를 유지하지 않습니다.
+      }
+    })();
+  }, []);
 
   // 저장된 관리자 토큰이 아직 유효한지 서버에 물어봅니다 (탭을 새로고침해도 로그인 유지).
   // 예전에는 localStorage의 boolean 값 하나만 보고 관리자 여부를 판단했는데, 이건
@@ -433,6 +478,77 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  // 회원 전용 API 호출에 인증 헤더를 붙여주는 헬퍼
+  const userAuthHeaders = (): HeadersInit => {
+    const token = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const registerUser = async (input: {
+    name: string;
+    phone: string;
+    password: string;
+    nickname: string;
+    preferredRegion?: string;
+    averageScore?: string;
+  }): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '회원가입에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      localStorage.setItem(STORAGE_KEYS.USER_TOKEN, data.token);
+      setCurrentUser(data.user);
+      return true;
+    } catch (err) {
+      console.error('회원가입 실패:', err);
+      alert('회원가입 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const loginUser = async (phone: string, password: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '로그인에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      localStorage.setItem(STORAGE_KEYS.USER_TOKEN, data.token);
+      setCurrentUser(data.user);
+      return true;
+    } catch (err) {
+      console.error('로그인 실패:', err);
+      alert('로그인 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const logoutUser = () => {
+    const token = localStorage.getItem(STORAGE_KEYS.USER_TOKEN);
+    if (token) {
+      fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(() => {});
+    }
+    setCurrentUser(null);
+    localStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
+  };
+
   // 이 브라우저가 해당 동반자 모집글의 작성자인지 (삭제 토큰을 갖고 있는지) 확인합니다.
   const isMyMatch = (matchId: string): boolean => {
     try {
@@ -557,6 +673,44 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     for (const course of targets) {
       const result = await researchCourseWithAI(course.name, course.address, true);
       onProgress({ course, result });
+    }
+  };
+
+  // 초보가이드 영상 업로드 (관리자 전용, MP4 파일)
+  const uploadGuideVideo = async (slot: string, file: File): Promise<boolean> => {
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+      const res = await fetch(`/api/guide-videos/${slot}`, {
+        method: 'POST',
+        headers: adminAuthHeaders(), // Content-Type은 지정하지 않음 (브라우저가 자동으로 boundary 포함해서 설정)
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '영상 업로드에 실패했습니다.');
+        return false;
+      }
+      setGuideVideos(prev => ({ ...prev, [slot]: { uploadedAt: new Date().toISOString(), fileName: `guide-${slot}.mp4` } }));
+      return true;
+    } catch (err) {
+      console.error('영상 업로드 실패:', err);
+      alert('영상 업로드 중 오류가 발생했습니다. 파일 용량이 너무 크지 않은지 확인해주세요.');
+      return false;
+    }
+  };
+
+  const deleteGuideVideo = async (slot: string): Promise<void> => {
+    if (!window.confirm(`${slot}편 영상을 삭제하시겠습니까?`)) return;
+    try {
+      await fetch(`/api/guide-videos/${slot}`, { method: 'DELETE', headers: adminAuthHeaders() });
+      setGuideVideos(prev => {
+        const next = { ...prev };
+        delete next[slot];
+        return next;
+      });
+    } catch (err) {
+      console.error('영상 삭제 실패:', err);
     }
   };
 
@@ -691,7 +845,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const res = await fetch('/api/reviews', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...userAuthHeaders() },
           body: JSON.stringify(reviewData)
         });
         if (!res.ok) {
@@ -746,7 +900,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const res = await fetch('/api/matches', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...userAuthHeaders() },
           body: JSON.stringify(matchData)
         });
         if (!res.ok) {
@@ -840,7 +994,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     fetch(`/api/matches/${postId}/comments`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...userAuthHeaders() },
       body: JSON.stringify(comment)
     }).catch(err => console.error('댓글 저장 실패:', err));
   };
@@ -936,7 +1090,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const res = await fetch('/api/restaurants', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...userAuthHeaders() },
         body: JSON.stringify(postData)
       });
       if (!res.ok) {
@@ -1023,6 +1177,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         speakText,
         stopSpeaking,
         isAdmin,
+        currentUser,
+        registerUser,
+        loginUser,
+        logoutUser,
         loginAdmin,
         logoutAdmin,
         resetToDefaultData,
@@ -1033,6 +1191,9 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deleteCourse,
         researchCourseWithAI,
         researchCoursesBatch,
+        guideVideos,
+        uploadGuideVideo,
+        deleteGuideVideo,
         addTournament,
         updateTournament,
         deleteTournament,

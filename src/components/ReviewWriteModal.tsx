@@ -37,7 +37,7 @@ const HOLES_SELECT_OPTIONS: { label: string; value: number | 'all' }[] = [
 ];
 
 export const ReviewWriteModal: React.FC = () => {
-  const { activeModal, closeModal, addReview, courses } = useParkGolf();
+  const { activeModal, closeModal, addReview, courses, currentUser, openModal } = useParkGolf();
 
   // Course selector state (same mechanism as Course Search)
   const [selectedRegion, setSelectedRegion] = useState<RegionCategory>('전체');
@@ -114,6 +114,27 @@ export const ReviewWriteModal: React.FC = () => {
     return null;
   }
 
+  // 비회원은 리뷰를 쓸 수 없습니다 — 로그인 안내로 대체합니다.
+  if (!currentUser) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={closeModal}>
+        <div className="bg-white rounded-3xl max-w-sm w-full p-7 text-center" onClick={e => e.stopPropagation()}>
+          <p className="text-lg font-extrabold text-slate-900 mb-2">로그인이 필요합니다</p>
+          <p className="text-sm text-slate-500 mb-5">구장 리뷰는 회원만 작성할 수 있습니다.</p>
+          <button
+            onClick={() => {
+              closeModal();
+              openModal('auth');
+            }}
+            className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm cursor-pointer"
+          >
+            로그인 / 회원가입
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const region = e.target.value as RegionCategory;
     setSelectedRegion(region);
@@ -139,15 +160,15 @@ export const ReviewWriteModal: React.FC = () => {
       alert('방문하신 파크골프장을 선택해주세요.');
       return;
     }
-    if (!authorName.trim() || !title.trim() || !content.trim()) {
-      alert('성함/닉네임, 후기 제목, 본문 내용을 모두 입력해주세요.');
+    if (!title.trim() || !content.trim()) {
+      alert('후기 제목과 본문 내용을 모두 입력해주세요.');
       return;
     }
 
     addReview({
       courseId: selectedCourse.id,
       courseName: selectedCourse.name,
-      authorName: authorName.trim(),
+      authorName: currentUser.nickname,
       ageGroup,
       rating: Number(rating),
       grassScore: Number(grassScore),
@@ -347,8 +368,6 @@ export const ReviewWriteModal: React.FC = () => {
                   <span>💰 요금: {selectedCourse.feeLocal} (관외 {selectedCourse.feeVisitor})</span>
                   <span>•</span>
                   <span>📞 {selectedCourse.phoneNumber}</span>
-                  <span>•</span>
-                  <span>⭐ 현재 평점 {selectedCourse.rating.toFixed(1)}점</span>
                 </div>
               </div>
             )}
@@ -360,16 +379,11 @@ export const ReviewWriteModal: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1">
-                작성자 성함/닉네임 *
+                작성자
               </label>
-              <input
-                type="text"
-                required
-                placeholder="예: 김*식 (파크매니아)"
-                value={authorName}
-                onChange={e => setAuthorName(e.target.value)}
-                className="w-full p-2.5 sm:p-3 rounded-xl border border-slate-300 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
+              <div className="w-full p-2.5 sm:p-3 rounded-xl border border-slate-200 bg-slate-50 font-bold text-sm text-slate-600">
+                {currentUser.nickname}
+              </div>
             </div>
 
             <div>
