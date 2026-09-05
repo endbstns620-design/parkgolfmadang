@@ -45,7 +45,12 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          globPatterns: ['**/*.{js,css,html,ico,svg,woff,woff2}'],
+          // 배너·카드 사진처럼 용량이 큰 콘텐츠 이미지는 오프라인 캐시 대상에서 제외합니다.
+          // (이런 이미지는 앱 실행에 필수가 아니라서, 그냥 그때그때 네트워크로 불러오면 충분합니다.
+          //  캐시 대상에 넣으면 하나라도 커지면 빌드 자체가 실패하는 문제가 생깁니다.)
+          globIgnores: ['images/**', '**/*.png'],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         },
         devOptions: {
           enabled: true,
