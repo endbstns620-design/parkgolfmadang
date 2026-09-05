@@ -286,6 +286,66 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  // ---- 구장 정보 보정(overrides) ----
+  // 604+95곳 구장 데이터는 용량이 커서 프론트엔드 번들에 그대로 들어있습니다(서버 DB 아님).
+  // 그래서 관리자가 조사·수정한 내용은 "덮어쓸 내용만" 여기 서버에 저장하고,
+  // 방문자가 접속할 때 이 값을 기존 구장 정보 위에 덧씌워서 보여줍니다.
+  app.get("/api/course-overrides", (_req, res) => {
+    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", {});
+    res.json({ success: true, overrides });
+  });
+
+  app.post("/api/course-overrides/:id", requireAdmin, (req, res) => {
+    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", {});
+    overrides[req.params.id] = { ...(overrides[req.params.id] || {}), ...req.body };
+    writeJsonFile("course-overrides.json", overrides);
+    res.json({ success: true, override: overrides[req.params.id] });
+  });
+
+  // AI(Gemini) + 구글 검색으로 특정 구장의 "지자체 공식 홈페이지" 정보를 실제로 찾아서
+  // 예약방법·이용요금·운영시간·주차정보 등을 채워줍니다. 자동 반영되지 않고, 관리자가
+  // 검색 결과를 확인한 뒤 수정 폼에서 "저장" 버튼을 눌러야 실제로 반영됩니다.
+  app.post("/api/gemini/research-course", requireAdmin, async (req, res) => {
+    try {
+      const { courseName, address } = req.body || {};
+      if (!courseName) {
+        return res.status(400).json({ success: false, error: "구장명이 필요합니다." });
+      }
+      const prompt = `"${courseName}"${address ? ` (주소: ${address})` : ""} 파크골프장의 공식 운영 정보를
+지자체(시·군·구) 공식 홈페이지나 공공서비스예약 페이지에서 구글 검색으로 찾아주세요.
+확실하지 않은 항목은 빈 문자열로 남기고, 절대 추측해서 지어내지 마세요.
+아래 JSON 형식으로만 응답하세요:
+{ "reservationType": "예약제/선착순/전화예약 중 확인된 것",
+  "reservationDetails": "예약 절차 요약",
+  "feeLocal": "지역주민 이용요금",
+  "feeVisitor": "관외 이용요금",
+  "operatingHours": "운영시간",
+  "closedDays": "휴장일",
+  "phoneNumber": "문의 전화번호",
+  "parkingDetails": "주차 안내",
+  "description": "2~3문장 구장 소개",
+  "confidence": "A/B+/B/C+/C 중 확인된 출처의 신뢰도",
+  "sourceUrl": "확인한 공식 페이지 URL" }`;
+
+      const ai = getGeminiAI();
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }]
+        }
+      });
+
+      const rawText = response.text || "{}";
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      res.json({ success: true, result });
+    } catch (err: any) {
+      console.error("[gemini] 구장 정보 조사 실패:", err);
+      res.status(500).json({ success: false, error: "구장 정보 조사 중 오류가 발생했습니다." });
+    }
+  });
+
   // ---- 대회 소식 ----
   // 조회는 누구나, 등록·수정·삭제는 관리자만 가능합니다.
   // 서버에 데이터가 없으면 기존 INITIAL_TOURNAMENTS로 시작합니다.

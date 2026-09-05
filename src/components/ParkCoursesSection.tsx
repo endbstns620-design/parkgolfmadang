@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { ParkCourse, RegionCategory } from '../types';
 import { CourseMapView } from './CourseMapView';
+import { InlineAdBanner } from './InlineAdBanner';
 import {
   getCourseStructure,
   getCourseSummaryText,
@@ -82,7 +83,8 @@ export const ParkCoursesSection: React.FC = () => {
     searchQuery,
     setSearchQuery,
     openModal,
-    isAdmin
+    isAdmin,
+    ads
   } = useParkGolf();
 
   // Local state
@@ -329,7 +331,7 @@ export const ParkCoursesSection: React.FC = () => {
             전국 파크골프장 구장 찾기
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-slate-600 mt-1 font-medium leading-relaxed">
-            시·도 및 시·군·구별 구장, 홀 수(9~72홀), 공인구장, 무료/유료, 예약방식, 잔디 및 주차 정보 완벽 안내
+            시·도 및 시·군·구별 구장, 홀 수(9~72홀), 공인구장 여부까지 전국 642곳 한눈에 검색 — 예약방식·잔디·주차 정보는 확인되는 대로 계속 채워가고 있습니다
           </p>
         </div>
 
@@ -690,13 +692,13 @@ export const ParkCoursesSection: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white rounded-3xl border border-slate-200/90 divide-y divide-slate-100 overflow-hidden shadow-sm">
-              {sortedCourses.map(course => {
+              {sortedCourses.map((course, courseIdx) => {
                 const isFree = checkIsFreeCourse(course);
                 const structures = getCourseStructure(course);
 
                 return (
+                  <React.Fragment key={course.id}>
                   <div
-                    key={course.id}
                     id={`course-list-item-${course.id}`}
                     className="hover:bg-slate-50/80 transition-colors"
                   >
@@ -924,6 +926,16 @@ export const ParkCoursesSection: React.FC = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* 10개 구장마다 업체 광고 배너 1개 (활성 광고가 있을 때만) */}
+                  {(courseIdx + 1) % 10 === 0 && ads.filter(a => a.isActive).length > 0 && (
+                    <div className="p-3 bg-slate-50/50">
+                      <InlineAdBanner
+                        ad={ads.filter(a => a.isActive)[(Math.floor(courseIdx / 10)) % ads.filter(a => a.isActive).length]}
+                      />
+                    </div>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </div>

@@ -34,11 +34,14 @@ export const AdminDashboardModal: React.FC = () => {
     addCourse,
     updateCourse,
     deleteCourse,
+    researchCourseWithAI,
+    researchCoursesBatch,
     tournaments,
     addTournament,
     updateTournament,
     deleteTournament,
     searchTournamentsWithAI,
+    searchTournamentsAllRegions,
     news,
     addNews,
     updateNews,
@@ -82,6 +85,10 @@ export const AdminDashboardModal: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isSearchingTournaments, setIsSearchingTournaments] = useState(false);
   const [tournamentCandidates, setTournamentCandidates] = useState<any[]>([]);
+  const [researchingCourseId, setResearchingCourseId] = useState<string | null>(null);
+  const [isBatchResearching, setIsBatchResearching] = useState(false);
+  const [batchResearchResults, setBatchResearchResults] = useState<{ course: any; result: any }[]>([]);
+  const [isBatchSearchingTournaments, setIsBatchSearchingTournaments] = useState(false);
 
   if (!activeModal || activeModal.type !== 'admin') {
     return null;
@@ -273,7 +280,7 @@ export const AdminDashboardModal: React.FC = () => {
               {/* TAB 1: COURSES */}
               {activeTab === 'courses' && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <h3 className="text-lg font-extrabold text-slate-900">
                         전국 파크골프장 목록 ({courses.length}개 등록됨)
@@ -283,7 +290,29 @@ export const AdminDashboardModal: React.FC = () => {
                       </p>
                     </div>
 
-                    <button
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          if (isBatchResearching) return;
+                          setIsBatchResearching(true);
+                          setBatchResearchResults([]);
+                          await researchCoursesBatch(10, item => {
+                            setBatchResearchResults(prev => [...prev, item]);
+                          });
+                          setIsBatchResearching(false);
+                        }}
+                        disabled={isBatchResearching}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1 shadow disabled:opacity-60"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>
+                          {isBatchResearching
+                            ? `일괄 조사 중... (${batchResearchResults.length}/10)`
+                            : '확인필요 구장 10곳 일괄조사'}
+                        </span>
+                      </button>
+
+                      <button
                       onClick={() => {
                         setIsNewCourse(true);
                         setEditingCourse({
@@ -317,7 +346,69 @@ export const AdminDashboardModal: React.FC = () => {
                       <Plus className="w-4 h-4" />
                       <span>새 구장 추가</span>
                     </button>
+                    </div>
                   </div>
+
+                  {/* Batch AI Research Results */}
+                  {batchResearchResults.length > 0 && (
+                    <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-extrabold text-blue-950 text-sm flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4" />
+                          일괄조사 결과 ({batchResearchResults.length}건) — 확인 후 각각 적용해주세요
+                        </h4>
+                        <button
+                          onClick={() => setBatchResearchResults([])}
+                          className="text-xs text-blue-700 hover:text-blue-900 font-bold"
+                        >
+                          닫기
+                        </button>
+                      </div>
+                      {batchResearchResults.map(({ course, result }, idx) => (
+                        <div key={idx} className="bg-white rounded-xl p-3.5 border border-blue-200 space-y-1">
+                          <p className="font-extrabold text-slate-900 text-sm">{course.name}</p>
+                          {!result ? (
+                            <p className="text-xs text-rose-600">조사 결과를 찾지 못했습니다.</p>
+                          ) : (
+                            <>
+                              <p className="text-xs text-slate-600">
+                                📋 {result.reservationType || '미확인'} · 💰 {result.feeLocal || '?'}/{result.feeVisitor || '?'} · 🕐 {result.operatingHours || '미확인'}
+                              </p>
+                              {result.sourceUrl && (
+                                <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline break-all">
+                                  출처: {result.sourceUrl}
+                                </a>
+                              )}
+                              <button
+                                onClick={() => {
+                                  const updated = {
+                                    ...(result.reservationType && { reservationType: result.reservationType }),
+                                    ...(result.reservationDetails && { reservationDetails: result.reservationDetails }),
+                                    ...(result.feeLocal && { feeLocal: result.feeLocal }),
+                                    ...(result.feeVisitor && { feeVisitor: result.feeVisitor }),
+                                    ...(result.operatingHours && { operatingHours: result.operatingHours }),
+                                    ...(result.closedDays && { closedDays: result.closedDays }),
+                                    ...(result.phoneNumber && { phoneNumber: result.phoneNumber }),
+                                    ...(result.parkingDetails && { parkingDetails: result.parkingDetails }),
+                                    ...(result.description && { description: result.description }),
+                                    ...(result.confidence && { dataConfidence: result.confidence }),
+                                    dataSourceNote: result.sourceUrl
+                                      ? `AI 실시간 검색으로 확인 (출처: ${result.sourceUrl})`
+                                      : course.dataSourceNote
+                                  };
+                                  updateCourse(course.id, updated);
+                                  setBatchResearchResults(prev => prev.filter((_, i) => i !== idx));
+                                }}
+                                className="w-full mt-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
+                              >
+                                이 내용으로 저장하기
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Course Form Editor (if editing) */}
                   {editingCourse && (
@@ -524,6 +615,38 @@ export const AdminDashboardModal: React.FC = () => {
 
                         <div className="flex items-center gap-2 shrink-0">
                           <button
+                            onClick={async () => {
+                              setResearchingCourseId(c.id);
+                              const result = await researchCourseWithAI(c.name, c.address);
+                              setResearchingCourseId(null);
+                              if (result) {
+                                setIsNewCourse(false);
+                                setEditingCourse({
+                                  ...c,
+                                  ...(result.reservationType && { reservationType: result.reservationType }),
+                                  ...(result.reservationDetails && { reservationDetails: result.reservationDetails }),
+                                  ...(result.feeLocal && { feeLocal: result.feeLocal }),
+                                  ...(result.feeVisitor && { feeVisitor: result.feeVisitor }),
+                                  ...(result.operatingHours && { operatingHours: result.operatingHours }),
+                                  ...(result.closedDays && { closedDays: result.closedDays }),
+                                  ...(result.phoneNumber && { phoneNumber: result.phoneNumber }),
+                                  ...(result.parkingDetails && { parkingDetails: result.parkingDetails }),
+                                  ...(result.description && { description: result.description }),
+                                  ...(result.confidence && { dataConfidence: result.confidence }),
+                                  dataSourceNote: result.sourceUrl
+                                    ? `AI 실시간 검색으로 확인 (출처: ${result.sourceUrl})`
+                                    : c.dataSourceNote
+                                });
+                                alert('AI 검색 결과를 수정 폼에 채워넣었습니다. 내용을 확인하시고 저장 버튼을 눌러주세요.');
+                              }
+                            }}
+                            disabled={researchingCourseId === c.id}
+                            className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-xs flex items-center gap-1 disabled:opacity-60"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{researchingCourseId === c.id ? '조사 중...' : 'AI 조사'}</span>
+                          </button>
+                          <button
                             onClick={() => {
                               setIsNewCourse(false);
                               setEditingCourse(c);
@@ -577,6 +700,23 @@ export const AdminDashboardModal: React.FC = () => {
                       >
                         <Sparkles className="w-4 h-4" />
                         <span>{isSearchingTournaments ? '검색 중...' : 'AI 실시간 검색'}</span>
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          if (isBatchSearchingTournaments) return;
+                          setIsBatchSearchingTournaments(true);
+                          setTournamentCandidates([]);
+                          await searchTournamentsAllRegions((_region, candidates) => {
+                            setTournamentCandidates(prev => [...prev, ...candidates]);
+                          });
+                          setIsBatchSearchingTournaments(false);
+                        }}
+                        disabled={isBatchSearchingTournaments}
+                        className="px-4 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs sm:text-sm flex items-center gap-1 disabled:opacity-60"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        <span>{isBatchSearchingTournaments ? '전국 검색 중...' : '전국 6개 권역 일괄검색'}</span>
                       </button>
 
                       <button

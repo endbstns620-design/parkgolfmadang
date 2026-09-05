@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { ParkCourse } from '../types';
 import { CourseWeatherWidget } from './CourseWeatherWidget';
+import { InlineAdBanner } from './InlineAdBanner';
 import {
   getCourseStructure,
   getCourseSummaryText,
@@ -42,7 +43,7 @@ import {
 type DetailTab = 'overview' | 'courseHoles' | 'fees' | 'reservation' | 'facilities' | 'reviews';
 
 export const ParkDetailModal: React.FC = () => {
-  const { activeModal, closeModal, reviews, openModal } = useParkGolf();
+  const { activeModal, closeModal, reviews, openModal, ads } = useParkGolf();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [copied, setCopied] = useState(false);
 
@@ -709,6 +710,15 @@ export const ParkDetailModal: React.FC = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 업체 광고 배너 (구장 상세 하단, 활성 광고 중 구장ID 기준으로 하나 선택) */}
+          {ads.filter(a => a.isActive).length > 0 && (
+            <div className="pt-2">
+              <InlineAdBanner
+                ad={ads.filter(a => a.isActive)[course.id.length % ads.filter(a => a.isActive).length]}
+              />
             </div>
           )}
 

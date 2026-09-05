@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { RestaurantPost } from '../types';
 import { UtensilsCrossed, PlusCircle, X, MapPin, Clock, PhoneCall, Trash2, Search, ChevronRight } from 'lucide-react';
+import { InlineAdBanner } from './InlineAdBanner';
 
 export const NearbyRestaurantsSection: React.FC = () => {
-  const { restaurants, addRestaurant, deleteRestaurant, isMyRestaurant, isAdmin } = useParkGolf();
+  const { restaurants, addRestaurant, deleteRestaurant, isMyRestaurant, isAdmin, ads } = useParkGolf();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<RestaurantPost | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,9 +107,9 @@ export const NearbyRestaurantsSection: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
-          {filtered.map(r => (
+          {filtered.map((r, idx) => (
+            <React.Fragment key={r.id}>
             <button
-              key={r.id}
               onClick={() => setSelected(r)}
               className="w-full text-left px-4 sm:px-5 py-4 flex items-center justify-between gap-3 hover:bg-orange-50/60 transition-colors cursor-pointer"
             >
@@ -127,6 +128,16 @@ export const NearbyRestaurantsSection: React.FC = () => {
               </div>
               <ChevronRight className="w-5 h-5 text-slate-300 shrink-0" />
             </button>
+
+            {/* 10곳마다 업체 광고 배너 1개 (활성 광고가 있을 때만) */}
+            {(idx + 1) % 10 === 0 && ads.filter(a => a.isActive).length > 0 && (
+              <div className="p-3 bg-slate-50/50">
+                <InlineAdBanner
+                  ad={ads.filter(a => a.isActive)[Math.floor(idx / 10) % ads.filter(a => a.isActive).length]}
+                />
+              </div>
+            )}
+            </React.Fragment>
           ))}
         </div>
       )}

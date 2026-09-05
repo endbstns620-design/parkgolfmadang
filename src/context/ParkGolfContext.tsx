@@ -84,12 +84,15 @@ interface ParkGolfContextType {
   addCourse: (course: Omit<ParkCourse, 'id' | 'rating' | 'reviewCount'>) => void;
   updateCourse: (id: string, course: Partial<ParkCourse>) => void;
   deleteCourse: (id: string) => void;
+  researchCourseWithAI: (courseName: string, address: string, silent?: boolean) => Promise<any | null>;
+  researchCoursesBatch: (count: number, onProgress: (item: { course: ParkCourse; result: any | null }) => void) => Promise<void>;
 
   // CRUD for Tournaments
   addTournament: (tour: Omit<Tournament, 'id'>) => void;
   updateTournament: (id: string, tour: Partial<Tournament>) => void;
   deleteTournament: (id: string) => void;
-  searchTournamentsWithAI: (region?: string) => Promise<any[]>;
+  searchTournamentsWithAI: (region?: string, silent?: boolean) => Promise<any[]>;
+  searchTournamentsAllRegions: (onProgress: (region: string, candidates: any[]) => void) => Promise<void>;
 
   // CRUD for News
   addNews: (news: Omit<NewsItem, 'id' | 'views'>) => void;
@@ -203,13 +206,14 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
           fetch('/api/coupang-products'),
           fetch('/api/restaurants'),
-          fetch('/api/tournaments')
+          fetch('/api/tournaments'),
+          fetch('/api/course-overrides')
         ]);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
@@ -237,6 +241,15 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (tournamentsRes.ok) {
           const data = await tournamentsRes.json();
           if (data.success) setTournaments(data.tournaments);
+        }
+        if (courseOverridesRes.ok) {
+          const data = await courseOverridesRes.json();
+          if (data.success && data.overrides) {
+            // 서버에 저장된 "보정 정보"를 기존 구장 데이터 위에 덧씌웁니다.
+            setCourses(prev =>
+              prev.map(c => (data.overrides[c.id] ? { ...c, ...data.overrides[c.id] } : c))
+            );
+          }
         }
       } catch (err) {
         // 서버에서 못 가져오면 localStorage에 저장된 값(초기 state)을 그대로 사용합니다.
@@ -492,11 +505,58 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const updateCourse = (id: string, updated: Partial<ParkCourse>) => {
     setCourses(prev => prev.map(c => (c.id === id ? { ...c, ...updated } : c)));
+    // 구장 데이터는 용량이 커서 서버 DB가 아니라 앱 안에 내장돼 있어서, 수정 내용은
+    // "보정 정보"로 서버에 별도 저장해뒀다가 모든 방문자에게 덧씌워서 보여줍니다.
+    fetch(`/api/course-overrides/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+      body: JSON.stringify(updated)
+    }).catch(err => console.error('구장 정보 저장 실패:', err));
   };
 
   const deleteCourse = (id: string) => {
     if (window.confirm('정말 이 구장 정보를 삭제하시겠습니까?')) {
       setCourses(prev => prev.filter(c => c.id !== id));
+    }
+  };
+
+  // AI + 구글 검색으로 특정 구장의 지자체 공식 정보를 실제로 조사합니다.
+  // 결과는 그대로 저장되지 않고, 관리자가 확인 후 updateCourse로 직접 저장해야 반영됩니다.
+  const researchCourseWithAI = async (courseName: string, address: string, silent = false): Promise<any | null> => {
+    try {
+      const res = await fetch('/api/gemini/research-course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ courseName, address })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (!silent) alert(err.error || '구장 정보 조사에 실패했습니다.');
+        return null;
+      }
+      const data = await res.json();
+      return data.result || null;
+    } catch (err) {
+      console.error('구장 정보 조사 실패:', err);
+      if (!silent) alert('구장 정보 조사 중 오류가 발생했습니다.');
+      return null;
+    }
+  };
+
+  // "확인 필요"로 표시된 구장들을 하나씩 순서대로(동시에 X) AI로 조사합니다.
+  // 한 번에 너무 많이 요청하면 API가 막힐 수 있어서 순차 처리하고, 처리될 때마다
+  // onProgress로 화면에 결과를 하나씩 보여줍니다. 저장은 관리자가 확인 후 직접 해야 합니다.
+  const researchCoursesBatch = async (
+    count: number,
+    onProgress: (item: { course: ParkCourse; result: any | null }) => void
+  ): Promise<void> => {
+    const targets = courses
+      .filter(c => c.dataConfidence === 'unverified' || c.dataConfidence === 'C' || c.dataConfidence === 'C+')
+      .slice(0, count);
+
+    for (const course of targets) {
+      const result = await researchCourseWithAI(course.name, course.address, true);
+      onProgress({ course, result });
     }
   };
 
@@ -547,7 +607,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // AI + 구글 검색으로 현재 진행되는 실제 대회 후보를 가져옵니다 (자동 등록되지 않고, 관리자가
   // 확인 후 addTournament로 직접 등록해야 실제로 저장됩니다).
-  const searchTournamentsWithAI = async (region?: string): Promise<any[]> => {
+  const searchTournamentsWithAI = async (region?: string, silent = false): Promise<any[]> => {
     try {
       const res = await fetch('/api/gemini/search-tournaments', {
         method: 'POST',
@@ -556,15 +616,27 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || '대회 검색에 실패했습니다.');
+        if (!silent) alert(err.error || '대회 검색에 실패했습니다.');
         return [];
       }
       const data = await res.json();
       return data.candidates || [];
     } catch (err) {
       console.error('대회 검색 실패:', err);
-      alert('대회 검색 중 오류가 발생했습니다.');
+      if (!silent) alert('대회 검색 중 오류가 발생했습니다.');
       return [];
+    }
+  };
+
+  // 6개 권역을 하나씩 순서대로 검색해서 후보를 모두 모읍니다 (한 번에 최대 5건이라는
+  // 제한을 권역별로 나눠 우회 — 전국을 한 번에 검색하는 것보다 지역별 대회를 더 폭넓게 찾습니다).
+  const searchTournamentsAllRegions = async (
+    onProgress: (region: string, candidates: any[]) => void
+  ): Promise<void> => {
+    const regions = ['서울/경기/인천', '강원', '충청/대전/세종', '전라/광주', '경상/대구/부산/울산', '제주'];
+    for (const region of regions) {
+      const candidates = await searchTournamentsWithAI(region, true);
+      onProgress(region, candidates);
     }
   };
 
@@ -959,10 +1031,13 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addCourse,
         updateCourse,
         deleteCourse,
+        researchCourseWithAI,
+        researchCoursesBatch,
         addTournament,
         updateTournament,
         deleteTournament,
         searchTournamentsWithAI,
+        searchTournamentsAllRegions,
         addNews,
         updateNews,
         deleteNews,
