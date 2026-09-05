@@ -91,6 +91,8 @@ interface ParkGolfContextType {
   logoutUser: () => void;
   pointShopItems: PointShopItem[];
   redeemPointShopItem: (itemId: string) => Promise<boolean>;
+  addPointShopItem: (item: { name: string; category: string; pointCost: number; referenceUrl?: string }) => Promise<boolean>;
+  deletePointShopItem: (id: string) => Promise<void>;
   totalUsers: number;
   fetchRedemptions: () => Promise<any[]>;
   updateRedemptionStatus: (id: string, status: string) => Promise<boolean>;
@@ -589,6 +591,44 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('교환 신청 실패:', err);
       alert('교환 신청 중 오류가 발생했습니다.');
       return false;
+    }
+  };
+
+  // 관리자 전용 — 마당P 교환소에 새 상품 등록 / 삭제
+  const addPointShopItem = async (item: {
+    name: string;
+    category: string;
+    pointCost: number;
+    referenceUrl?: string;
+  }): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/point-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify(item)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '상품 등록에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      setPointShopItems(prev => [...prev, data.item]);
+      return true;
+    } catch (err) {
+      console.error('포인트샵 상품 등록 실패:', err);
+      alert('상품 등록 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const deletePointShopItem = async (id: string): Promise<void> => {
+    if (!window.confirm('이 상품을 삭제하시겠습니까?')) return;
+    try {
+      await fetch(`/api/point-shop/${id}`, { method: 'DELETE', headers: adminAuthHeaders() });
+      setPointShopItems(prev => prev.filter(i => i.id !== id));
+    } catch (err) {
+      console.error('포인트샵 상품 삭제 실패:', err);
     }
   };
 
@@ -1253,6 +1293,8 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         logoutUser,
         pointShopItems,
         redeemPointShopItem,
+        addPointShopItem,
+        deletePointShopItem,
         totalUsers,
         fetchRedemptions,
         updateRedemptionStatus,

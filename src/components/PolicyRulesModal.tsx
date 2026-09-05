@@ -154,6 +154,28 @@ export const PolicyRulesModal: React.FC = () => {
                   <p>2. 동반자 매칭을 통해 이루어지는 개인 간 라운딩 약속 및 현장 발생 사고는 당사자 간의 신의성실 원칙에 따라 해결합니다.</p>
                 </div>
               </section>
+
+              <section className="space-y-2">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-600" /> 제 5 조 (회원가입 및 자격)
+                </h3>
+                <div className="text-slate-600 text-sm sm:text-base pl-4 space-y-1.5">
+                  <p>1. 구장 리뷰·동반자 모집·맛집 등록 등 게시물 작성은 회원가입 후 이용할 수 있으며, 비회원도 모든 게시물 열람은 자유롭게 가능합니다.</p>
+                  <p>2. 회원가입 시 이름·휴대폰번호는 분쟁 발생 시 본인확인 용도로만 사용되며, 사이트에는 회원이 직접 정한 닉네임만 공개됩니다.</p>
+                  <p>3. 타인의 명의를 도용하거나 허위 정보로 가입한 사실이 확인될 경우, 회사는 사전 통지 없이 이용을 제한할 수 있습니다.</p>
+                </div>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-600" /> 제 6 조 (마당P 및 교환소 운영)
+                </h3>
+                <div className="text-slate-600 text-sm sm:text-base pl-4 space-y-1.5">
+                  <p>1. "마당P"는 회원가입 및 게시물 작성 등 서비스 내 활동에 대해 회사가 지급하는 활동 포인트로, 현금으로 환급되지 않으며 타인에게 양도·판매할 수 없습니다.</p>
+                  <p>2. 마당P 교환소의 상품은 실제 결제·자동발송이 아니라, 회원의 교환 신청을 회사가 확인한 뒤 순차적으로 발송하는 방식으로 운영되며, 상품 재고 상황에 따라 교환 가능 상품 구성이나 필요 포인트는 사전 고지 후 변경될 수 있습니다.</p>
+                  <p>3. 부정한 방법(중복 가입, 허위 게시물 반복 등)으로 적립된 마당P는 사전 통지 후 회수될 수 있습니다.</p>
+                </div>
+              </section>
             </div>
           )}
 
@@ -178,17 +200,30 @@ export const PolicyRulesModal: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-emerald-600" /> 1. 수집하는 개인정보 항목 및 수집 방법
                 </h3>
                 <div className="text-slate-600 text-sm sm:text-base pl-4 space-y-2">
-                  <p>파크골프마당은 비회원 기반의 오픈 포털로서 불필요한 주민등록번호나 비밀번호를 일절 수집하지 않으며, 다음 목적에 한해 최소한의 정보를 수집합니다:</p>
+                  <p>파크골프마당은 주민등록번호와 같은 민감정보는 일절 수집하지 않으며, 회원가입 및 서비스 제공에 필요한 최소한의 정보만 수집합니다.</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="font-bold text-slate-900 text-xs sm:text-sm">👥 동반자 모집 글 작성 시</div>
-                      <div className="text-xs text-slate-600 mt-1">작성자 닉네임, 연락처(선택적 기재), 희망 구장, 매칭 희망일</div>
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm">✅ 회원가입 시 필수 항목</div>
+                      <div className="text-xs text-slate-600 mt-1">
+                        이름, 휴대폰번호(본인확인용, 비공개), 닉네임(공개), 비밀번호(암호화 저장)
+                      </div>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                      <div className="font-bold text-slate-900 text-xs sm:text-sm">⭐ 구장 리뷰 작성 시</div>
-                      <div className="text-xs text-slate-600 mt-1">작성자 닉네임, 별점, 방문 소감 내용</div>
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm">📝 회원가입 시 선택 항목</div>
+                      <div className="text-xs text-slate-600 mt-1">주요 이용 지역, 평균 타수</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm">🎁 마당P 상품 교환 신청 시</div>
+                      <div className="text-xs text-slate-600 mt-1">신청 회원의 닉네임·휴대폰번호(발송 연락용, 자동 처리되지 않고 운영팀이 직접 확인 후 연락)</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="font-bold text-slate-900 text-xs sm:text-sm">⭐ 게시물 작성 시(회원)</div>
+                      <div className="text-xs text-slate-600 mt-1">작성자 닉네임, 별점·후기 내용, 동반자 모집 시 회신 연락처(선택 기재)</div>
                     </div>
                   </div>
+                  <p className="text-xs text-emerald-800 font-bold bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 mt-2">
+                    ※ 이름·휴대폰번호는 분쟁 발생 시 본인확인 용도로만 내부적으로 사용되며, 다른 이용자에게는 절대 공개되지 않고 닉네임만 표시됩니다.
+                  </p>
                 </div>
               </section>
 
@@ -197,23 +232,32 @@ export const PolicyRulesModal: React.FC = () => {
                   <span className="w-2 h-2 rounded-full bg-emerald-600" /> 2. 개인정보의 이용 목적 및 파기
                 </h3>
                 <div className="text-slate-600 text-sm sm:text-base pl-4 space-y-1">
-                  <p>• <strong>이용 목적</strong>: 파크골프 동호인 간의 자율 라운딩 매칭 연락 및 구장 후기 커뮤니티 운영</p>
-                  <p>• <strong>보유 기간</strong>: 작성자가 매칭 완료 처리하거나 삭제를 요청할 경우 즉시 영구 파기되며, 모집 마감 후 최장 30일 이내 자동 파기 처리됩니다.</p>
+                  <p>• <strong>이용 목적</strong>: 회원 식별 및 본인확인, 부정이용 방지, 마당P 적립·차감 관리, 실물 상품 교환 시 발송 연락, 파크골프 동호인 간 자율 라운딩 매칭 및 구장 후기 커뮤니티 운영</p>
+                  <p>• <strong>보유 기간</strong>: 회원 탈퇴 시 지체없이 파기합니다. 다만 동반자 모집글은 모집 마감(또는 만남 날짜 경과) 후 24시간 뒤, 관련 법령에서 별도로 보관을 요구하는 경우가 아니라면 자동으로 삭제됩니다.</p>
                 </div>
               </section>
 
               <section className="space-y-2">
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> 3. 개인정보 제3자 제공 금지
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> 3. 개인정보 제3자 제공 및 안전성 확보조치
+                </h3>
+                <div className="text-slate-600 text-sm sm:text-base pl-4 space-y-1">
+                  <p>파크골프마당은 이용자의 사전 동의 없이 개인정보를 제3자 또는 외부 마케팅 업체에 절대 제공하거나 판매하지 않습니다. 비밀번호는 복호화가 불가능한 방식(암호화)으로 저장되며, 이름·휴대폰번호는 본인과 사이트 운영팀 외에는 열람할 수 없습니다.</p>
+                </div>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> 4. 이용자의 권리
                 </h3>
                 <p className="text-slate-600 text-sm sm:text-base pl-4">
-                  파크골프마당은 이용자의 사전 동의 없이 개인정보를 제3자 또는 외부 마케팅 업체에 절대 제공하거나 판매하지 않습니다.
+                  회원은 언제든지 자신의 개인정보를 열람·정정하거나 회원 탈퇴(동의 철회)를 요청할 수 있으며, 아래 문의처를 통해 접수하시면 지체 없이 처리해드립니다.
                 </p>
               </section>
 
               <section className="space-y-2">
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> 4. 개인정보 보호책임자 및 고충 상담
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> 5. 개인정보 보호책임자 및 고충 상담
                 </h3>
                 <div className="p-4 bg-slate-100 rounded-2xl text-xs sm:text-sm text-slate-700 space-y-1 border border-slate-200">
                   <div>• <strong>개인정보보호 책임자</strong>: 파크골프마당 운영지원팀</div>

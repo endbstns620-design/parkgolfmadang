@@ -1,7 +1,7 @@
 import { RestaurantPost } from '../src/types';
 
 // 사전 조사로 확보한 초기 30곳 데이터입니다. 주소·전화번호가 확인되지 않은 곳은
-// 정직하게 '확인 필요'로 표시했습니다. 방문자가 직접 글을 쓰면 이 목록에 계속 추가됩니다.
+// 주소·전화번호·영업시간이 전부 확인된 곳만 남겼습니다. 방문자가 직접 글을 쓰면 이 목록에 계속 추가됩니다.
 export const RESTAURANT_SEED: RestaurantPost[] = [
   {
     id: 'rest-seed-001',

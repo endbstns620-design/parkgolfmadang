@@ -1285,26 +1285,35 @@ async function startServer() {
   // ---- 동반자 모집글 30일 자동 파기 ----
   // 개인정보처리방침 "모집 마감 후 최장 30일 이내 자동 파기" 조항을 실제로 지키기 위한 기능입니다.
   // 서버 시작 시 한 번, 이후로는 매일 실행해서 마감된 지 30일이 지난 글을 지웁니다.
-  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+  // 동반자 모집글 자동 삭제 — 두 가지 경우 모두 "그 시점으로부터 24시간 뒤" 삭제합니다.
+  // (1) 관리자/작성자가 '마감' 처리한 경우: 마감 시각(closedAt) 기준 24시간 후
+  // (2) 마감 처리를 안 했더라도, 만나기로 한 날짜(meetDate)가 이미 지난 경우: 그 날짜 자정 기준 24시간 후
   function purgeExpiredMatches() {
     try {
       const matches = readJsonFile<MatchingPost[]>("matches.json", []);
       const now = Date.now();
       const kept = matches.filter(m => {
-        if (m.status !== "마감" || !m.closedAt) return true;
-        const closedAt = new Date(m.closedAt).getTime();
-        return now - closedAt < THIRTY_DAYS_MS;
+        if (m.status === "마감" && m.closedAt) {
+          const closedAt = new Date(m.closedAt).getTime();
+          if (now - closedAt >= TWENTY_FOUR_HOURS_MS) return false; // 마감 24시간 경과 → 삭제
+        }
+        if (m.meetDate) {
+          const meetDateEnd = new Date(m.meetDate + "T00:00:00").getTime() + TWENTY_FOUR_HOURS_MS;
+          if (now >= meetDateEnd) return false; // 만나는 날짜로부터 24시간 경과 → 삭제
+        }
+        return true;
       });
       if (kept.length !== matches.length) {
         writeJsonFile("matches.json", kept);
-        console.log(`[purge] 마감 30일 경과 동반자 모집글 ${matches.length - kept.length}건 자동 삭제`);
+        console.log(`[purge] 마감/날짜경과 24시간 지난 동반자 모집글 ${matches.length - kept.length}건 자동 삭제`);
       }
     } catch (err) {
       console.error("[purge] 자동 파기 처리 중 오류:", err);
     }
   }
   purgeExpiredMatches();
-  setInterval(purgeExpiredMatches, 24 * 60 * 60 * 1000); // 24시간마다
+  setInterval(purgeExpiredMatches, 60 * 60 * 1000); // 1시간마다 확인 (24시간 기준이라 더 자주 체크)
 
   // ---- 날짜 지난 대회 실시간 자동 삭제 ----
   // 서버 시작 시 한 번, 이후로는 1시간마다 확인해서 대회 날짜(eventDate)가 지난 대회를 지웁니다.

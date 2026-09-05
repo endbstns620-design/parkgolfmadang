@@ -1,13 +1,23 @@
 import React from 'react';
+import { Sparkles, CheckCircle2, MessageCircle, Users2, UtensilsCrossed, UserPlus } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { Sparkles, CheckCircle2 } from 'lucide-react';
 
 // 메인 배너 이미지 — 대표님이 벤치마킹용으로 보내주신 사진들로 교체했습니다.
 // 전부 텍스트가 따로 박혀있지 않은 순수 사진이라, 겹쳐 보이는 문제 자체가 생기지 않습니다.
-const MAIN_BANNER_IMAGE_URL = '/images/hero-couple-v4.jpg';
+// 메인 배너 이미지 — 노을 지는 골프장 사진으로 교체했습니다.
+// 사진 자체에 글자가 전혀 없어서, 겹쳐 보이는 문제가 생길 수가 없습니다.
+const MAIN_BANNER_IMAGE_URL = '/images/hero-sunset-v5.jpg';
 
 export const MainHomeSection: React.FC = () => {
-  const { courses, totalUsers, currentUser, setActiveTab, openModal } = useParkGolf();
+  const { courses, totalUsers, currentUser, setActiveTab, openModal, reviews, matches, restaurants } = useParkGolf();
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayReviews = reviews.filter(r => r.createdAt === today).length;
+  const todayMatches = matches.filter(m => m.createdAt === today).length;
+  const todayRestaurants = restaurants.filter(r => r.createdAt === today).length;
+
+  const FOUNDER_GOAL = 1000;
+  const founderProgress = Math.min(100, Math.round((totalUsers / FOUNDER_GOAL) * 100));
 
   const categoryCards = [
     { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/card-courses-v4.png' },
@@ -32,18 +42,17 @@ export const MainHomeSection: React.FC = () => {
         <div className="absolute inset-0 flex items-center">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
             <div className="max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-green-950 text-xs sm:text-sm font-extrabold mb-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 text-green-950 text-xs sm:text-sm font-black mb-4 animate-pulse">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>지금 가입하면 창립회원 혜택!</span>
+                <span>파크골프마당 GRAND OPEN · 창립회원 모집중</span>
               </div>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] mb-4 text-white drop-shadow-lg">
-                다치지 않고,<br />
-                <span className="text-amber-300">평생 즐기는 골프</span><br />
-                파크골프
+                대한민국 파크골퍼<br />
+                <span className="text-amber-300">{FOUNDER_GOAL.toLocaleString()}명</span>을 찾습니다!
               </h1>
               <p className="text-lg sm:text-xl text-green-50 font-bold mb-7 drop-shadow-sm">
-                전국 {courses.length}곳 구장 정보 · 대회일정 · 동반자 매칭까지<br className="hidden sm:block" />
-                파크골프의 모든 것을 한곳에서, 무료로.
+                전국의 파크골퍼들이 함께 만드는 대한민국 파크골프 정보마당,<br className="hidden sm:block" />
+                파크골프마당의 첫 번째 주인공이 되어주세요.
               </p>
 
               {currentUser ? (
@@ -69,68 +78,63 @@ export const MainHomeSection: React.FC = () => {
         </div>
       </section>
 
-      {/* 가입 유도 이벤트 배너 — 실제 포인트 제도를 그대로 후킹으로 씁니다 (가짜 숫자 없음) */}
+      {/* 창립회원 진행 현황 — 실제 가입자 수 기준, 가짜 숫자 없음 */}
       <section className="bg-gradient-to-r from-emerald-800 to-green-900 py-8 px-4">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-center md:text-left">
-            <p className="text-amber-300 font-black text-sm sm:text-base mb-1">🎉 창립회원 오픈 이벤트</p>
-            <h2 className="text-2xl sm:text-3xl font-black text-white leading-snug">
-              활동할수록 쌓이는 <span className="text-amber-300">마당P</span>,<br className="sm:hidden" />
-              실제 상품으로 교환하세요!
-            </h2>
-            <p className="text-green-100 text-sm sm:text-base font-bold mt-2">
-              구장 리뷰 +200P · 동반자 모집 +300P · 맛집 등록 +150P
-            </p>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-amber-300 font-black text-sm sm:text-base">🎉 창립회원 오픈 이벤트</span>
+            <span className="text-white font-black text-sm sm:text-base">
+              현재 <span className="text-amber-300 text-lg sm:text-xl">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명
+            </span>
           </div>
-          <button
-            onClick={() => (currentUser ? openModal('myPage') : openModal('auth'))}
-            className="shrink-0 px-6 py-3.5 rounded-xl bg-white hover:bg-amber-50 text-emerald-800 font-black text-base sm:text-lg shadow-xl transition-all cursor-pointer whitespace-nowrap"
-          >
-            {currentUser ? '마당P 교환소 가기 →' : '지금 시작하기 →'}
-          </button>
-        </div>
-      </section>
-
-      {/* Sticky Note + Photo */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          {/* Sticky Note */}
-          <div className="relative bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-7 shadow-md">
-            <div className="absolute -top-3 left-6 w-6 h-6 rounded-full bg-rose-500 shadow" />
-            <p className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug mb-1">
-              "파크골프, <br />
-              <span className="text-emerald-700">지금 시작해도</span><br />
-              <span className="text-rose-500">늦지 않습니다!</span>"
-            </p>
-
-            <ul className="mt-5 space-y-2.5">
-              {[
-                '특별한 장비 없어도 OK!',
-                '가까운 곳에서 누구나 즐길 수 있어요',
-                '걸으면서 건강도, 마음도 UP!',
-                '집 근처 구장부터 지금 바로 시작하세요!'
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm sm:text-base font-bold text-slate-700">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Right Photo */}
-          <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-green-50">
-            <img
-              src="/images/highfive-v4.png"
-              alt="파크골프를 즐기는 시니어들의 하이파이브"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
+          <div className="w-full h-3 sm:h-4 bg-emerald-950/60 rounded-full overflow-hidden mb-6">
+            <div
+              className="h-full bg-gradient-to-r from-amber-400 to-amber-300 rounded-full transition-all duration-700"
+              style={{ width: `${Math.max(founderProgress, 2)}%` }}
             />
-            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-md">
-              <p className="text-sm sm:text-base font-extrabold text-emerald-800 text-right leading-snug">
-                작은 공이<br />만드는<br /><span className="text-rose-500">큰 행복!</span>
-              </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
+              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                {todayReviews}건
+              </div>
+              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">오늘 등록된 리뷰</div>
             </div>
+            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
+              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
+                <Users2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                {todayMatches}건
+              </div>
+              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">오늘 동반자 모집</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
+              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
+                <UtensilsCrossed className="w-4 h-4 sm:w-5 sm:h-5" />
+                {todayRestaurants}건
+              </div>
+              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">오늘 맛집 제보</div>
+            </div>
+            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
+              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
+                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
+                {totalUsers}명
+              </div>
+              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">누적 창립회원</div>
+            </div>
+          </div>
+
+          <p className="text-center text-green-100 text-xs sm:text-sm font-bold mt-5">
+            구장 리뷰 작성 +200P · 동반자 모집글 작성 +300P · 맛집 등록 +150P — 활동할수록 쌓이는 마당P, 실제 상품으로 교환하세요!
+          </p>
+          <div className="text-center mt-4">
+            <button
+              onClick={() => (currentUser ? openModal('myPage') : openModal('auth'))}
+              className="px-6 py-3.5 rounded-xl bg-white hover:bg-amber-50 text-emerald-800 font-black text-base sm:text-lg shadow-xl transition-all cursor-pointer"
+            >
+              {currentUser ? '마당P 교환소 가기 →' : '지금 창립회원 가입하기 →'}
+            </button>
           </div>
         </div>
       </section>

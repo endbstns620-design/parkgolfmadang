@@ -3,7 +3,7 @@ import { useParkGolf } from '../context/ParkGolfContext';
 import { X, UserPlus, LogIn } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
-  const { activeModal, closeModal, registerUser, loginUser } = useParkGolf();
+  const { activeModal, closeModal, registerUser, loginUser, setActiveTab } = useParkGolf();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -17,6 +17,8 @@ export const AuthModal: React.FC = () => {
     preferredRegion: '',
     averageScore: ''
   });
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
 
   if (!activeModal || activeModal.type !== 'auth') {
     return null;
@@ -34,6 +36,10 @@ export const AuthModal: React.FC = () => {
     e.preventDefault();
     if (registerForm.password !== registerForm.passwordConfirm) {
       alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    if (!agreedTerms || !agreedPrivacy) {
+      alert('이용약관과 개인정보 수집·이용에 동의해주셔야 가입하실 수 있습니다.');
       return;
     }
     setIsSubmitting(true);
@@ -205,9 +211,60 @@ export const AuthModal: React.FC = () => {
               </div>
             </div>
 
+            <div className="pt-2 border-t border-slate-100 space-y-2">
+              <label className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedTerms}
+                  onChange={e => setAgreedTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-emerald-700 cursor-pointer"
+                />
+                <span>
+                  (필수){' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeModal();
+                      setActiveTab('associations');
+                      window.dispatchEvent(new CustomEvent('open-rules-subtab', { detail: 'terms' }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="underline font-bold text-emerald-700 hover:text-emerald-800"
+                  >
+                    이용약관
+                  </button>
+                  에 동의합니다.
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-xs sm:text-sm text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedPrivacy}
+                  onChange={e => setAgreedPrivacy(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 accent-emerald-700 cursor-pointer"
+                />
+                <span>
+                  (필수) 이름·휴대폰번호 등{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeModal();
+                      setActiveTab('associations');
+                      window.dispatchEvent(new CustomEvent('open-rules-subtab', { detail: 'privacy' }));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="underline font-bold text-emerald-700 hover:text-emerald-800"
+                  >
+                    개인정보 수집 및 이용
+                  </button>
+                  에 동의합니다.
+                </span>
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !agreedTerms || !agreedPrivacy}
               className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow transition-all disabled:opacity-60 cursor-pointer mt-2"
             >
               {isSubmitting ? '가입 처리 중...' : '회원가입하기'}

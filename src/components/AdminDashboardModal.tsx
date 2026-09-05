@@ -44,6 +44,10 @@ export const AdminDashboardModal: React.FC = () => {
     searchTournamentsAllRegions,
     fetchRedemptions,
     updateRedemptionStatus,
+    pointShopItems,
+    addPointShopItem,
+    deletePointShopItem,
+    coupangProducts,
     news,
     addNews,
     updateNews,
@@ -62,7 +66,7 @@ export const AdminDashboardModal: React.FC = () => {
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'news' | 'matches' | 'reviews' | 'ads' | 'redemptions'>('courses');
+  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'news' | 'matches' | 'reviews' | 'ads' | 'pointshop' | 'redemptions'>('courses');
 
   // Edit / Form state for Course
   const [editingCourse, setEditingCourse] = useState<Partial<ParkCourse> | null>(null);
@@ -93,6 +97,14 @@ export const AdminDashboardModal: React.FC = () => {
   const [isBatchSearchingTournaments, setIsBatchSearchingTournaments] = useState(false);
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [isLoadingRedemptions, setIsLoadingRedemptions] = useState(false);
+  const [newPointShopItem, setNewPointShopItem] = useState({
+    name: '',
+    category: '',
+    pointCost: '',
+    referenceUrl: '',
+    selectedCoupangId: ''
+  });
+  const [isAddingPointShopItem, setIsAddingPointShopItem] = useState(false);
 
   // 관리자 모달이 열려있을 때 교환 신청 배지 숫자(및 목록)를 미리 불러옵니다.
   useEffect(() => {
@@ -262,6 +274,7 @@ export const AdminDashboardModal: React.FC = () => {
                 { id: 'matches', label: '👥 라운딩 매칭', count: matches.length },
                 { id: 'reviews', label: '⭐ 후기 관리', count: reviews.length },
                 { id: 'ads', label: '📣 제휴광고', count: ads.length },
+                { id: 'pointshop', label: '🛍️ 포인트샵', count: pointShopItems.length },
                 { id: 'redemptions', label: '🎁 교환신청', count: redemptions.filter((r: any) => r.status === '접수됨').length }
               ].map(tab => (
                 <button
@@ -1114,6 +1127,146 @@ export const AdminDashboardModal: React.FC = () => {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {activeTab === 'pointshop' && (
+                <div className="space-y-5">
+                  <h3 className="font-extrabold text-slate-900">마당P 교환소 상품 관리 ({pointShopItems.length}개)</h3>
+
+                  {/* 새 상품 등록 폼 */}
+                  <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 space-y-3">
+                    <h4 className="font-extrabold text-emerald-950 text-sm">새 상품 등록</h4>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">
+                        이미 광고 중인 쿠팡 상품에서 가져오기 (선택)
+                      </label>
+                      <select
+                        value={newPointShopItem.selectedCoupangId}
+                        onChange={e => {
+                          const selected = coupangProducts.find((p: any) => p.id === e.target.value);
+                          setNewPointShopItem({
+                            ...newPointShopItem,
+                            selectedCoupangId: e.target.value,
+                            referenceUrl: selected ? selected.embedUrl : newPointShopItem.referenceUrl,
+                            category: selected ? selected.category : newPointShopItem.category
+                          });
+                        }}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
+                      >
+                        <option value="">직접 링크 입력 (아래 참고링크에 붙여넣기)</option>
+                        {coupangProducts.map((p: any) => (
+                          <option key={p.id} value={p.id}>
+                            [{p.category}] {p.embedUrl}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">상품명 *</label>
+                        <input
+                          type="text"
+                          value={newPointShopItem.name}
+                          onChange={e => setNewPointShopItem({ ...newPointShopItem, name: e.target.value })}
+                          placeholder="예: 지맥스 파크골프 장갑"
+                          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">카테고리</label>
+                        <input
+                          type="text"
+                          value={newPointShopItem.category}
+                          onChange={e => setNewPointShopItem({ ...newPointShopItem, category: e.target.value })}
+                          placeholder="예: 장갑, 골프공, 가방"
+                          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">차감 포인트(마당P) *</label>
+                      <input
+                        type="number"
+                        value={newPointShopItem.pointCost}
+                        onChange={e => setNewPointShopItem({ ...newPointShopItem, pointCost: e.target.value })}
+                        placeholder="예: 15000"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">
+                        참고 링크(쿠팡 상품 URL) — "상품보기" 클릭 시 이동할 주소
+                      </label>
+                      <input
+                        type="text"
+                        value={newPointShopItem.referenceUrl}
+                        onChange={e => setNewPointShopItem({ ...newPointShopItem, referenceUrl: e.target.value })}
+                        placeholder="https://www.coupang.com/vp/products/..."
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-mono"
+                      />
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (!newPointShopItem.name.trim() || !newPointShopItem.pointCost) {
+                          alert('상품명과 차감 포인트는 필수입니다.');
+                          return;
+                        }
+                        setIsAddingPointShopItem(true);
+                        const success = await addPointShopItem({
+                          name: newPointShopItem.name.trim(),
+                          category: newPointShopItem.category.trim() || '기타',
+                          pointCost: Number(newPointShopItem.pointCost),
+                          referenceUrl: newPointShopItem.referenceUrl.trim() || undefined
+                        });
+                        setIsAddingPointShopItem(false);
+                        if (success) {
+                          setNewPointShopItem({ name: '', category: '', pointCost: '', referenceUrl: '', selectedCoupangId: '' });
+                        }
+                      }}
+                      disabled={isAddingPointShopItem}
+                      className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm disabled:opacity-60"
+                    >
+                      {isAddingPointShopItem ? '등록 중...' : '상품 등록하기'}
+                    </button>
+                  </div>
+
+                  {/* 기존 상품 목록 */}
+                  <div className="space-y-2">
+                    {pointShopItems.map((item: any) => (
+                      <div
+                        key={item.id}
+                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3"
+                      >
+                        <div>
+                          <span className="text-xs font-bold text-purple-700">[{item.category}]</span>
+                          <h5 className="font-bold text-slate-900 text-sm">{item.name}</h5>
+                          <span className="text-xs text-emerald-700 font-bold">{item.pointCost.toLocaleString()}P</span>
+                          {item.referenceUrl && (
+                            <a
+                              href={item.referenceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-slate-400 hover:text-slate-600 block truncate max-w-md"
+                            >
+                              {item.referenceUrl}
+                            </a>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => deletePointShopItem(item.id)}
+                          className="p-2 rounded-xl bg-rose-100 text-rose-700 text-xs font-bold shrink-0"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

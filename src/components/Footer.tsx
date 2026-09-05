@@ -9,7 +9,7 @@ export const Footer: React.FC = () => {
     <footer className="bg-slate-950 text-slate-300 pt-12 pb-16 px-4 sm:px-6 border-t border-slate-800">
       <div className="max-w-7xl mx-auto space-y-10">
         {/* Top Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Col 1: Brand */}
           <div className="space-y-4 md:col-span-1">
             <div className="flex items-center gap-2">
@@ -33,108 +33,6 @@ export const Footer: React.FC = () => {
                 <Lock className="w-3.5 h-3.5" />
                 <span>{isAdmin ? '관리자 모드 열기 (접속 중)' : '관리자 로그인'}</span>
               </button>
-            </div>
-          </div>
-
-          {/* Col 2: Quick Links */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-extrabold text-white tracking-wider uppercase">
-              주요 카테고리
-            </h4>
-            <ul className="space-y-2 text-xs sm:text-sm">
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('courses');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="hover:text-amber-300 transition-colors text-left cursor-pointer"
-                >
-                  🏌️ 전국 파크골프 구장 (지자체 직영)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('tournaments');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="hover:text-amber-300 transition-colors text-left cursor-pointer"
-                >
-                  🏆 전국 대회 소식 (실시간 접수 일정)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('news');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="hover:text-amber-300 transition-colors text-left cursor-pointer"
-                >
-                  📰 파크골프 뉴스 · 레슨
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('reviews');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="hover:text-amber-300 transition-colors text-left cursor-pointer"
-                >
-                  ⭐ 생생 구장 리뷰 (솔직 후기)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('matching');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="hover:text-amber-300 transition-colors text-left cursor-pointer"
-                >
-                  👥 라운딩 동반자 모집 (조편성 매칭)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('associations');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="hover:text-amber-300 font-bold transition-colors text-emerald-400 text-left cursor-pointer"
-                >
-                  🏛️ 파크골프 관련 협회 및 주요 연맹 (본회·연맹·시도협회)
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={() => {
-                    setActiveTab('associations');
-                    window.dispatchEvent(new CustomEvent('open-rules-subtab', { detail: 'dataForm' }));
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer text-left"
-                >
-                  📜 협회 규정 · 제보 및 데이터 접수처
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Col 3: Regional Direct Centers */}
-          <div className="space-y-3">
-            <h4 className="text-sm font-extrabold text-white tracking-wider uppercase">
-              지자체 직영 주요 거점
-            </h4>
-            <div className="text-xs sm:text-sm space-y-1.5 text-slate-400">
-              <div>• <strong>화천 산천어</strong> (36홀 / 033-440-2715)</div>
-              <div>• <strong>양평 강상</strong> (36홀 / 031-770-2468)</div>
-              <div>• <strong>대구 수성 패밀리</strong> (36홀 / 053-666-3240)</div>
-              <div>• <strong>충주 호암</strong> (36홀 / 043-850-6720)</div>
-              <div>• <strong>경남 밀양 가곡</strong> (36홀 / 055-359-5788)</div>
-              <div>• <strong>목포 부주산</strong> (18홀 / 061-270-8335)</div>
             </div>
           </div>
 
