@@ -140,7 +140,7 @@ export const MainHomeSection: React.FC = () => {
       </section>
 
       {/* Category Cards */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {categoryCards.map(card => (
             <button
