@@ -7,7 +7,6 @@ import {
   Trees,
   Trophy,
   MapPin,
-  BookOpen,
   UsersRound,
   CheckCircle2
 } from 'lucide-react';
@@ -37,10 +36,10 @@ export const MainHomeSection: React.FC = () => {
   };
 
   const categoryCards = [
-    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', icon: MapPin, iconBg: 'bg-blue-100 text-blue-700' },
-    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', icon: Trophy, iconBg: 'bg-amber-100 text-amber-700' },
-    { id: 'news', title: '초보자 가이드', desc: '처음 시작하는 분들을 위한 친절한 안내', icon: BookOpen, iconBg: 'bg-indigo-100 text-indigo-700' },
-    { id: 'matching', title: '커뮤니티', desc: '함께하는 이야기, 더 즐거운 파크골프', icon: UsersRound, iconBg: 'bg-purple-100 text-purple-700' }
+    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/card-courses.png' },
+    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', image: '/images/card-tournaments.png' },
+    { id: 'news', title: '초보자 가이드', desc: '처음 시작하는 분들을 위한 친절한 안내', image: '/images/card-guide.png' },
+    { id: 'matching', title: '커뮤니티', desc: '함께하는 이야기, 더 즐거운 파크골프', image: '/images/card-community.png' }
   ];
 
   return (
@@ -193,7 +192,6 @@ export const MainHomeSection: React.FC = () => {
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {categoryCards.map(card => {
-            const Icon = card.icon;
             return (
               <button
                 key={card.id}
@@ -203,8 +201,12 @@ export const MainHomeSection: React.FC = () => {
                 }}
                 className="text-left bg-white rounded-2xl border border-slate-200 hover:shadow-lg transition-all cursor-pointer overflow-hidden group"
               >
-                <div className={`aspect-video ${card.iconBg} flex items-center justify-center`}>
-                  <Icon className="w-10 h-10 sm:w-12 sm:h-12 opacity-80" />
+                <div className="aspect-video overflow-hidden bg-slate-100">
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between">
