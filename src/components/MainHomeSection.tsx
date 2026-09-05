@@ -12,10 +12,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-// ⚠️ 메인 배너 이미지 — 대표님이 보내주신 실제 사진으로 교체 예정입니다.
-// (현재는 저작권이 확실한 무료 라이선스 이미지로 임시 배치했습니다)
-const MAIN_BANNER_IMAGE_URL =
-  'https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=2000&q=80';
+// 메인 배너 이미지 — 대표님이 ChatGPT로 직접 생성하신 이미지에서 인물 부분만 잘라 사용합니다.
+// (AI 생성 이미지라 실존 인물의 초상권 문제가 없습니다)
+const MAIN_BANNER_IMAGE_URL = '/images/main-hero-couple.png';
 const SWING_SILHOUETTE_IMAGE_URL =
   'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=800&q=80';
 
