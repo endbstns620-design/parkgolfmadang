@@ -121,32 +121,6 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
     createdAt: '2026-09-04'
   },
   {
-    id: 'rest-seed-010',
-    courseName: '여의도한강 파크골프장',
-    region: '서울 영등포구',
-    restaurantName: '장어나루',
-    menu: '장어덮밥',
-    address: '확인 필요',
-    phoneNumber: '확인 필요',
-    businessHours: '확인 필요',
-    description: '여의도한강공원 인근 맛집 순위에서 꾸준히 상위권으로 소개되는 곳입니다.',
-    authorName: '운영자(사전조사)',
-    createdAt: '2026-09-04'
-  },
-  {
-    id: 'rest-seed-011',
-    courseName: '잠실운동장 파크골프장',
-    region: '서울 송파구',
-    restaurantName: '나폴레옹베이커리',
-    menu: '식빵·소세지빵',
-    address: '확인 필요',
-    phoneNumber: '확인 필요',
-    businessHours: '확인 필요',
-    description: '잠실종합운동장 사거리 인근에서 오래 자리를 지켜온 베이커리입니다.',
-    authorName: '운영자(사전조사)',
-    createdAt: '2026-09-04'
-  },
-  {
     id: 'rest-seed-012',
     courseName: '소양강파크골프장',
     region: '강원 춘천시',
@@ -204,9 +178,9 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
     region: '경북 안동시',
     restaurantName: '안동서문찜닭',
     menu: '안동찜닭·쪼림닭',
-    address: '경북 안동시 안동역 인근',
-    phoneNumber: '확인 필요',
-    businessHours: '확인 필요',
+    address: '경북 안동시 경동로 677 ((구)안동역 맞은편)',
+    phoneNumber: '0507-1352-0378',
+    businessHours: '매일 10:00~21:00',
     description: '안동역 앞에 위치해 접근성이 좋은 찜닭 맛집입니다.',
     authorName: '운영자(사전조사)',
     createdAt: '2026-09-04'
@@ -256,9 +230,9 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
     region: '전남·광주 목포시',
     restaurantName: '덕인집',
     menu: '홍어',
-    address: '전남 목포시',
-    phoneNumber: '확인 필요',
-    businessHours: '확인 필요',
+    address: '전라남도 목포시 영산로73번길 1-1',
+    phoneNumber: '061-242-3767',
+    businessHours: '12:00~21:00 (매주 월요일 정기휴무)',
     description: '목포 홍어 맛집 중 평점이 높은 곳으로 다수 소개되었습니다.',
     authorName: '운영자(사전조사)',
     createdAt: '2026-09-04'

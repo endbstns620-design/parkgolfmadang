@@ -53,16 +53,16 @@ export const MainHomeSection: React.FC = () => {
             className="w-full h-full object-cover object-center"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/75 to-white/90" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/88 via-white/80 to-white/92" />
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8 text-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-2">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-2 text-left max-w-md drop-shadow-sm">
             <span className="text-slate-900">오늘도,</span><br />
             <span className="text-emerald-700">파크골프가</span>{' '}
             <span className="text-rose-500">좋다! ♡</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-700 font-bold mb-6">
+          <p className="text-base sm:text-lg text-slate-800 font-bold mb-6 text-left max-w-md drop-shadow-sm">
             건강한 오늘, 더 행복한 내일 — 파크골프와 함께하세요!
           </p>
 
