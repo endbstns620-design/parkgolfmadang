@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import {
   Search,
+  Sparkles,
   HeartPulse,
   Users2,
   Trees,
@@ -11,12 +12,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-// 메인 배너 이미지 — 대표님이 ChatGPT로 직접 생성하신 이미지에서 인물 부분만 잘라 사용합니다.
-// (AI 생성 이미지라 실존 인물의 초상권 문제가 없습니다)
-const MAIN_BANNER_IMAGE_URL = '/images/main-hero-couple-v3.png';
-// 스윙 실루엣 이미지 — 참고 이미지에서 그대로 잘라 썼고, "작은 공이 만드는 큰 행복!" 문구가
-// 이미 이미지 안에 들어있어서 별도로 텍스트를 얹지 않습니다.
-const SWING_SILHOUETTE_IMAGE_URL = '/images/swing-silhouette-v2.png';
+// 메인 배너 이미지 — 대표님이 벤치마킹용으로 보내주신 사진들로 교체했습니다.
+// 전부 텍스트가 따로 박혀있지 않은 순수 사진이라, 겹쳐 보이는 문제 자체가 생기지 않습니다.
+const MAIN_BANNER_IMAGE_URL = '/images/hero-couple-v4.jpg';
 
 const HASHTAGS = ['#내주변구장', '#무료구장', '#야간운영', '#오늘개방', '#주차가능', '#대회정보'];
 
@@ -37,88 +35,93 @@ export const MainHomeSection: React.FC = () => {
   };
 
   const categoryCards = [
-    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/card-courses.png' },
-    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', image: '/images/card-tournaments.png' },
-    { id: 'news', title: '초보자 가이드', desc: '처음 시작하는 분들을 위한 친절한 안내', image: '/images/card-guide.png' },
-    { id: 'matching', title: '커뮤니티', desc: '함께하는 이야기, 더 즐거운 파크골프', image: '/images/card-community.png' }
+    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/card-courses-v4.png' },
+    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', image: '/images/card-tournaments-v4.png' },
+    { id: 'news', title: '초보자 가이드', desc: '처음 시작하는 분들을 위한 친절한 안내', image: '/images/card-guide-v4.png' },
+    { id: 'matching', title: '커뮤니티', desc: '함께하는 이야기, 더 즐거운 파크골프', image: '/images/card-community-v4.png' }
   ];
 
   return (
     <div className="bg-white">
-      {/* Hero Banner — 사진과 텍스트를 좌우로 완전히 분리해서, 사진 속에 원래 있던 글자와
-          겹쳐 보이는 문제 자체가 생기지 않도록 만들었습니다. */}
-      <section className="bg-gradient-to-b from-green-50 to-white overflow-hidden">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-8 grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 items-center">
-          {/* Left: Text & Controls */}
-          <div className="md:col-span-3 text-center md:text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-2">
-              <span className="text-slate-900">오늘도,</span><br />
-              <span className="text-emerald-700">파크골프가</span>{' '}
-              <span className="text-rose-500">좋다! ♡</span>
-            </h1>
-            <p className="text-base sm:text-lg text-slate-700 font-bold mb-6">
-              건강한 오늘, 더 행복한 내일 — 파크골프와 함께하세요!
-            </p>
+      {/* Hero Banner — 이번 사진은 원래 글자가 안 박혀있어서, 전체 배경으로 크게 쓰고
+          왼쪽에 어두운 그라데이션만 깔아서 그 위에 실제 텍스트를 올렸습니다. */}
+      <section className="relative overflow-hidden">
+        <img
+          src={MAIN_BANNER_IMAGE_URL}
+          alt="파크골프를 즐기는 시니어 부부와 파크골프장 표지판"
+          className="w-full h-[420px] sm:h-[480px] md:h-[560px] object-cover object-[30%_center]"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-green-950/85 via-green-950/55 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-green-950/60 via-transparent to-transparent" />
 
-            {/* 4 Value Badges */}
-            <div className="flex items-center justify-center md:justify-start gap-3 sm:gap-5 mb-7 flex-wrap">
-              {VALUE_BADGES.map((b, i) => {
-                const Icon = b.icon;
-                return (
-                  <div key={i} className="flex flex-col items-center gap-1.5 w-20 sm:w-24">
-                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${b.bg} flex items-center justify-center shadow-md`}>
-                      <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                    </div>
-                    <span className="text-[11px] sm:text-xs font-bold text-slate-800 text-center leading-tight whitespace-pre-line">
-                      {b.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+        <div className="absolute inset-0 flex items-center">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
+            <div className="max-w-lg">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/90 text-green-950 text-xs sm:text-sm font-extrabold mb-4">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>전국 파크골프 동호인과 함께하는 커뮤니티</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-3 text-white drop-shadow-md">
+                오늘도, <span className="text-amber-300">파크골프가</span><br />
+                좋다! <span className="text-rose-300">♡</span>
+              </h1>
+              <p className="text-base sm:text-lg text-green-50 font-bold mb-6 drop-shadow-sm">
+                건강한 오늘, 더 행복한 내일 — 파크골프와 함께하세요!
+              </p>
 
-            {/* Search Bar */}
-            <div className="max-w-xl mx-auto md:mx-0 bg-white rounded-2xl border border-slate-200 shadow-lg p-2 flex items-center gap-2">
-              <Search className="w-5 h-5 text-slate-400 ml-2 shrink-0" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && goToCourseSearch()}
-                placeholder="지금, 가까운 파크골프장을 찾아보세요"
-                className="flex-1 min-w-0 text-sm sm:text-base font-medium outline-none bg-transparent"
-              />
-              <button
-                onClick={goToCourseSearch}
-                className="shrink-0 px-4 sm:px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm sm:text-base transition-colors cursor-pointer"
-              >
-                구장 검색하기 →
-              </button>
-            </div>
-
-            {/* Hashtags */}
-            <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap mt-4">
-              {HASHTAGS.map(tag => (
+              {/* Search Bar */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-2 flex items-center gap-2 mb-4">
+                <Search className="w-5 h-5 text-slate-400 ml-2 shrink-0" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && goToCourseSearch()}
+                  placeholder="지금, 가까운 파크골프장을 찾아보세요"
+                  className="flex-1 min-w-0 text-sm sm:text-base font-medium outline-none bg-transparent"
+                />
                 <button
-                  key={tag}
                   onClick={goToCourseSearch}
-                  className="px-3 py-1 rounded-full bg-white border border-slate-200 text-xs sm:text-sm font-bold text-slate-600 hover:border-emerald-400 hover:text-emerald-700 shadow-2xs cursor-pointer"
+                  className="shrink-0 px-4 sm:px-5 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm sm:text-base transition-colors cursor-pointer"
                 >
-                  {tag}
+                  구장 검색하기 →
                 </button>
-              ))}
+              </div>
+
+              {/* Hashtags */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {HASHTAGS.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={goToCourseSearch}
+                    className="px-3 py-1 rounded-full bg-white/90 border border-white text-xs sm:text-sm font-bold text-slate-700 hover:bg-white cursor-pointer"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Right: Photo (텍스트와 절대 겹치지 않는 독립된 영역) */}
-          <div className="md:col-span-2 hidden sm:block">
-            <img
-              src={MAIN_BANNER_IMAGE_URL}
-              alt="파크골프를 즐기는 시니어 부부"
-              className="w-full h-auto rounded-3xl shadow-xl object-cover aspect-[4/3]"
-              referrerPolicy="no-referrer"
-            />
-          </div>
+      {/* 4 Value Badges — 사진 아래, 별도의 깨끗한 영역 */}
+      <section className="bg-white py-6 px-4 border-b border-slate-100">
+        <div className="max-w-4xl mx-auto flex items-center justify-center gap-4 sm:gap-8 flex-wrap">
+          {VALUE_BADGES.map((b, i) => {
+            const Icon = b.icon;
+            return (
+              <div key={i} className="flex flex-col items-center gap-1.5 w-20 sm:w-24">
+                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full ${b.bg} flex items-center justify-center shadow-md`}>
+                  <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-bold text-slate-800 text-center leading-tight whitespace-pre-line">
+                  {b.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -176,14 +179,19 @@ export const MainHomeSection: React.FC = () => {
             </ul>
           </div>
 
-          {/* Swing Image (문구가 이미지 안에 이미 포함되어 있어 별도 텍스트를 얹지 않습니다) */}
+          {/* Right Photo — 이번 사진엔 문구가 안 박혀있어서, 직접 문구를 깔끔하게 얹습니다 */}
           <div className="relative rounded-2xl overflow-hidden aspect-[4/3] bg-green-50">
             <img
-              src={SWING_SILHOUETTE_IMAGE_URL}
-              alt="작은 공이 만드는 큰 행복"
-              className="w-full h-full object-contain"
+              src="/images/highfive-v4.png"
+              alt="파크골프를 즐기는 시니어들의 하이파이브"
+              className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
+            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-md">
+              <p className="text-sm sm:text-base font-extrabold text-emerald-800 text-right leading-snug">
+                작은 공이<br />만드는<br /><span className="text-rose-500">큰 행복!</span>
+              </p>
+            </div>
           </div>
         </div>
       </section>
