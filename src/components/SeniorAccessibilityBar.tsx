@@ -1,6 +1,5 @@
 import React from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { PhoneCall } from 'lucide-react';
 import { VisitorCounterBadge } from './VisitorCounterBadge';
 
 export const SeniorAccessibilityBar: React.FC = () => {
@@ -75,16 +74,6 @@ export const SeniorAccessibilityBar: React.FC = () => {
           >
             <span>📜 협회 공인 규정 · 제보</span>
           </button>
-
-          {/* Senior Direct Call */}
-          <a
-            id="senior-call-link"
-            href="tel:1588-7282"
-            className="inline-flex items-center gap-1 text-xs sm:text-sm text-green-200 hover:text-white font-medium"
-          >
-            <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
-            <span>상담 · 문의 : <strong className="text-white">1588-7282</strong></span>
-          </a>
         </div>
       </div>
     </aside>

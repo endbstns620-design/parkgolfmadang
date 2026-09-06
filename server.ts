@@ -429,89 +429,6 @@ async function startServer() {
     }
   });
 
-  // ---- 이달의 신규회원 추첨 이벤트 ----
-  // 매달 그 달에 새로 가입한 회원 중 관리자가 무작위로 1명을 뽑아 실물 상품을 보내드리는 이벤트입니다.
-  // 자동 발송이 아니라, 당첨자가 정해지면 관리자가 실제로 확인하고 직접 발송합니다.
-  interface MonthlyDrawWinner {
-    id: string;
-    month: string; // YYYY-MM
-    userId: string;
-    nickname: string;
-    phone: string;
-    drawnAt: string;
-    shipped: boolean;
-  }
-
-  const CURRENT_PRIZE = {
-    name: '웰리타-Y 밀크씨슬 테아닌 간건강 긴장완화 영양제 180정 (1개월분)',
-    brand: '웰리타스토어',
-    referenceUrl: 'https://smartstore.naver.com/welita/products/12799222467'
-  };
-
-  app.get("/api/monthly-draw/info", (_req, res) => {
-    const users = readJsonFile<AppUser[]>("users.json", []);
-    const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const eligibleCount = users.filter(u => u.createdAt.startsWith(thisMonth)).length;
-    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
-    const alreadyDrawnThisMonth = winners.some(w => w.month === thisMonth);
-    const recentWinners = winners
-      .slice()
-      .reverse()
-      .slice(0, 6)
-      .map(w => ({ month: w.month, nickname: w.nickname }));
-    res.json({
-      success: true,
-      prize: CURRENT_PRIZE,
-      currentMonth: thisMonth,
-      eligibleCount,
-      alreadyDrawnThisMonth,
-      recentWinners
-    });
-  });
-
-  app.get("/api/monthly-draw/winners", requireAdmin, (_req, res) => {
-    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
-    res.json({ success: true, winners });
-  });
-
-  // 관리자가 버튼을 누르면, 이번 달 신규가입자 중 실제로 무작위 추첨합니다
-  // (이미 당첨된 적 있는 회원은 형평성을 위해 다시 뽑히지 않습니다).
-  app.post("/api/monthly-draw/run", requireAdmin, (req, res) => {
-    const thisMonth = new Date().toISOString().slice(0, 7);
-    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
-    if (winners.some(w => w.month === thisMonth)) {
-      return res.status(409).json({ success: false, error: "이번 달 추첨은 이미 진행되었습니다." });
-    }
-    const users = readJsonFile<AppUser[]>("users.json", []);
-    const alreadyWonIds = new Set(winners.map(w => w.userId));
-    const eligible = users.filter(u => u.createdAt.startsWith(thisMonth) && !alreadyWonIds.has(u.id));
-    if (eligible.length === 0) {
-      return res.status(400).json({ success: false, error: "이번 달 추첨 대상(신규가입자)이 없습니다." });
-    }
-    const winner = eligible[Math.floor(Math.random() * eligible.length)];
-    const newWinner: MonthlyDrawWinner = {
-      id: `draw-${Date.now()}`,
-      month: thisMonth,
-      userId: winner.id,
-      nickname: winner.nickname,
-      phone: winner.phone,
-      drawnAt: new Date().toISOString(),
-      shipped: false
-    };
-    winners.push(newWinner);
-    writeJsonFile("monthly-draw-winners.json", winners);
-    res.json({ success: true, winner: newWinner });
-  });
-
-  app.patch("/api/monthly-draw/winners/:id", requireAdmin, (req, res) => {
-    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
-    const idx = winners.findIndex(w => w.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ success: false, error: "당첨 기록을 찾을 수 없습니다." });
-    winners[idx].shipped = Boolean(req.body.shipped);
-    writeJsonFile("monthly-draw-winners.json", winners);
-    res.json({ success: true });
-  });
-
   // ---- 마당P 교환소 (포인트로 실제 상품 교환 신청) ----
   interface PointShopItem {
     id: string;
@@ -931,7 +848,7 @@ async function startServer() {
   }
 
   app.post("/api/auth/register", async (req, res) => {
-    const { name, phone, password, nickname, preferredRegion, averageScore, referrerNickname } = req.body || {};
+    const { name, phone, password, nickname, preferredRegion, averageScore } = req.body || {};
     if (!name || !phone || !password || !nickname) {
       return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 비밀번호, 닉네임은 필수입니다." });
     }
@@ -953,24 +870,7 @@ async function startServer() {
     if (users.some(u => u.nickname === String(nickname).trim())) {
       return res.status(409).json({ success: false, error: "이미 사용 중인 닉네임입니다." });
     }
-
-    // 추천인 닉네임이 입력됐으면 실제로 존재하는 닉네임인지 먼저 확인합니다
-    // (틀린 닉네임을 적었는데 아무 말 없이 그냥 넘어가면 나중에 포인트를 못 받았다고
-    // 오해하실 수 있어서, 못 찾으면 가입 자체를 막고 다시 확인하도록 합니다).
-    let referrerIdx = -1;
-    const trimmedReferrer = referrerNickname ? String(referrerNickname).trim() : '';
-    if (trimmedReferrer) {
-      referrerIdx = users.findIndex(u => u.nickname === trimmedReferrer);
-      if (referrerIdx === -1) {
-        return res.status(404).json({ success: false, error: "입력하신 추천인 닉네임을 찾을 수 없습니다. 닉네임을 다시 확인해주세요." });
-      }
-      if (trimmedReferrer === String(nickname).trim()) {
-        return res.status(400).json({ success: false, error: "본인을 추천인으로 입력할 수 없습니다." });
-      }
-    }
-
     const passwordHash = await bcrypt.hash(password, 10);
-    const signupBonus = trimmedReferrer ? 1500 : 1000; // 추천인이 있으면 가입축하 1,000P + 추천보너스 500P
     const newUser: AppUser = {
       id: `user-${Date.now()}`,
       name: String(name).trim(),
@@ -981,18 +881,10 @@ async function startServer() {
       averageScore: averageScore ? String(averageScore).trim() : undefined,
       createdAt: new Date().toISOString().slice(0, 10),
       founderNumber: users.length + 1,
-      points: signupBonus,
-      badges: trimmedReferrer ? ['창립회원', '추천으로 가입'] : ['창립회원']
+      points: 1000, // 가입축하 마당P
+      badges: ['창립회원']
     };
     users.push(newUser);
-
-    // 추천인에게도 500P를 지급합니다.
-    if (referrerIdx !== -1) {
-      users[referrerIdx].points = (users[referrerIdx].points || 0) + 500;
-      if (!(users[referrerIdx].badges || []).includes('추천왕')) {
-        users[referrerIdx].badges = [...(users[referrerIdx].badges || []), '추천왕'];
-      }
-    }
     writeJsonFile("users.json", users);
 
     const token = crypto.randomBytes(24).toString("hex");
@@ -1020,27 +912,6 @@ async function startServer() {
     res.json({ success: true, token, user: toPublicUser(user) });
   });
 
-  // 비밀번호 찾기 — 이메일이 없는 사이트라 "이름 + 휴대폰번호"로 본인을 확인한 뒤
-  // 그 자리에서 바로 새 비밀번호를 설정하는 방식입니다 (재설정 링크 발송 없음).
-  app.post("/api/auth/reset-password", async (req, res) => {
-    const { name, phone, newPassword } = req.body || {};
-    if (!name || !phone || !newPassword) {
-      return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 새 비밀번호를 모두 입력해주세요." });
-    }
-    if (String(newPassword).length < 6) {
-      return res.status(400).json({ success: false, error: "비밀번호는 6자 이상이어야 합니다." });
-    }
-    const phoneDigits = String(phone).replace(/[^0-9]/g, "");
-    const users = readJsonFile<AppUser[]>("users.json", []);
-    const idx = users.findIndex(u => u.phone === phoneDigits && u.name === String(name).trim());
-    if (idx === -1) {
-      return res.status(404).json({ success: false, error: "입력하신 이름과 휴대폰번호로 가입된 회원을 찾을 수 없습니다." });
-    }
-    users[idx].passwordHash = await bcrypt.hash(newPassword, 10);
-    writeJsonFile("users.json", users);
-    res.json({ success: true });
-  });
-
   app.post("/api/auth/logout", (req, res) => {
     const authHeader = req.get("authorization") || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
@@ -1057,6 +928,89 @@ async function startServer() {
   app.get("/api/auth/stats", (_req, res) => {
     const users = readJsonFile<AppUser[]>("users.json", []);
     res.json({ success: true, totalUsers: users.length });
+  });
+
+  // ---- 창립회원 오픈이벤트 (2번째 이벤트) — 매달 신규 창립회원 중 추첨 ----
+  // 실제 상품은 대표님이 직접 웰리타스토어에서 후원받아 당첨자에게 발송하는 방식입니다.
+  interface MonthlyDrawWinner {
+    id: string;
+    month: string;
+    userId: string;
+    nickname: string;
+    phone: string;
+    drawnAt: string;
+    shipped: boolean;
+  }
+
+  const CURRENT_PRIZE = {
+    name: '웰리타-Y 밀크씨슬 테아닌 간건강 긴장완화 영양제 180정 (3개월분)',
+    brand: '웰리타스토어',
+    value: '45,000원 상당',
+    sellerProfileUrl: 'https://smartstore.naver.com/welita/profile?cp=1'
+  };
+
+  app.get("/api/monthly-draw/info", (_req, res) => {
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const eligibleCount = users.filter(u => u.createdAt.startsWith(thisMonth)).length;
+    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
+    const alreadyDrawnThisMonth = winners.some(w => w.month === thisMonth);
+    const recentWinners = winners
+      .slice()
+      .reverse()
+      .slice(0, 6)
+      .map(w => ({ month: w.month, nickname: w.nickname }));
+    res.json({
+      success: true,
+      prize: CURRENT_PRIZE,
+      currentMonth: thisMonth,
+      eligibleCount,
+      alreadyDrawnThisMonth,
+      recentWinners
+    });
+  });
+
+  app.get("/api/monthly-draw/winners", requireAdmin, (_req, res) => {
+    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
+    res.json({ success: true, winners });
+  });
+
+  // 관리자가 버튼을 누르면, 이번 달 신규가입자 중 실제로 무작위 추첨합니다
+  // (이미 당첨된 적 있는 회원은 형평성을 위해 다시 뽑히지 않습니다).
+  app.post("/api/monthly-draw/run", requireAdmin, (req, res) => {
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
+    if (winners.some(w => w.month === thisMonth)) {
+      return res.status(409).json({ success: false, error: "이번 달 추첨은 이미 진행되었습니다." });
+    }
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const alreadyWonIds = new Set(winners.map(w => w.userId));
+    const eligible = users.filter(u => u.createdAt.startsWith(thisMonth) && !alreadyWonIds.has(u.id));
+    if (eligible.length === 0) {
+      return res.status(400).json({ success: false, error: "이번 달 추첨 대상(신규가입자)이 없습니다." });
+    }
+    const winner = eligible[Math.floor(Math.random() * eligible.length)];
+    const newWinner: MonthlyDrawWinner = {
+      id: `draw-${Date.now()}`,
+      month: thisMonth,
+      userId: winner.id,
+      nickname: winner.nickname,
+      phone: winner.phone,
+      drawnAt: new Date().toISOString(),
+      shipped: false
+    };
+    winners.push(newWinner);
+    writeJsonFile("monthly-draw-winners.json", winners);
+    res.json({ success: true, winner: newWinner });
+  });
+
+  app.patch("/api/monthly-draw/winners/:id", requireAdmin, (req, res) => {
+    const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
+    const idx = winners.findIndex(w => w.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "당첨 기록을 찾을 수 없습니다." });
+    winners[idx].shipped = Boolean(req.body.shipped);
+    writeJsonFile("monthly-draw-winners.json", winners);
+    res.json({ success: true });
   });
 
   // Health check endpoint

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Sparkles, CheckCircle2, MessageCircle, Users2, UtensilsCrossed, UserPlus } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { InstallAppBanner } from './InstallAppBanner';
 
 // 메인 배너 이미지 — 대표님이 벤치마킹용으로 보내주신 사진들로 교체했습니다.
 // 전부 텍스트가 따로 박혀있지 않은 순수 사진이라, 겹쳐 보이는 문제 자체가 생기지 않습니다.
@@ -79,111 +78,80 @@ export const MainHomeSection: React.FC = () => {
         </div>
       </section>
 
-      <InstallAppBanner />
-
-      {/* 이달의 신규회원 추첨 이벤트 — 실제 상품·실제 참여인원 기준, 자동응모(신규가입만 하면 자동 참여) */}
-      {monthlyDrawInfo && (
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-6">
-          <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 border-2 border-violet-300 rounded-2xl p-5 sm:p-6 shadow-md">
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white border-2 border-violet-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-sm">
-                💊
-              </div>
-              <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-600 text-white text-[11px] sm:text-xs font-black mb-1.5">
-                  이달의 신규회원 추첨 이벤트
-                </div>
-                <p className="font-black text-slate-900 text-base sm:text-lg leading-snug">
-                  이번 달 신규가입자 중 1명께{' '}
-                  <span className="text-violet-700">{monthlyDrawInfo.prize.name}</span>을 보내드려요!
-                </p>
-                <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                  이번 달({monthlyDrawInfo.currentMonth}) 신규가입만 하시면 자동으로 응모됩니다 · 별도 신청 불필요
-                </p>
-                <p className="text-xs sm:text-sm font-bold text-violet-700 mt-1.5">
-                  현재 {monthlyDrawInfo.eligibleCount}명 응모 중
-                  {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 이번 달 추첨 완료!'}
-                </p>
-              </div>
-              {!currentUser && (
-                <button
-                  onClick={() => openModal('auth')}
-                  className="shrink-0 px-5 py-3 rounded-xl bg-violet-700 hover:bg-violet-800 text-white font-black text-sm sm:text-base shadow cursor-pointer whitespace-nowrap"
-                >
-                  지금 가입하고 응모하기
-                </button>
-              )}
-            </div>
-
-            {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-violet-200 flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                <span className="text-xs font-bold text-slate-500">지난 당첨자:</span>
-                {monthlyDrawInfo.recentWinners.map((w: any, i: number) => (
-                  <span key={i} className="text-xs font-bold text-violet-700 bg-white px-2 py-0.5 rounded-full border border-violet-200">
-                    {w.month} {w.nickname}님
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <p className="text-[10px] text-slate-400 mt-3 text-center sm:text-left">
-              * 본 이벤트 상품은 파크골프마당 운영자가 직접 구매하여 당첨자께 발송합니다. 제품 문의: 웰리타스토어
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* 창립회원 진행 현황 — 실제 가입자 수 기준, 가짜 숫자 없음 */}
+      {/* 창립회원 오픈이벤트 — 크게 2가지로 나눠서 보여줍니다 (실제 데이터 기준, 가짜 숫자 없음) */}
       <section className="bg-gradient-to-r from-emerald-800 to-green-900 py-8 px-4">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-amber-300 font-black text-sm sm:text-base">🎉 창립회원 오픈 이벤트</span>
-            <span className="text-white font-black text-sm sm:text-base">
-              현재 <span className="text-amber-300 text-lg sm:text-xl">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명
-            </span>
-          </div>
-          <div className="w-full h-3 sm:h-4 bg-emerald-950/60 rounded-full overflow-hidden mb-6">
-            <div
-              className="h-full bg-gradient-to-r from-amber-400 to-amber-300 rounded-full transition-all duration-700"
-              style={{ width: `${Math.max(founderProgress, 2)}%` }}
-            />
+          <div className="text-center mb-6">
+            <span className="text-amber-300 font-black text-lg sm:text-xl">🎉 창립회원 오픈이벤트</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
-              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
-                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                {todayReviews}건
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 1번째 오픈이벤트 — 가입축하 포인트 */}
+            <div className="bg-white/10 rounded-2xl border border-white/20 p-5">
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-400 text-green-950 text-xs font-black mb-2">
+                1번째 오픈이벤트
+              </span>
+              <p className="text-white font-black text-lg sm:text-xl leading-snug mb-1">
+                가입 즉시 <span className="text-amber-300">1,000 마당P</span> 지급!
+              </p>
+              <p className="text-green-100 text-xs sm:text-sm font-medium">
+                지금 창립회원으로 가입만 하셔도 바로 1,000P가 쌓입니다. 활동할수록 더 쌓이고(리뷰 +200P, 동반자모집 +300P, 맛집제보 +150P), 실제 상품으로 교환할 수 있어요.
+              </p>
+              <div className="w-full h-2.5 bg-emerald-950/60 rounded-full overflow-hidden my-3">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-400 to-amber-300 rounded-full transition-all duration-700"
+                  style={{ width: `${Math.max(founderProgress, 2)}%` }}
+                />
               </div>
-              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">오늘 등록된 리뷰</div>
+              <p className="text-white font-bold text-sm">
+                현재 <span className="text-amber-300 text-lg">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명 창립회원 모집 중
+              </p>
             </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
-              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
-                <Users2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                {todayMatches}건
+
+            {/* 2번째 오픈이벤트 — 웰리타 영양제 추첨 */}
+            {monthlyDrawInfo && (
+              <div className="bg-white/10 rounded-2xl border border-white/20 p-5">
+                <span className="inline-block px-2.5 py-0.5 rounded-full bg-violet-400 text-violet-950 text-xs font-black mb-2">
+                  2번째 오픈이벤트
+                </span>
+                <p className="text-white font-black text-lg sm:text-xl leading-snug mb-1">
+                  창립회원 중 매달 추첨 1분께<br className="hidden sm:block" />
+                  <span className="text-amber-300">{monthlyDrawInfo.prize.value}</span> 영양제 증정!
+                </p>
+                <p className="text-green-100 text-xs sm:text-sm font-medium mb-2">
+                  {monthlyDrawInfo.prize.name}
+                </p>
+                <a
+                  href={monthlyDrawInfo.prize.sellerProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-[11px] sm:text-xs text-amber-200 underline hover:text-amber-100 mb-2"
+                >
+                  판매자정보 : {monthlyDrawInfo.prize.brand} →
+                </a>
+                <p className="text-white font-bold text-sm mt-1">
+                  이번 달({monthlyDrawInfo.currentMonth}) 신규가입만 하시면 자동 응모 · 현재 {monthlyDrawInfo.eligibleCount}명 응모 중
+                  {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 이번 달 추첨 완료!'}
+                </p>
+                {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-white/10 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-green-200 font-bold">지난 당첨자:</span>
+                    {monthlyDrawInfo.recentWinners.map((w: any, i: number) => (
+                      <span key={i} className="text-[11px] font-bold text-amber-200 bg-white/10 px-2 py-0.5 rounded-full">
+                        {w.month} {w.nickname}님
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">오늘 동반자 모집</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
-              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
-                <UtensilsCrossed className="w-4 h-4 sm:w-5 sm:h-5" />
-                {todayRestaurants}건
-              </div>
-              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">오늘 맛집 제보</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-3 text-center border border-white/10">
-              <div className="flex items-center justify-center gap-1 text-amber-300 font-black text-xl sm:text-2xl">
-                <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-                {totalUsers}명
-              </div>
-              <div className="text-[11px] sm:text-xs text-green-100 font-bold mt-0.5">누적 창립회원</div>
-            </div>
+            )}
           </div>
 
-          <p className="text-center text-green-100 text-xs sm:text-sm font-bold mt-5">
-            구장 리뷰 작성 +200P · 동반자 모집글 작성 +300P · 맛집 등록 +150P — 활동할수록 쌓이는 마당P, 실제 상품으로 교환하세요!
+          <p className="text-center text-green-100 text-[11px] sm:text-xs font-medium mt-4">
+            * {monthlyDrawInfo?.prize.brand || '웰리타스토어'}는 파크골프마당 공식 후원 업체로, 2번째 이벤트로 증정되는 제품은 해당 업체로부터 후원받았습니다.
           </p>
-          <div className="text-center mt-4">
+
+          <div className="text-center mt-5">
             <button
               onClick={() => (currentUser ? openModal('myPage') : openModal('auth'))}
               className="px-6 py-3.5 rounded-xl bg-white hover:bg-amber-50 text-emerald-800 font-black text-base sm:text-lg shadow-xl transition-all cursor-pointer"

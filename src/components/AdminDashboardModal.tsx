@@ -44,10 +44,6 @@ export const AdminDashboardModal: React.FC = () => {
     searchTournamentsAllRegions,
     fetchRedemptions,
     updateRedemptionStatus,
-    monthlyDrawInfo,
-    runMonthlyDraw,
-    fetchMonthlyDrawWinners,
-    markDrawWinnerShipped,
     pointShopItems,
     addPointShopItem,
     deletePointShopItem,
@@ -101,8 +97,6 @@ export const AdminDashboardModal: React.FC = () => {
   const [isBatchSearchingTournaments, setIsBatchSearchingTournaments] = useState(false);
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [isLoadingRedemptions, setIsLoadingRedemptions] = useState(false);
-  const [isRunningDraw, setIsRunningDraw] = useState(false);
-  const [drawWinners, setDrawWinners] = useState<any[]>([]);
   const [newPointShopItem, setNewPointShopItem] = useState({
     name: '',
     category: '',
@@ -1278,67 +1272,7 @@ export const AdminDashboardModal: React.FC = () => {
 
               {activeTab === 'redemptions' && (
                 <div className="space-y-3">
-                  {/* 이달의 신규회원 추첨 이벤트 */}
-                  <div className="bg-violet-50 border-2 border-violet-300 rounded-2xl p-4 space-y-3">
-                    <h4 className="font-extrabold text-violet-950 text-sm">
-                      💊 이달의 신규회원 추첨 이벤트
-                      {monthlyDrawInfo && ` (${monthlyDrawInfo.currentMonth} · 응모 ${monthlyDrawInfo.eligibleCount}명)`}
-                    </h4>
-                    <button
-                      onClick={async () => {
-                        setIsRunningDraw(true);
-                        const winner = await runMonthlyDraw();
-                        setIsRunningDraw(false);
-                        if (winner) {
-                          alert(`당첨자: ${winner.nickname}님 (${winner.phone})\n실제 발송 후 아래 목록에서 "발송완료"로 표시해주세요.`);
-                          const list = await fetchMonthlyDrawWinners();
-                          setDrawWinners(list);
-                        }
-                      }}
-                      disabled={isRunningDraw || (monthlyDrawInfo && monthlyDrawInfo.alreadyDrawnThisMonth)}
-                      className="w-full py-2.5 rounded-xl bg-violet-700 hover:bg-violet-800 disabled:opacity-50 text-white font-bold text-sm"
-                    >
-                      {monthlyDrawInfo && monthlyDrawInfo.alreadyDrawnThisMonth
-                        ? '이번 달 추첨 완료됨'
-                        : isRunningDraw
-                        ? '추첨 중...'
-                        : '🎲 이번 달 당첨자 추첨하기'}
-                    </button>
-
-                    <button
-                      onClick={async () => {
-                        const list = await fetchMonthlyDrawWinners();
-                        setDrawWinners(list);
-                      }}
-                      className="w-full py-2 rounded-xl bg-white border border-violet-300 text-violet-700 font-bold text-xs"
-                    >
-                      당첨자 목록 새로고침
-                    </button>
-
-                    {drawWinners.map((w: any) => (
-                      <div key={w.id} className="p-3 bg-white rounded-xl border border-violet-200 flex items-center justify-between gap-2">
-                        <div className="text-xs">
-                          <span className="font-bold text-violet-800">{w.month}</span> — {w.nickname}님 ({w.phone})
-                          <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${w.shipped ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {w.shipped ? '발송완료' : '발송대기'}
-                          </span>
-                        </div>
-                        {!w.shipped && (
-                          <button
-                            onClick={async () => {
-                              const ok = await markDrawWinnerShipped(w.id, true);
-                              if (ok) setDrawWinners(prev => prev.map(x => (x.id === w.id ? { ...x, shipped: true } : x)));
-                            }}
-                            className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-[11px] font-bold shrink-0"
-                          >
-                            발송완료 처리
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between">
                     <h3 className="font-extrabold text-slate-900">
                       마당P 교환 신청 관리 ({redemptions.length}건)
                     </h3>

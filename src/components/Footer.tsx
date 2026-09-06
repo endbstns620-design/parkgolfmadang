@@ -42,9 +42,10 @@ export const Footer: React.FC = () => {
               고객 지원 & 제휴 문의
             </h4>
             <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2">
-              <div className="text-xs text-slate-400">포털 및 제휴 입점 문의 전화</div>
-              <div className="text-xl font-extrabold text-amber-300">1588-7282</div>
-              <div className="text-xs text-slate-400">평일 09:00 ~ 18:00 (점심시간 12:00 ~ 13:00)</div>
+              <div className="text-xs text-slate-400">포털 및 제휴 입점 문의 이메일</div>
+              <a href="mailto:pjm0620@naver.com" className="text-lg sm:text-xl font-extrabold text-amber-300 hover:text-amber-200 break-all">
+                pjm0620@naver.com
+              </a>
             </div>
             <p className="text-[11px] text-slate-500 leading-tight">
               * 본 사이트의 구장 및 대회 정보는 각 지자체 및 대한파크골프협회 공지 데이터를 기반으로 실시간 최신화됩니다.

@@ -20,7 +20,6 @@ export default defineConfig(() => {
           theme_color: '#166534',
           background_color: '#F8FAF8',
           display: 'standalone',
-          display_override: ['standalone', 'fullscreen', 'minimal-ui'],
           orientation: 'portrait',
           start_url: '/',
           scope: '/',

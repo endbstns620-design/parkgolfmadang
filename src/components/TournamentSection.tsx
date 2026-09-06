@@ -7,6 +7,7 @@ import {
   MapPin,
   Gift,
   PhoneCall,
+  ExternalLink,
   PlusCircle,
   Clock,
   Sparkles,
@@ -372,7 +373,7 @@ export const TournamentSection: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Actions — 참가신청 바로가기는 없애고, 전화문의만 남겼습니다 */}
+                  {/* Actions */}
                   <div className="space-y-2 pt-2 border-t border-slate-100">
                     <div className="grid grid-cols-2 gap-2">
                       <a
@@ -383,12 +384,24 @@ export const TournamentSection: React.FC = () => {
                         <span>전화문의</span>
                       </a>
 
-                      <button
-                        onClick={() => openModal('tournamentDetail', tour)}
-                        className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-green-950 font-black text-xs cursor-pointer"
-                      >
-                        요강확인
-                      </button>
+                      {tour.linkUrl ? (
+                        <a
+                          href={tour.linkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-green-950 font-black text-xs flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>참가신청</span>
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => openModal('tournamentDetail', tour)}
+                          className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-green-950 font-black text-xs cursor-pointer"
+                        >
+                          요강확인
+                        </button>
+                      )}
                     </div>
 
                     <button
