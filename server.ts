@@ -931,7 +931,6 @@ async function startServer() {
   });
 
   // ---- 창립회원 오픈이벤트 (2번째 이벤트) — 매달 신규 창립회원 중 추첨 ----
-  // 실제 상품은 대표님이 직접 웰리타스토어에서 후원받아 당첨자에게 발송하는 방식입니다.
   interface MonthlyDrawWinner {
     id: string;
     month: string;
@@ -951,23 +950,12 @@ async function startServer() {
 
   app.get("/api/monthly-draw/info", (_req, res) => {
     const users = readJsonFile<AppUser[]>("users.json", []);
-    const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const thisMonth = new Date().toISOString().slice(0, 7);
     const eligibleCount = users.filter(u => u.createdAt.startsWith(thisMonth)).length;
     const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
     const alreadyDrawnThisMonth = winners.some(w => w.month === thisMonth);
-    const recentWinners = winners
-      .slice()
-      .reverse()
-      .slice(0, 6)
-      .map(w => ({ month: w.month, nickname: w.nickname }));
-    res.json({
-      success: true,
-      prize: CURRENT_PRIZE,
-      currentMonth: thisMonth,
-      eligibleCount,
-      alreadyDrawnThisMonth,
-      recentWinners
-    });
+    const recentWinners = winners.slice().reverse().slice(0, 6).map(w => ({ month: w.month, nickname: w.nickname }));
+    res.json({ success: true, prize: CURRENT_PRIZE, currentMonth: thisMonth, eligibleCount, alreadyDrawnThisMonth, recentWinners });
   });
 
   app.get("/api/monthly-draw/winners", requireAdmin, (_req, res) => {
@@ -975,8 +963,6 @@ async function startServer() {
     res.json({ success: true, winners });
   });
 
-  // 관리자가 버튼을 누르면, 이번 달 신규가입자 중 실제로 무작위 추첨합니다
-  // (이미 당첨된 적 있는 회원은 형평성을 위해 다시 뽑히지 않습니다).
   app.post("/api/monthly-draw/run", requireAdmin, (req, res) => {
     const thisMonth = new Date().toISOString().slice(0, 7);
     const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);

@@ -643,7 +643,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // 관리자 전용 — 교환 신청 목록 조회 및 처리 상태 변경
-  // 관리자 전용 — 이달의 신규회원 추첨 실행 및 당첨자 목록 관리
   const runMonthlyDraw = async (): Promise<any | null> => {
     try {
       const res = await fetch('/api/monthly-draw/run', { method: 'POST', headers: adminAuthHeaders() });
@@ -656,7 +655,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return data.winner;
     } catch (err) {
       console.error('추첨 실패:', err);
-      alert('추첨 중 오류가 발생했습니다.');
       return null;
     }
   };
@@ -668,7 +666,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const data = await res.json();
       return data.winners || [];
     } catch (err) {
-      console.error('당첨자 목록 조회 실패:', err);
       return [];
     }
   };
@@ -682,7 +679,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       return res.ok;
     } catch (err) {
-      console.error('발송 상태 변경 실패:', err);
       return false;
     }
   };

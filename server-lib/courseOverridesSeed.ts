@@ -1,8 +1,7 @@
 import { ParkCourse } from '../src/types';
 
 // 여러 차례 교차검증(파크골프24 대조 + 전국 553개 구장 전수조사 자료)을 거쳐 실제로
-// 업데이트가 필요했던 구장들의 정보입니다 (2026-09-06 기준 최신화). 서버에
-// course-overrides.json이 없을 때 이 값으로 시작합니다.
+// 업데이트가 필요했던 구장들의 정보입니다 (2026-09-06 기준 최신화).
 export const COURSE_OVERRIDES_SEED: Record<string, Partial<ParkCourse>> = {
   "course-nat-PGM-0231": {
     "operatingHours": "하절기 09:00~18:00 / 동절기 09:00~17:00",
