@@ -1189,36 +1189,7 @@ const BASE_COURSES: ParkCourse[] = [
 const UNVERIFIED_SOURCE_NOTE =
   '초기 등록된 참고정보로, 출처가 명확히 확인되지 않았습니다. 주차·편의시설·잔디 등 세부사항은 방문 전 운영기관에 직접 확인해주세요.';
 
-export const INITIAL_COURSES: ParkCourse[] = (() => {
-  const map = new Map<string, ParkCourse>();
-  BASE_COURSES.forEach(c =>
-    map.set(c.name.replace(/\s+/g, ''), {
-      ...c,
-      dataConfidence: c.dataConfidence ?? 'unverified',
-      dataSourceNote: c.dataSourceNote ?? UNVERIFIED_SOURCE_NOTE
-    })
-  );
-  VERIFIED_PGM_COURSES.forEach(c => {
-    const key = c.name.replace(/\s+/g, '');
-    if (!map.has(key)) {
-      map.set(key, {
-        ...c,
-        dataConfidence: c.dataConfidence ?? 'unverified',
-        dataSourceNote: c.dataSourceNote ?? UNVERIFIED_SOURCE_NOTE
-      });
-    }
-  });
-  // 전국 604개 구장 DB(대한파크골프협회·연맹 교차검증) - 이미 등록된 구장은 건너뛰고
-  // 새로운 구장만 추가합니다. 기존 큐레이션된 상세정보(편의시설·후기 등)를 덮어쓰지 않습니다.
-  // 이 데이터는 자체적으로 신뢰등급(dataConfidence)이 이미 채워져 있어 그대로 사용합니다.
-  NATIONAL_PARK_COURSES.forEach(c => {
-    const key = c.name.replace(/\s+/g, '');
-    if (!map.has(key)) {
-      map.set(key, c);
-    }
-  });
-  return Array.from(map.values());
-})();
+export const INITIAL_COURSES: ParkCourse[] = NATIONAL_PARK_COURSES;
 
 export const INITIAL_NEWS: NewsItem[] = [
   {
