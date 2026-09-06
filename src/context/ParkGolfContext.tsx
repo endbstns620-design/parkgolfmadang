@@ -86,8 +86,10 @@ interface ParkGolfContextType {
     nickname: string;
     preferredRegion?: string;
     averageScore?: string;
+    referrerNickname?: string;
   }) => Promise<boolean>;
   loginUser: (phone: string, password: string) => Promise<boolean>;
+  resetPassword: (name: string, phone: string, newPassword: string) => Promise<boolean>;
   logoutUser: () => void;
   pointShopItems: PointShopItem[];
   redeemPointShopItem: (itemId: string) => Promise<boolean>;
@@ -512,6 +514,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     nickname: string;
     preferredRegion?: string;
     averageScore?: string;
+    referrerNickname?: string;
   }): Promise<boolean> => {
     try {
       const res = await fetch('/api/auth/register', {
@@ -554,6 +557,28 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (err) {
       console.error('로그인 실패:', err);
       alert('로그인 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  // 비밀번호 찾기 — 이름+휴대폰번호로 본인 확인 후 바로 새 비밀번호를 설정합니다.
+  const resetPassword = async (name: string, phone: string, newPassword: string): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, newPassword })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '비밀번호 재설정에 실패했습니다.');
+        return false;
+      }
+      alert('비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요.');
+      return true;
+    } catch (err) {
+      console.error('비밀번호 재설정 실패:', err);
+      alert('비밀번호 재설정 중 오류가 발생했습니다.');
       return false;
     }
   };
@@ -1290,6 +1315,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         currentUser,
         registerUser,
         loginUser,
+        resetPassword,
         logoutUser,
         pointShopItems,
         redeemPointShopItem,

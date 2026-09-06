@@ -88,7 +88,7 @@ const ParkGolfApp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-stone-50 text-slate-900 selection:bg-amber-300 selection:text-green-950 font-sans antialiased pb-16 md:pb-0">
+    <div className="min-h-screen w-full flex flex-col bg-stone-50 text-slate-900 selection:bg-amber-300 selection:text-green-950 font-sans antialiased pb-20 md:pb-0">
       {/* Sticky Combined Header: Senior Accessibility & Navigation */}
       <div className="sticky top-0 z-50 w-full shadow-md">
         {/* 1. Senior Accessibility & Font Scale Bar */}

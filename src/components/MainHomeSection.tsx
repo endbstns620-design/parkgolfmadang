@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, CheckCircle2, MessageCircle, Users2, UtensilsCrossed, UserPlus } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { InstallAppBanner } from './InstallAppBanner';
 
 // 메인 배너 이미지 — 대표님이 벤치마킹용으로 보내주신 사진들로 교체했습니다.
 // 전부 텍스트가 따로 박혀있지 않은 순수 사진이라, 겹쳐 보이는 문제 자체가 생기지 않습니다.
@@ -77,6 +78,8 @@ export const MainHomeSection: React.FC = () => {
           </div>
         </div>
       </section>
+
+      <InstallAppBanner />
 
       {/* 창립회원 진행 현황 — 실제 가입자 수 기준, 가짜 숫자 없음 */}
       <section className="bg-gradient-to-r from-emerald-800 to-green-900 py-8 px-4">

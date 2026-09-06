@@ -5,7 +5,6 @@ import {
   X,
   Trophy,
   PhoneCall,
-  ExternalLink,
   CheckCircle,
   Share2,
   Calendar,
@@ -249,31 +248,21 @@ export const TournamentDetailModal: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom CTA Actions */}
-        <div className="p-4 bg-slate-100 border-t border-slate-200 flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        {/* Bottom CTA Actions — 참가신청 바로가기 버튼은 없애고, 주최측 전화문의만 남겼습니다.
+            (온라인 신청 링크는 실제로 신청이 되는지, 마감 여부가 실시간 반영되는지 확인이
+            어려워서, 방문자가 직접 전화로 확인하시는 게 더 정확하고 안전합니다.) */}
+        <div className="p-4 bg-slate-100 border-t border-slate-200 flex items-center gap-2">
           <a
             href={`tel:${tour.contact.split('/')[0].trim()}`}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="flex-1 py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm sm:text-base text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <PhoneCall className="w-4 h-4 text-amber-400" />
+            <PhoneCall className="w-5 h-5 text-amber-400" />
             <span>주최측 문의 ({tour.contact.split('/')[0].trim()})</span>
           </a>
 
-          {tour.linkUrl && (
-            <a
-              href={tour.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-green-950 font-black text-xs sm:text-sm text-center flex items-center justify-center gap-1.5 shadow transition-colors cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span>온라인 공식 참가신청</span>
-            </a>
-          )}
-
           <button
             onClick={handleShare}
-            className="p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 transition-colors cursor-pointer shrink-0"
+            className="p-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 transition-colors cursor-pointer shrink-0"
             title="동호회에 대회 소식 공유"
           >
             <Share2 className="w-5 h-5 text-emerald-700" />

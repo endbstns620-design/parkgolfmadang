@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { X, UserPlus, LogIn } from 'lucide-react';
+import { X, UserPlus, LogIn, KeyRound } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
-  const { activeModal, closeModal, registerUser, loginUser, setActiveTab } = useParkGolf();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const { activeModal, closeModal, registerUser, loginUser, resetPassword, setActiveTab } = useParkGolf();
+  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [loginForm, setLoginForm] = useState({ phone: '', password: '' });
+  const [resetForm, setResetForm] = useState({ name: '', phone: '', newPassword: '', newPasswordConfirm: '' });
   const [registerForm, setRegisterForm] = useState({
     name: '',
     phone: '',
@@ -15,7 +16,8 @@ export const AuthModal: React.FC = () => {
     passwordConfirm: '',
     nickname: '',
     preferredRegion: '',
-    averageScore: ''
+    averageScore: '',
+    referrerNickname: ''
   });
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
@@ -30,6 +32,21 @@ export const AuthModal: React.FC = () => {
     const success = await loginUser(loginForm.phone, loginForm.password);
     setIsSubmitting(false);
     if (success) closeModal();
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (resetForm.newPassword !== resetForm.newPasswordConfirm) {
+      alert('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    setIsSubmitting(true);
+    const success = await resetPassword(resetForm.name, resetForm.phone, resetForm.newPassword);
+    setIsSubmitting(false);
+    if (success) {
+      setResetForm({ name: '', phone: '', newPassword: '', newPasswordConfirm: '' });
+      setMode('login');
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -49,7 +66,8 @@ export const AuthModal: React.FC = () => {
       password: registerForm.password,
       nickname: registerForm.nickname,
       preferredRegion: registerForm.preferredRegion || undefined,
-      averageScore: registerForm.averageScore || undefined
+      averageScore: registerForm.averageScore || undefined,
+      referrerNickname: registerForm.referrerNickname || undefined
     });
     setIsSubmitting(false);
     if (success) closeModal();
@@ -63,7 +81,7 @@ export const AuthModal: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-xl font-extrabold text-slate-900">
-            {mode === 'login' ? '로그인' : '회원가입'}
+            {mode === 'login' ? '로그인' : mode === 'register' ? '회원가입' : '비밀번호 찾기'}
           </h3>
           <button onClick={closeModal} className="text-slate-400 hover:text-slate-700 cursor-pointer">
             <X className="w-5 h-5" />
@@ -71,26 +89,28 @@ export const AuthModal: React.FC = () => {
         </div>
 
         {/* Tab Switch */}
-        <div className="flex bg-slate-100 rounded-xl p-1 mb-5">
-          <button
-            onClick={() => setMode('login')}
-            className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-              mode === 'login' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500'
-            }`}
-          >
-            <LogIn className="w-4 h-4" /> 로그인
-          </button>
-          <button
-            onClick={() => setMode('register')}
-            className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
-              mode === 'register' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500'
-            }`}
-          >
-            <UserPlus className="w-4 h-4" /> 회원가입
-          </button>
-        </div>
+        {mode !== 'reset' && (
+          <div className="flex bg-slate-100 rounded-xl p-1 mb-5">
+            <button
+              onClick={() => setMode('login')}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                mode === 'login' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500'
+              }`}
+            >
+              <LogIn className="w-4 h-4" /> 로그인
+            </button>
+            <button
+              onClick={() => setMode('register')}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${
+                mode === 'register' ? 'bg-white text-emerald-700 shadow-2xs' : 'text-slate-500'
+              }`}
+            >
+              <UserPlus className="w-4 h-4" /> 회원가입
+            </button>
+          </div>
+        )}
 
-        {mode === 'login' ? (
+        {mode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-3">
             <div>
               <label className="text-xs font-bold text-slate-600 mb-1 block">휴대폰번호</label>
@@ -120,8 +140,84 @@ export const AuthModal: React.FC = () => {
             >
               {isSubmitting ? '확인 중...' : '로그인하기'}
             </button>
+            <button
+              type="button"
+              onClick={() => setMode('reset')}
+              className="w-full text-center text-xs sm:text-sm text-slate-500 hover:text-emerald-700 font-bold underline cursor-pointer pt-1"
+            >
+              비밀번호를 잊으셨나요?
+            </button>
           </form>
-        ) : (
+        )}
+
+        {mode === 'reset' && (
+          <form onSubmit={handleReset} className="space-y-3">
+            <p className="text-xs text-slate-500 bg-slate-50 rounded-xl p-3 -mt-1 mb-1">
+              가입하실 때 입력하신 <strong>이름과 휴대폰번호</strong>가 일치하면, 바로 새 비밀번호를 설정하실 수 있습니다.
+            </p>
+            <div>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">이름</label>
+              <input
+                type="text"
+                value={resetForm.name}
+                onChange={e => setResetForm({ ...resetForm, name: e.target.value })}
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-600 mb-1 block">휴대폰번호</label>
+              <input
+                type="tel"
+                value={resetForm.phone}
+                onChange={e => setResetForm({ ...resetForm, phone: e.target.value })}
+                placeholder="01012345678"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">새 비밀번호</label>
+                <input
+                  type="password"
+                  value={resetForm.newPassword}
+                  onChange={e => setResetForm({ ...resetForm, newPassword: e.target.value })}
+                  placeholder="6자 이상"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 mb-1 block">새 비밀번호 확인</label>
+                <input
+                  type="password"
+                  value={resetForm.newPasswordConfirm}
+                  onChange={e => setResetForm({ ...resetForm, newPasswordConfirm: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  required
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow transition-all disabled:opacity-60 cursor-pointer mt-2 flex items-center justify-center gap-1.5"
+            >
+              <KeyRound className="w-4 h-4" />
+              {isSubmitting ? '처리 중...' : '비밀번호 재설정하기'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('login')}
+              className="w-full text-center text-xs sm:text-sm text-slate-500 hover:text-emerald-700 font-bold underline cursor-pointer pt-1"
+            >
+              로그인으로 돌아가기
+            </button>
+          </form>
+        )}
+
+        {mode === 'register' && (
           <form onSubmit={handleRegister} className="space-y-3">
             <p className="text-xs text-slate-500 bg-slate-50 rounded-xl p-3 -mt-1 mb-1">
               이름·휴대폰번호는 문제 발생 시 본인확인 용도로만 사용되며, 다른 이용자에게는 절대 공개되지 않습니다.
@@ -209,6 +305,20 @@ export const AuthModal: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100">
+              <label className="text-xs font-bold text-slate-600 mb-1 block">추천인 닉네임 (선택)</label>
+              <input
+                type="text"
+                value={registerForm.referrerNickname}
+                onChange={e => setRegisterForm({ ...registerForm, referrerNickname: e.target.value })}
+                placeholder="추천해주신 분의 닉네임을 입력하세요"
+                className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              />
+              <p className="text-[11px] text-emerald-700 font-bold mt-1">
+                🎁 추천인 닉네임을 입력하시면, 회원님과 추천인 모두에게 각각 500 마당P가 추가로 지급됩니다!
+              </p>
             </div>
 
             <div className="pt-2 border-t border-slate-100 space-y-2">

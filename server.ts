@@ -848,7 +848,7 @@ async function startServer() {
   }
 
   app.post("/api/auth/register", async (req, res) => {
-    const { name, phone, password, nickname, preferredRegion, averageScore } = req.body || {};
+    const { name, phone, password, nickname, preferredRegion, averageScore, referrerNickname } = req.body || {};
     if (!name || !phone || !password || !nickname) {
       return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 비밀번호, 닉네임은 필수입니다." });
     }
@@ -870,7 +870,24 @@ async function startServer() {
     if (users.some(u => u.nickname === String(nickname).trim())) {
       return res.status(409).json({ success: false, error: "이미 사용 중인 닉네임입니다." });
     }
+
+    // 추천인 닉네임이 입력됐으면 실제로 존재하는 닉네임인지 먼저 확인합니다
+    // (틀린 닉네임을 적었는데 아무 말 없이 그냥 넘어가면 나중에 포인트를 못 받았다고
+    // 오해하실 수 있어서, 못 찾으면 가입 자체를 막고 다시 확인하도록 합니다).
+    let referrerIdx = -1;
+    const trimmedReferrer = referrerNickname ? String(referrerNickname).trim() : '';
+    if (trimmedReferrer) {
+      referrerIdx = users.findIndex(u => u.nickname === trimmedReferrer);
+      if (referrerIdx === -1) {
+        return res.status(404).json({ success: false, error: "입력하신 추천인 닉네임을 찾을 수 없습니다. 닉네임을 다시 확인해주세요." });
+      }
+      if (trimmedReferrer === String(nickname).trim()) {
+        return res.status(400).json({ success: false, error: "본인을 추천인으로 입력할 수 없습니다." });
+      }
+    }
+
     const passwordHash = await bcrypt.hash(password, 10);
+    const signupBonus = trimmedReferrer ? 1500 : 1000; // 추천인이 있으면 가입축하 1,000P + 추천보너스 500P
     const newUser: AppUser = {
       id: `user-${Date.now()}`,
       name: String(name).trim(),
@@ -881,10 +898,18 @@ async function startServer() {
       averageScore: averageScore ? String(averageScore).trim() : undefined,
       createdAt: new Date().toISOString().slice(0, 10),
       founderNumber: users.length + 1,
-      points: 1000, // 가입축하 마당P
-      badges: ['창립회원']
+      points: signupBonus,
+      badges: trimmedReferrer ? ['창립회원', '추천으로 가입'] : ['창립회원']
     };
     users.push(newUser);
+
+    // 추천인에게도 500P를 지급합니다.
+    if (referrerIdx !== -1) {
+      users[referrerIdx].points = (users[referrerIdx].points || 0) + 500;
+      if (!(users[referrerIdx].badges || []).includes('추천왕')) {
+        users[referrerIdx].badges = [...(users[referrerIdx].badges || []), '추천왕'];
+      }
+    }
     writeJsonFile("users.json", users);
 
     const token = crypto.randomBytes(24).toString("hex");
@@ -910,6 +935,27 @@ async function startServer() {
     const token = crypto.randomBytes(24).toString("hex");
     userSessions.set(token, { userId: user.id, expiresAt: Date.now() + USER_SESSION_TTL_MS });
     res.json({ success: true, token, user: toPublicUser(user) });
+  });
+
+  // 비밀번호 찾기 — 이메일이 없는 사이트라 "이름 + 휴대폰번호"로 본인을 확인한 뒤
+  // 그 자리에서 바로 새 비밀번호를 설정하는 방식입니다 (재설정 링크 발송 없음).
+  app.post("/api/auth/reset-password", async (req, res) => {
+    const { name, phone, newPassword } = req.body || {};
+    if (!name || !phone || !newPassword) {
+      return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 새 비밀번호를 모두 입력해주세요." });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ success: false, error: "비밀번호는 6자 이상이어야 합니다." });
+    }
+    const phoneDigits = String(phone).replace(/[^0-9]/g, "");
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const idx = users.findIndex(u => u.phone === phoneDigits && u.name === String(name).trim());
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: "입력하신 이름과 휴대폰번호로 가입된 회원을 찾을 수 없습니다." });
+    }
+    users[idx].passwordHash = await bcrypt.hash(newPassword, 10);
+    writeJsonFile("users.json", users);
+    res.json({ success: true });
   });
 
   app.post("/api/auth/logout", (req, res) => {
