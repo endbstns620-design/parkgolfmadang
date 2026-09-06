@@ -1,31 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { CoupangProduct } from '../types';
-import { ShoppingBag, PlusCircle, Trash2, X } from 'lucide-react';
+import { ShoppingBag, Trash2 } from 'lucide-react';
 
 const CATEGORY_OPTIONS: CoupangProduct['category'][] = ['전체', '클럽', '공인구', '가방·파우치', '장갑·잡화', '의류·신발', '기타'];
 
 export const CoupangShopSection: React.FC = () => {
-  const { coupangProducts, isAdmin, addCoupangProduct, deleteCoupangProduct, openModal } = useParkGolf();
-  const [showForm, setShowForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rawInput, setRawInput] = useState('');
-  const [category, setCategory] = useState<CoupangProduct['category']>('클럽');
+  const { coupangProducts, isAdmin, deleteCoupangProduct } = useParkGolf();
+  const [selectedCategory, setSelectedCategory] = useState<CoupangProduct['category']>('전체');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!rawInput.trim()) {
-      alert('쿠팡파트너스 링크(또는 iframe 코드)를 붙여넣어주세요.');
-      return;
-    }
-    setIsSubmitting(true);
-    const success = await addCoupangProduct({ rawInput, category });
-    setIsSubmitting(false);
-    if (success) {
-      setRawInput('');
-      setShowForm(false);
-    }
-  };
+  // 실제로 등록된 상품이 있는 카테고리만 골라보기 목록에 보여줍니다.
+  const availableCategories = useMemo(() => {
+    const used = new Set(coupangProducts.map(p => p.category));
+    return CATEGORY_OPTIONS.filter(c => c === '전체' || used.has(c));
+  }, [coupangProducts]);
+
+  const visibleProducts = useMemo(
+    () => (selectedCategory === '전체' ? coupangProducts : coupangProducts.filter(p => p.category === selectedCategory)),
+    [coupangProducts, selectedCategory]
+  );
 
   return (
     <section id="section-coupang-shop" className="scroll-mt-28 py-10 px-4 sm:px-6 max-w-7xl mx-auto">
@@ -37,29 +30,31 @@ export const CoupangShopSection: React.FC = () => {
             <span>🛒 파크골프 용품 추천 스토어</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-            추천 상품
+            쿠팡추천상품
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-slate-600 mt-1 font-medium leading-relaxed">
             클럽 · 공인구 · 가방 등 파크골프 용품을 모아뒀습니다. 상품을 누르면 쿠팡으로 이동합니다.
           </p>
         </div>
 
-        {isAdmin ? (
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow transition-all shrink-0 cursor-pointer"
+        {/* 카테고리 골라보기 — 어르신도 쉽게 고르실 수 있게 글씨를 크게 했습니다 */}
+        <div className="shrink-0">
+          <label htmlFor="coupang-category-select" className="block text-sm font-extrabold text-slate-700 mb-1.5">
+            어떤 용품을 찾으세요?
+          </label>
+          <select
+            id="coupang-category-select"
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value as CoupangProduct['category'])}
+            className="w-full md:w-56 px-4 py-3 rounded-xl border-2 border-red-300 bg-white text-base sm:text-lg font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/30 cursor-pointer"
           >
-            <PlusCircle className="w-4 h-4" />
-            <span>상품 등록 (관리자)</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => openModal('admin')}
-            className="text-xs text-slate-400 hover:text-slate-600 underline shrink-0 cursor-pointer"
-          >
-            관리자 로그인
-          </button>
-        )}
+            {availableCategories.map(c => (
+              <option key={c} value={c}>
+                {c === '전체' ? '전체 보기' : c}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Coupang Partners 고지 (필수 표시 문구) */}
@@ -69,16 +64,20 @@ export const CoupangShopSection: React.FC = () => {
       </div>
 
       {/* Product Grid: 쿠팡이 제공하는 위젯(iframe)을 그대로 심어서, 이미지·이름·가격·구매버튼까지
-          전부 쿠팡 서버가 렌더링합니다 — 우리 쪽에서 상품 정보를 따로 저장하지 않습니다. */}
-      {coupangProducts.length === 0 ? (
+          전부 쿠팡 서버가 렌더링합니다 — 우리 쪽에서 상품 정보를 따로 저장하지 않습니다.
+          상품 등록은 관리자 모드 > "제휴광고" 탭에서 합니다. */}
+      {visibleProducts.length === 0 ? (
         <div className="py-16 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
           <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-50" />
-          <p className="font-bold">아직 등록된 상품이 없습니다.</p>
-          {isAdmin && <p className="text-sm mt-1">우측 상단 "상품 등록" 버튼으로 쿠팡파트너스 링크를 추가해보세요.</p>}
+          <p className="font-bold">
+            {coupangProducts.length === 0
+              ? '아직 등록된 상품이 없습니다.'
+              : `'${selectedCategory}' 분류에 등록된 상품이 없습니다.`}
+          </p>
         </div>
       ) : (
         <div className="flex flex-wrap gap-3 sm:gap-4 justify-center sm:justify-start">
-          {coupangProducts.map(product => (
+          {visibleProducts.map(product => (
             <div key={product.id} className="relative group">
               {isAdmin && (
                 <button
@@ -101,60 +100,6 @@ export const CoupangShopSection: React.FC = () => {
               />
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Admin: 링크 등록 폼 — 링크(또는 iframe 코드) 하나만 붙여넣으면 끝 */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-extrabold text-slate-900">쿠팡파트너스 상품 등록</h3>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-600 mb-1 block">
-                  쿠팡파트너스 링크 (또는 iframe 코드) *
-                </label>
-                <textarea
-                  value={rawInput}
-                  onChange={e => setRawInput(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500 font-mono"
-                  rows={4}
-                  placeholder={'https://coupa.ng/xxxxxx\n\n또는\n\n<iframe src="https://coupa.ng/xxxxxx" width="120" height="240" ...></iframe>'}
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  쿠팡파트너스 사이트에서 "링크 생성"으로 만드신 단축 URL이나, "이미지+텍스트"에서 복사한 HTML 코드를 그대로 붙여넣으시면 됩니다.
-                  상품명·이미지는 따로 입력하지 않으셔도 쿠팡이 자동으로 보여줍니다.
-                </p>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-600 mb-1 block">카테고리 (분류용, 선택)</label>
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value as CoupangProduct['category'])}
-                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                >
-                  {CATEGORY_OPTIONS.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm shadow transition-all disabled:opacity-60 cursor-pointer"
-              >
-                {isSubmitting ? '등록 중...' : '상품 등록하기'}
-              </button>
-            </form>
-          </div>
         </div>
       )}
     </section>

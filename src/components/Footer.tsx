@@ -25,15 +25,19 @@ export const Footer: React.FC = () => {
               전국 지자체 직영 파크골프장 정보, 실시간 대회 일정, 구장 리뷰 및 동호회 라운딩 동반자 매칭을 지원하는 대한민국 대표 시니어 파크골프 포털입니다.
             </p>
 
-            <div className="pt-2">
-              <button
-                onClick={() => openModal('admin')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-300 border border-slate-800 text-xs font-bold transition-colors"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>{isAdmin ? '관리자 모드 열기 (접속 중)' : '관리자 로그인'}</span>
-              </button>
-            </div>
+            {/* 관리자 로그인 입구는 "로그인 / 회원가입" 창 안의 "관리자로 로그인" 링크 한 곳으로
+                모았습니다. 이미 관리자 모드일 때만 여기서 관리자 화면을 다시 열 수 있습니다. */}
+            {isAdmin && (
+              <div className="pt-2">
+                <button
+                  onClick={() => openModal('admin')}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-800 text-xs font-bold transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>관리자 모드 열기 (접속 중)</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Col 4: Helpline & Association Notice */}

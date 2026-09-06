@@ -3,7 +3,7 @@ import { useParkGolf } from '../context/ParkGolfContext';
 import { X, UserPlus, LogIn } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
-  const { activeModal, closeModal, registerUser, loginUser, setActiveTab } = useParkGolf();
+  const { activeModal, closeModal, openModal, registerUser, loginUser, setActiveTab } = useParkGolf();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -271,6 +271,18 @@ export const AuthModal: React.FC = () => {
             </button>
           </form>
         )}
+
+        {/* 관리자 전용 입구 — 헤더 상단 버튼 대신 이 안으로 옮겼습니다. 일반 회원과 무관합니다. */}
+        <div className="mt-5 pt-4 border-t border-slate-200 text-center">
+          <button
+            type="button"
+            id="auth-admin-login-link"
+            onClick={() => openModal('admin')}
+            className="text-xs sm:text-sm text-slate-400 hover:text-slate-700 underline font-bold cursor-pointer"
+          >
+            관리자로 로그인
+          </button>
+        </div>
       </div>
     </div>
   );

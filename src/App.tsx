@@ -14,6 +14,7 @@ import { AssociationsSection } from './components/AssociationsSection';
 import { AssociationRulesGuideSection } from './components/AssociationRulesGuideSection';
 import { NearbyRestaurantsSection } from './components/NearbyRestaurantsSection';
 import { CoupangShopSection } from './components/CoupangShopSection';
+import { PointMarketSection } from './components/PointMarketSection';
 import { Footer } from './components/Footer';
 import { SeniorFloatingNav } from './components/SeniorFloatingNav';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -29,6 +30,7 @@ import { AdminDashboardModal } from './components/AdminDashboardModal';
 import { PolicyRulesModal } from './components/PolicyRulesModal';
 import { AuthModal } from './components/AuthModal';
 import { MyPageModal } from './components/MyPageModal';
+import { PointNoticeModal } from './components/PointNoticeModal';
 
 const ParkGolfApp: React.FC = () => {
   const { activeTab } = useParkGolf();
@@ -69,6 +71,9 @@ const ParkGolfApp: React.FC = () => {
 
       case 'shop':
         return <CoupangShopSection />;
+
+      case 'pointmarket':
+        return <PointMarketSection />;
 
       case 'associations':
         return (
@@ -133,6 +138,7 @@ const ParkGolfApp: React.FC = () => {
       <PolicyRulesModal />
       <AuthModal />
       <MyPageModal />
+      <PointNoticeModal />
     </div>
   );
 };

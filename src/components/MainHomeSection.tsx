@@ -5,14 +5,14 @@ import { useParkGolf } from '../context/ParkGolfContext';
 // 메인 배너 이미지 — 노을 지는 골프장 사진 (텍스트 없는 깨끗한 사진이라 겹침 문제 없음)
 const MAIN_BANNER_IMAGE_URL = '/images/hero-sunset-v5.jpg';
 
-// ⚠️ 웰리타 제품 사진 — 대표님이 직접 캡처해서 보내주시면 이 자리에 넣어드리겠습니다.
-// (네이버 스마트스토어는 자동으로 못 가져와서, 지금은 아이콘으로 대체해뒀습니다)
-const WELITA_PRODUCT_IMAGE_URL = '';
+// 웰리타-Y 밀크씨슬 테아닌 3병 세트(3개월분) 실제 제품 사진입니다.
+const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-milkthistle.jpg';
 
 export const MainHomeSection: React.FC = () => {
   const { totalUsers, currentUser, setActiveTab, openModal, monthlyDrawInfo } = useParkGolf();
 
-  const FOUNDER_GOAL = 1000;
+  // 창립회원 모집 인원 — 이 숫자만 바꾸면 헤드라인·진행률바가 한꺼번에 따라갑니다.
+  const FOUNDER_GOAL = 100;
   const founderProgress = Math.min(100, Math.round((totalUsers / FOUNDER_GOAL) * 100));
 
   const categoryCards = [
@@ -46,7 +46,8 @@ export const MainHomeSection: React.FC = () => {
                 창립회원 <span className="text-amber-300">{FOUNDER_GOAL.toLocaleString()}명</span> 한정 모집!
               </h1>
               <p className="text-lg sm:text-xl text-green-50 font-bold mb-7 drop-shadow-sm">
-                지금 가입하시면, 대한민국 파크골프 대표 정보마당의<br className="hidden sm:block" />
+                지금 가입하시면, 대한민국 파크골프 대표 정보마당의{' '}
+                <br className="hidden sm:block" />
                 <span className="text-amber-200 font-black">진짜 '창립멤버'</span>가 되십니다.
               </p>
 
@@ -82,63 +83,82 @@ export const MainHomeSection: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 1번째 오픈이벤트 */}
-            <div className="bg-white/10 rounded-2xl border border-white/20 p-6">
-              <span className="inline-block px-3 py-1 rounded-full bg-amber-400 text-green-950 text-sm font-black mb-3">
+            <div className="bg-white/10 rounded-2xl border border-white/20 p-6 sm:p-7">
+              <span className="inline-block px-3.5 py-1.5 rounded-full bg-amber-400 text-green-950 text-base sm:text-lg font-black mb-4">
                 1번째 오픈이벤트
               </span>
-              <p className="text-white font-black text-2xl sm:text-3xl leading-tight mb-4">
-                가입 즉시<br /><span className="text-amber-300">1,000 마당P</span> 지급!
+
+              <p className="text-white font-black text-2xl sm:text-3xl md:text-4xl leading-tight mb-4">
+                창립회원 신규가입 즉시<br />
+                <span className="text-amber-300">1,000 마당P</span> 지급!
               </p>
-              <div className="w-full h-3 bg-emerald-950/60 rounded-full overflow-hidden mb-2">
+
+              {/* 활동 적립 안내 — 시니어분들이 한눈에 읽으실 수 있게 크게 표시합니다 */}
+              <div className="bg-emerald-950/50 rounded-2xl px-5 py-4 mb-4 border border-amber-300/30">
+                <p className="text-white font-black text-xl sm:text-2xl md:text-3xl leading-snug">
+                  구장리뷰 · 맛집 · 동반자모집<br />
+                  글만 써도 <span className="text-amber-300">+300 마당P</span>
+                </p>
+              </div>
+
+              <p className="text-amber-200 font-black text-lg sm:text-xl md:text-2xl leading-snug mb-5">
+                모은 마당P는 <span className="text-white">마당P 장터</span>에서{' '}
+                제품으로 바꿔 가세요!
+              </p>
+
+              <div className="w-full h-4 bg-emerald-950/60 rounded-full overflow-hidden mb-2">
                 <div
                   className="h-full bg-gradient-to-r from-amber-400 to-amber-300 rounded-full transition-all duration-700"
                   style={{ width: `${Math.max(founderProgress, 2)}%` }}
                 />
               </div>
-              <p className="text-white font-bold text-base">
-                현재 <span className="text-amber-300 text-xl">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명
+              <p className="text-white font-black text-lg sm:text-xl">
+                현재 <span className="text-amber-300 text-2xl sm:text-3xl">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명
               </p>
             </div>
 
             {/* 2번째 오픈이벤트 */}
             {monthlyDrawInfo && (
-              <div className="bg-white/10 rounded-2xl border border-white/20 p-6">
-                <span className="inline-block px-3 py-1 rounded-full bg-violet-400 text-violet-950 text-sm font-black mb-3">
+              <div className="bg-white/10 rounded-2xl border border-white/20 p-6 sm:p-7">
+                <span className="inline-block px-3.5 py-1.5 rounded-full bg-violet-400 text-violet-950 text-base sm:text-lg font-black mb-4">
                   2번째 오픈이벤트
                 </span>
 
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-4 mb-4">
                   {WELITA_PRODUCT_IMAGE_URL ? (
                     <img
                       src={WELITA_PRODUCT_IMAGE_URL}
-                      alt={monthlyDrawInfo.prize.name}
-                      className="w-16 h-16 rounded-xl object-cover bg-white shrink-0"
+                      alt="웰리타-Y 밀크씨슬 테아닌 영양제 3병 세트 (3개월분)"
+                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover bg-white shrink-0 border-2 border-amber-300/60 shadow-lg"
                     />
                   ) : (
-                    <div className="w-16 h-16 rounded-xl bg-white/90 flex items-center justify-center text-3xl shrink-0">
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-white/90 flex items-center justify-center text-5xl shrink-0">
                       💊
                     </div>
                   )}
-                  <p className="text-white font-black text-xl sm:text-2xl leading-tight">
+                  <p className="text-white font-black text-2xl sm:text-3xl leading-tight">
                     신규 가입 시<br />경품 <span className="text-amber-300">자동응모!</span>
                   </p>
                 </div>
 
-                <p className="text-amber-200 font-black text-lg sm:text-xl leading-snug mb-3">
+                <p className="text-amber-200 font-black text-xl sm:text-2xl md:text-3xl leading-snug mb-4">
                   랜덤추첨 1분께<br />
                   <span className="text-white">{monthlyDrawInfo.prize.value}</span> 웰리타 영양제 증정
                 </p>
 
-                <p className="text-white font-bold text-sm mb-2">
-                  현재 {monthlyDrawInfo.eligibleCount}명 응모 중
+                <p className="text-white font-black text-lg sm:text-xl mb-3">
+                  현재 <span className="text-amber-300">{monthlyDrawInfo.eligibleCount}명</span> 응모 중
                   {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 이번 달 추첨 완료!'}
                 </p>
 
                 {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (
-                  <div className="mb-3 flex items-center gap-1.5 flex-wrap">
+                  <div className="mb-4 flex items-center gap-2 flex-wrap">
                     {monthlyDrawInfo.recentWinners.map((w: any, i: number) => (
-                      <span key={i} className="text-[11px] font-bold text-amber-200 bg-white/10 px-2 py-0.5 rounded-full">
-                        {w.month} {w.nickname}님 당첨
+                      <span
+                        key={i}
+                        className="text-base sm:text-lg font-black text-amber-200 bg-white/15 px-3.5 py-1.5 rounded-full"
+                      >
+                        🎉 {w.month} {w.nickname}님 당첨
                       </span>
                     ))}
                   </div>
@@ -148,13 +168,15 @@ export const MainHomeSection: React.FC = () => {
                   href={monthlyDrawInfo.prize.sellerProfileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-amber-200/80 underline hover:text-amber-100 mb-2"
+                  className="inline-block text-lg sm:text-xl font-black text-amber-200 underline hover:text-amber-100 mb-3"
                 >
                   판매자정보 : {monthlyDrawInfo.prize.brand} →
                 </a>
 
-                <p className="text-[11px] text-green-200/90 pt-2 border-t border-white/10">
-                  * {monthlyDrawInfo.prize.brand}는 파크골프마당 공식 후원 업체이며, 본 경품은 후원받은 제품입니다.
+                <p className="text-base sm:text-lg font-bold text-green-100 leading-snug pt-3 border-t border-white/20">
+                  * {monthlyDrawInfo.prize.brand}는 파크골프마당 공식 후원 업체이며,{' '}
+                  <br className="hidden sm:block" />
+                  본 경품은 후원받은 제품입니다.
                 </p>
               </div>
             )}

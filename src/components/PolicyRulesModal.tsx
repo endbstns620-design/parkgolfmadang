@@ -168,11 +168,11 @@ export const PolicyRulesModal: React.FC = () => {
 
               <section className="space-y-2">
                 <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-600" /> 제 6 조 (마당P 및 교환소 운영)
+                  <span className="w-2 h-2 rounded-full bg-green-600" /> 제 6 조 (마당P 및 마당P 장터 운영)
                 </h3>
                 <div className="text-slate-600 text-sm sm:text-base pl-4 space-y-1.5">
                   <p>1. "마당P"는 회원가입 및 게시물 작성 등 서비스 내 활동에 대해 회사가 지급하는 활동 포인트로, 현금으로 환급되지 않으며 타인에게 양도·판매할 수 없습니다.</p>
-                  <p>2. 마당P 교환소의 상품은 실제 결제·자동발송이 아니라, 회원의 교환 신청을 회사가 확인한 뒤 순차적으로 발송하는 방식으로 운영되며, 상품 재고 상황에 따라 교환 가능 상품 구성이나 필요 포인트는 사전 고지 후 변경될 수 있습니다.</p>
+                  <p>2. 마당P 장터의 상품은 실제 결제·자동발송이 아니라, 회원의 교환 신청을 회사가 확인한 뒤 순차적으로 발송하는 방식으로 운영되며, 상품 재고 상황에 따라 교환 가능 상품 구성이나 필요 포인트는 사전 고지 후 변경될 수 있습니다.</p>
                   <p>3. 부정한 방법(중복 가입, 허위 게시물 반복 등)으로 적립된 마당P는 사전 통지 후 회수될 수 있습니다.</p>
                 </div>
               </section>
@@ -185,7 +185,7 @@ export const PolicyRulesModal: React.FC = () => {
               <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="font-bold text-emerald-950 text-base">개인정보처리방침 (개인정보 보호법 준수)</div>
-                  <div className="text-xs text-emerald-800">시행일자: 2026년 1월 1일 | 정보보호 책임관: 1588-7282</div>
+                  <div className="text-xs text-emerald-800">시행일자: 2026년 1월 1일 | 정보보호 문의: pjm0620@naver.com</div>
                 </div>
                 <button
                   onClick={() => speakText('파크골프마당 개인정보처리방침입니다. 고객님의 소중한 개인정보를 안전하게 보호하고 있습니다.')}
@@ -261,8 +261,7 @@ export const PolicyRulesModal: React.FC = () => {
                 </h3>
                 <div className="p-4 bg-slate-100 rounded-2xl text-xs sm:text-sm text-slate-700 space-y-1 border border-slate-200">
                   <div>• <strong>개인정보보호 책임자</strong>: 파크골프마당 운영지원팀</div>
-                  <div>• <strong>대표 상담 전화</strong>: <span className="font-bold text-green-800">1588-7282</span> (평일 09:00 ~ 18:00)</div>
-                  <div>• <strong>이메일 문의</strong>: help@parkgolfmadang.kr</div>
+                  <div>• <strong>이메일 문의</strong>: <a href="mailto:pjm0620@naver.com" className="font-bold text-green-800 underline">pjm0620@naver.com</a> (접수 후 순차적으로 답변드립니다)</div>
                 </div>
               </section>
             </div>
@@ -420,7 +419,7 @@ export const PolicyRulesModal: React.FC = () => {
         {/* Modal Footer */}
         <div className="bg-slate-100 px-6 py-4 border-t border-slate-200 flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-500 hidden sm:inline">
-            안내 내용에 대한 추가 문의는 고객지원(1588-7282)으로 연락 바랍니다.
+            안내 내용에 대한 추가 문의는 고객지원 이메일(pjm0620@naver.com)로 연락 바랍니다.
           </span>
           <button
             onClick={closeModal}

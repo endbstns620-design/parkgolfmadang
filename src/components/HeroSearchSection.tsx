@@ -14,7 +14,7 @@ export const HeroSearchSection: React.FC = () => {
       {/* Background Park Golf Imagery with Gradient Overlay (Unsplash Free License) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1535131749006-b7f58c99034b?auto=format&fit=crop&w=2000&q=80"
+          src="/images/card-courses-v4.png"
           alt="푸른 잔디와 파크골프 페어웨이 전경"
           className="w-full h-full object-cover object-center opacity-30 filter blur-[1.5px] scale-105 transition-all duration-700"
           referrerPolicy="no-referrer"

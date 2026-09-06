@@ -331,7 +331,7 @@ export const ParkCoursesSection: React.FC = () => {
             전국 파크골프장 구장 찾기
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-slate-600 mt-1 font-medium leading-relaxed">
-            시·도 및 시·군·구별 구장, 홀 수(9~72홀), 공인구장 여부까지 전국 642곳 한눈에 검색 — 예약방식·잔디·주차 정보는 확인되는 대로 계속 채워가고 있습니다
+            시·도 및 시·군·구별 구장, 홀 수(9~72홀), 공인구장 여부까지 전국 {courses.length.toLocaleString()}곳 한눈에 검색 — 예약방식·잔디·주차 정보는 확인되는 대로 계속 채워가고 있습니다
           </p>
         </div>
 
@@ -666,7 +666,8 @@ export const ParkCoursesSection: React.FC = () => {
               <div>
                 <h3 className="text-xl font-extrabold text-slate-800 mb-1">지역을 선택하거나 구장명을 검색해주세요</h3>
                 <p className="text-slate-500 text-sm">
-                  위에서 지역·시군구를 선택하시거나, 구장명·주소를 직접 검색하시면<br className="hidden sm:block" />
+                  위에서 지역·시군구를 선택하시거나, 구장명·주소를 직접 검색하시면{' '}
+                  <br className="hidden sm:block" />
                   해당하는 구장 목록이 여기에 표시됩니다.
                 </p>
               </div>

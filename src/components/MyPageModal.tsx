@@ -1,23 +1,13 @@
 import React from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { X, Award, Coins, ExternalLink } from 'lucide-react';
+import { X, Award, Coins, Gift } from 'lucide-react';
 
 export const MyPageModal: React.FC = () => {
-  const { activeModal, closeModal, currentUser, pointShopItems, redeemPointShopItem, logoutUser } = useParkGolf();
+  const { activeModal, closeModal, currentUser, pointShopItems, setActiveTab, logoutUser } = useParkGolf();
 
   if (!activeModal || activeModal.type !== 'myPage' || !currentUser) {
     return null;
   }
-
-  const handleRedeem = (itemId: string, itemName: string, pointCost: number) => {
-    if (currentUser.points < pointCost) {
-      alert('포인트가 부족합니다.');
-      return;
-    }
-    if (window.confirm(`"${itemName}"을(를) ${pointCost.toLocaleString()}P로 교환 신청하시겠습니까?`)) {
-      redeemPointShopItem(itemId);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={closeModal}>
@@ -50,12 +40,19 @@ export const MyPageModal: React.FC = () => {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <p className="text-lg font-extrabold text-slate-900">{currentUser.nickname}님</p>
-              <p className="text-xs text-slate-500 mt-0.5">창립회원 #{String(currentUser.founderNumber).padStart(4, '0')}</p>
+              <p className="text-xs text-slate-500 mt-0.5">창립회원 #{String(currentUser.founderNumber).padStart(3, '0')}</p>
             </div>
-            <div className="flex items-center gap-1.5 bg-white px-4 py-2 rounded-xl border border-emerald-300 shadow-2xs">
-              <Coins className="w-5 h-5 text-amber-500" />
-              <span className="text-lg font-extrabold text-emerald-700">{currentUser.points.toLocaleString()}</span>
-              <span className="text-sm font-bold text-slate-500">마당P</span>
+            <div className="text-right">
+              <div className="flex items-center gap-1.5 bg-white px-4 py-2 rounded-xl border border-emerald-300 shadow-2xs">
+                <Coins className="w-6 h-6 text-amber-500" />
+                <span className="text-2xl font-black text-emerald-700">{currentUser.points.toLocaleString()}</span>
+                <span className="text-base font-bold text-slate-500">마당P</span>
+              </div>
+              {(currentUser.pendingPoints ?? 0) > 0 && (
+                <p className="text-base font-bold text-amber-700 mt-1.5">
+                  지급 대기 +{(currentUser.pendingPoints ?? 0).toLocaleString()}P
+                </p>
+              )}
             </div>
           </div>
           {currentUser.badges.length > 0 && (
@@ -70,44 +67,33 @@ export const MyPageModal: React.FC = () => {
           )}
         </div>
 
-        {/* Point Earning Guide */}
-        <div className="mb-6 text-xs sm:text-sm text-slate-500 bg-slate-50 rounded-xl p-3">
-          💬 구장 리뷰 작성 +200P · 👥 동반자 모집글 작성 +300P · 🍚 맛집 등록 +150P — 활동할수록 포인트가 쌓입니다.
+        {/* 마당P 적립 안내 */}
+        <div className="mb-5 text-base sm:text-lg text-slate-700 bg-slate-50 rounded-2xl p-4 font-bold leading-relaxed">
+          💬 구장리뷰 · 🍚 맛집 · 👥 동반자모집 — 글 하나에 <strong className="text-emerald-700">+300 마당P</strong><br />
+          운영자 확인 후 24시간 안에 넣어드립니다.
         </div>
 
-        {/* Point Shop */}
-        <h4 className="text-base font-extrabold text-slate-900 mb-3">마당P 교환소</h4>
-        <p className="text-xs text-slate-500 mb-4">
-          자동 발송이 아니라, 신청하시면 운영팀이 확인 후 순차적으로 보내드립니다.
+        {/* 마당P 장터로 보내기 — 교환은 장터 페이지 한 곳에서만 합니다 */}
+        <button
+          onClick={() => {
+            closeModal();
+            setActiveTab('pointmarket');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className="w-full py-5 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-lg sm:text-xl shadow flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <Gift className="w-6 h-6" />
+          마당P 장터에서 상품 교환하기 →
+        </button>
+        <p className="text-center text-base text-slate-500 mt-2.5 font-medium">
+          현재 {pointShopItems.filter(i => i.isActive !== false).length}개의 상품이 준비되어 있습니다
+          {(currentUser.pendingPoints ?? 0) > 0 && (
+            <>
+              <br />
+              지급 대기 중인 마당P는 운영자 확인 후 24시간 안에 들어옵니다.
+            </>
+          )}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {pointShopItems.filter(i => i.isActive).map(item => (
-            <div key={item.id} className="border border-slate-200 rounded-xl p-4 flex flex-col gap-2">
-              <span className="text-[11px] font-bold text-slate-400">{item.category}</span>
-              <p className="font-bold text-sm text-slate-900 leading-snug">{item.name}</p>
-              <div className="flex items-center justify-between mt-auto pt-2">
-                <span className="text-emerald-700 font-extrabold text-sm">{item.pointCost.toLocaleString()}P</span>
-                {item.referenceUrl && (
-                  <a
-                    href={item.referenceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] text-slate-400 hover:text-slate-600 flex items-center gap-0.5"
-                  >
-                    상품보기 <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
-              <button
-                onClick={() => handleRedeem(item.id, item.name, item.pointCost)}
-                disabled={currentUser.points < item.pointCost}
-                className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs cursor-pointer disabled:cursor-not-allowed"
-              >
-                {currentUser.points < item.pointCost ? '포인트 부족' : '교환 신청하기'}
-              </button>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

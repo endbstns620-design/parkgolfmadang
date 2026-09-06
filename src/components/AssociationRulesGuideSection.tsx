@@ -720,7 +720,7 @@ export const AssociationRulesGuideSection: React.FC = () => {
             <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-emerald-950 text-base">개인정보처리방침 (개인정보 보호법 준수)</h3>
-                <p className="text-xs text-emerald-800">책임관: 1588-7282 | 담당부서: 운영지원팀</p>
+                <p className="text-xs text-emerald-800">문의: pjm0620@naver.com | 담당부서: 운영지원팀</p>
               </div>
             </div>
 

@@ -49,10 +49,10 @@ export const AdsSection: React.FC = () => {
           )}
 
           <a
-            href="tel:1588-7282"
+            href="mailto:pjm0620@naver.com"
             className="px-4 py-2.5 rounded-xl bg-white border border-purple-300 text-purple-900 font-bold text-xs sm:text-sm shadow-sm hover:bg-purple-50 transition-colors"
           >
-            광고 입점 문의 : 1588-7282
+            광고 입점 문의 : pjm0620@naver.com
           </a>
         </div>
       </div>
@@ -115,11 +115,11 @@ export const AdsSection: React.FC = () => {
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <a
-                  href="tel:1588-7282"
+                  href="mailto:pjm0620@naver.com"
                   className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-extrabold text-xs sm:text-sm shadow transition-colors cursor-pointer"
                 >
                   <PhoneCall className="w-4 h-4 text-amber-300" />
-                  <span>광고·제휴 문의: 1588-7282</span>
+                  <span>광고·제휴 문의: pjm0620@naver.com</span>
                 </a>
                 <button
                   onClick={() => {

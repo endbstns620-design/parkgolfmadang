@@ -29,6 +29,11 @@ export const TournamentDetailModal: React.FC = () => {
 
   const tour: Tournament = activeModal.data;
 
+  // 문의처에 실제 전화번호가 들어있는 대회만 "전화 걸기"를 보여줍니다.
+  const phoneMatch = String(tour.contact || '').match(/0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4}/);
+  const phoneNumber = phoneMatch ? phoneMatch[0].replace(/\s/g, '') : '';
+  const hasPhone = Boolean(phoneNumber);
+
   const handleShare = () => {
     const text = `[파크골프마당 대회안내] ${tour.title}\n일시: ${tour.dateRange}\n장소: ${tour.location}\n총상금: ${tour.prizePool}\n문의: ${tour.contact}`;
     if (navigator.share) {
@@ -182,8 +187,19 @@ export const TournamentDetailModal: React.FC = () => {
           )}
 
           {/* Schedule & Rules */}
-          {(tour.scheduleDetail || tour.rulesDetail || tour.suppliesProvided) && (
+          {(tour.scheduleDetail || tour.rulesDetail || tour.suppliesProvided || tour.registrationMethod) && (
             <div className="space-y-3">
+              {tour.registrationMethod && (
+                <div>
+                  <h4 className="text-sm sm:text-base font-extrabold text-slate-900 mb-1.5 flex items-center gap-1.5">
+                    ✍️ 접수 방법
+                  </h4>
+                  <p className="text-sm sm:text-base text-slate-700 leading-relaxed bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 font-bold">
+                    {tour.registrationMethod}
+                  </p>
+                </div>
+              )}
+
               {tour.scheduleDetail && (
                 <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 space-y-1">
                   <strong className="text-emerald-950 block font-bold text-xs sm:text-sm">
@@ -241,6 +257,26 @@ export const TournamentDetailModal: React.FC = () => {
               <li>신분증(주민등록증/운전면허증) 또는 공인 동호인 회원증 실물 확인</li>
               <li>모자, 장갑 및 스파이크 없는 잔디 보호용 골프화/운동화 착용 필수</li>
             </ul>
+            {/* 이 대회 정보를 확인한 공식 출처 — 어르신들이 직접 확인하실 수 있게 링크로 걸어둡니다 */}
+            {tour.sourceUrls && tour.sourceUrls.length > 0 && (
+              <div className="pt-2 border-t border-slate-200">
+                <p className="text-sm font-extrabold text-slate-800 mb-1.5">📎 확인한 공식 출처</p>
+                <div className="space-y-1">
+                  {tour.sourceUrls.map((u, i) => (
+                    <a
+                      key={i}
+                      href={u}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-xs sm:text-sm text-blue-700 hover:text-blue-900 underline break-all"
+                    >
+                      {u}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="pt-2 border-t border-slate-200 text-[11px] sm:text-xs text-slate-700 leading-relaxed">
               <strong className="text-red-600 font-extrabold">
                 ※ 주최측 사정에 따른 우천 연기, 인원 조기 마감, 일정 변경 등이 발생할 수 있으므로, 반드시 신청 전 주최측 공식 공고 또는 유선 문의로 최종 일정을 확인하시기 바랍니다.
@@ -251,23 +287,32 @@ export const TournamentDetailModal: React.FC = () => {
 
         {/* Bottom CTA Actions */}
         <div className="p-4 bg-slate-100 border-t border-slate-200 flex items-center gap-2 flex-wrap sm:flex-nowrap">
-          <a
-            href={`tel:${tour.contact.split('/')[0].trim()}`}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <PhoneCall className="w-4 h-4 text-amber-400" />
-            <span>주최측 문의 ({tour.contact.split('/')[0].trim()})</span>
-          </a>
+          {/* 문의 전화가 확인된 대회만 전화 걸기 버튼을 보여줍니다.
+              번호가 없는 대회는 헛걸음하지 않도록 공식 요강을 안내합니다. */}
+          {hasPhone ? (
+            <a
+              href={`tel:${phoneNumber}`}
+              className="flex-1 py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm sm:text-base text-center flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <PhoneCall className="w-4 h-4 text-amber-400" />
+              <span>주최측 문의 ({phoneNumber})</span>
+            </a>
+          ) : (
+            <div className="flex-1 py-3 px-4 rounded-xl bg-slate-200 text-slate-700 font-bold text-sm sm:text-base text-center flex items-center justify-center gap-1.5">
+              <PhoneCall className="w-4 h-4 text-slate-500" />
+              <span>문의처는 공식 요강에서 확인해주세요</span>
+            </div>
+          )}
 
           {tour.linkUrl && (
             <a
               href={tour.linkUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-green-950 font-black text-xs sm:text-sm text-center flex items-center justify-center gap-1.5 shadow transition-colors cursor-pointer"
+              className="flex-1 py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-green-950 font-black text-sm sm:text-base text-center flex items-center justify-center gap-1.5 shadow transition-colors cursor-pointer"
             >
               <ExternalLink className="w-4 h-4" />
-              <span>온라인 공식 참가신청</span>
+              <span>공식 요강 · 참가신청 바로가기</span>
             </a>
           )}
 

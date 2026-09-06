@@ -59,61 +59,91 @@ async function startServer() {
   // Limit body payload to protect from buffer overflows & DoS
   app.use(express.json({ limit: "500kb" }));
 
-  // 2. Real-time In-memory / Persistent Visitor Counting System (Live Production Clean Start)
-  let visitorState = {
-    todayDate: new Date().toISOString().split("T")[0],
-    todayCount: 1,
-    totalCount: 1,
-    activeVisitors: 1,
-    lastUpdated: Date.now()
-  };
+  // 회원이 구장리뷰 · 맛집 · 동반자모집 글을 쓰면 받는 마당P (관리자 승인 후 지급)
+  const ACTIVITY_POINT = 300;
 
+  // 2. 방문자 카운터 — 서버를 재배포하거나 재시작해도 누적 방문자수가 초기화되지 않도록
+  //    파일(data/visitors.json)에 저장합니다. 메모리에만 두면 배포할 때마다 0부터 다시 셉니다.
+  interface VisitorState {
+    todayDate: string;
+    todayCount: number;
+    totalCount: number;
+  }
+
+  const VISITOR_FILE = "visitors.json";
+  const todayStr = () => new Date().toISOString().split("T")[0];
+
+  let visitorState = readJsonFile<VisitorState>(VISITOR_FILE, {
+    todayDate: todayStr(),
+    todayCount: 0,
+    totalCount: 0
+  });
+
+  // 예전 형식(파일이 없거나 값이 깨진 경우) 방어
+  if (typeof visitorState.totalCount !== "number" || typeof visitorState.todayCount !== "number") {
+    visitorState = { todayDate: todayStr(), todayCount: 0, totalCount: 0 };
+  }
+
+  // 오늘 하루 접속한 IP — 같은 사람이 새로고침해도 중복으로 세지 않기 위한 것으로,
+  // 재시작하면 비워져도 누적수(totalCount)에는 영향이 없습니다.
   const visitedIps = new Set<string>();
 
-  // Daily reset checker
+  // 파일 쓰기를 매 요청마다 하지 않고 변경이 있을 때만 최대 5초에 한 번 저장합니다.
+  let visitorDirty = false;
+  const persistVisitors = () => {
+    if (!visitorDirty) return;
+    visitorDirty = false;
+    try {
+      writeJsonFile(VISITOR_FILE, visitorState);
+    } catch (err) {
+      console.error("[visitors] 저장 실패:", err);
+    }
+  };
+  setInterval(persistVisitors, 5000).unref?.();
+  process.on("SIGTERM", persistVisitors);
+  process.on("SIGINT", persistVisitors);
+
+  // 날짜가 바뀌면 오늘 방문자만 리셋합니다 (누적은 그대로 유지).
   const checkDailyReset = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayStr();
     if (visitorState.todayDate !== today) {
       visitorState.todayDate = today;
-      visitorState.todayCount = 1;
+      visitorState.todayCount = 0;
       visitedIps.clear();
+      visitorDirty = true;
     }
   };
 
-  // Visitor Counter API
   app.get("/api/stats/visitors", (req, res) => {
     checkDailyReset();
     const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
-    const ipStr = Array.isArray(ip) ? ip[0] : ip;
-
-    // Set real-time active users
-    visitorState.activeVisitors = Math.max(1, visitedIps.size > 0 ? visitedIps.size : 1);
+    const ipStr = Array.isArray(ip) ? ip[0] : String(ip).split(",")[0].trim();
 
     if (!visitedIps.has(ipStr)) {
       visitedIps.add(ipStr);
       visitorState.todayCount += 1;
       visitorState.totalCount += 1;
+      visitorDirty = true;
+      persistVisitors();
     }
 
     res.json({
       success: true,
-      today: visitorState.todayCount,
-      total: visitorState.totalCount,
-      activeNow: visitorState.activeVisitors,
+      today: Math.max(1, visitorState.todayCount),
+      total: Math.max(1, visitorState.totalCount),
+      activeNow: Math.max(1, visitedIps.size),
       todayDate: visitorState.todayDate,
       serverTime: new Date().toISOString()
     });
   });
 
-  // Post record ping (called upon user route interaction)
+  // 화면 이동 시의 핑 — 누적수를 부풀리지 않도록 현재 값만 돌려줍니다.
   app.post("/api/stats/ping", (_req, res) => {
     checkDailyReset();
-    visitorState.todayCount += 1;
-    visitorState.totalCount += 1;
     res.json({
       success: true,
-      today: visitorState.todayCount,
-      total: visitorState.totalCount
+      today: Math.max(1, visitorState.todayCount),
+      total: Math.max(1, visitorState.totalCount)
     });
   });
 
@@ -122,6 +152,78 @@ async function startServer() {
   // 브라우저 localStorage에만 저장되면 방문자마다 다른 데이터를 보게 되므로,
   // 서버 파일 저장소를 거쳐 모든 방문자가 같은 데이터를 보도록 합니다.
   // =========================================================================
+  // ── 사진 정리 (한 번만 실행되는 자동 보정) ──
+  // 예전에 넣어뒀던 외부 사진(images.unsplash.com)은 파크골프가 아니라 일반 골프 사진이라
+  // 파크골프마당이 직접 쓰는 파크골프 사진으로 바꿉니다. 서버에 이미 저장된 파일
+  // (data/tournaments.json 등)도 함께 고쳐야 실제 화면에 반영됩니다.
+  const PARKGOLF_PHOTOS = {
+    course: "/images/card-courses-v4.png",       // 하천변 파크골프장 전경
+    tournament: "/images/card-tournaments-v4.png", // 깃대가 꽂힌 코스
+    guide: "/images/card-guide-v4.png",           // 코스 안내판을 보는 어르신
+    players: "/images/card-community-v4.png"      // 파크골프 채를 든 시니어들
+  };
+
+  function toParkGolfPhoto(url: string, fallback: string): string {
+    if (typeof url !== "string" || !url.includes("images.unsplash.com")) return url;
+    return fallback;
+  }
+
+  function migrateStoredPhotos() {
+    try {
+      // ── 대회 정보 갱신 ──
+      // 2026년 남은 대회 검증자료로 대회 목록을 새로 만들었습니다.
+      // 서버에 예전 대회 목록이 저장돼 있으면 새 자료로 갈아끼웁니다.
+      // (관리자가 직접 등록한 대회는 id가 다르므로 그대로 남겨둡니다)
+      const tours = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+      const hasNewSeed = tours.some(t => String(t.id || "").startsWith("tour-2026-"));
+      if (!hasNewSeed) {
+        const adminAdded = tours.filter(
+          t => !String(t.id || "").startsWith("tour-") || /^tour-\d+$/.test(String(t.id)) === false
+        );
+        const kept = adminAdded.filter(t => !/^tour-\d+$/.test(String(t.id || "")));
+        const merged = [...INITIAL_TOURNAMENTS, ...kept];
+        writeJsonFile("tournaments.json", merged);
+        console.log(
+          `[대회정리] 2026년 남은 대회 검증자료 ${INITIAL_TOURNAMENTS.length}건으로 갱신했습니다.` +
+            (kept.length ? ` (관리자가 등록한 ${kept.length}건은 유지)` : "")
+        );
+      }
+
+      // 대회 포스터 — 파크골프 사진 두 장을 번갈아 넣습니다.
+      const tours2 = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+      let changed = false;
+      tours2.forEach((t, i) => {
+        const next = toParkGolfPhoto(
+          t.posterUrl,
+          i % 2 === 0 ? PARKGOLF_PHOTOS.tournament : PARKGOLF_PHOTOS.players
+        );
+        if (next !== t.posterUrl) {
+          t.posterUrl = next;
+          changed = true;
+        }
+      });
+      if (changed) {
+        writeJsonFile("tournaments.json", tours2);
+        console.log("[사진정리] 대회 포스터를 파크골프 사진으로 교체했습니다.");
+      }
+
+      // 관리자가 직접 고친 구장 정보에 남아있는 옛 사진도 함께 정리합니다.
+      const overrides = readJsonFile<Record<string, any>>("course-overrides-admin.json", {});
+      let ovChanged = false;
+      Object.values(overrides).forEach((o: any) => {
+        const next = toParkGolfPhoto(o?.imageUrl, PARKGOLF_PHOTOS.course);
+        if (o && next !== o.imageUrl) {
+          o.imageUrl = next;
+          ovChanged = true;
+        }
+      });
+      if (ovChanged) writeJsonFile("course-overrides-admin.json", overrides);
+    } catch (err) {
+      console.error("[사진정리] 실패(무시하고 계속 진행합니다):", err);
+    }
+  }
+  migrateStoredPhotos();
+
   const { validatePostContent } = await import("./src/utils/contentModeration");
 
   // ---- 리뷰 ----
@@ -151,8 +253,15 @@ async function startServer() {
     };
     reviews.unshift(newReview);
     writeJsonFile("reviews.json", reviews);
-    awardPoints(req.currentUser.id, 200);
-    res.status(201).json({ success: true, review: newReview });
+    const pointInfo = requestPoints(
+      req.currentUser,
+      ACTIVITY_POINT,
+      "구장리뷰",
+      newReview.id,
+      `[${newReview.courseName || "구장"}] ${newReview.title || "구장 리뷰"}`,
+      String(body.content || "")
+    );
+    res.status(201).json({ success: true, review: newReview, pointInfo });
   });
 
   app.delete("/api/reviews/:id", requireAdmin, (req, res) => {
@@ -197,10 +306,17 @@ async function startServer() {
     };
     matches.unshift(newPost);
     writeJsonFile("matches.json", matches);
-    awardPoints(req.currentUser.id, 300);
+    const pointInfo = requestPoints(
+      req.currentUser,
+      ACTIVITY_POINT,
+      "동반자모집",
+      newPost.id,
+      `[${newPost.courseName || "구장"}] ${newPost.title || "동반자 모집"}`,
+      String(body.description || "")
+    );
     // 응답에는 딱 이번 한 번만 deleteToken을 내려줍니다 — 작성자 브라우저가 이걸 저장해뒀다가
     // 나중에 "내 글 삭제하기"를 누르면 이 토큰으로 본인 확인을 합니다.
-    res.status(201).json({ success: true, match: newPost, deleteToken });
+    res.status(201).json({ success: true, match: newPost, deleteToken, pointInfo });
   });
 
   app.patch("/api/matches/:id/status", (req, res) => {
@@ -303,60 +419,38 @@ async function startServer() {
   // 604+95곳 구장 데이터는 용량이 커서 프론트엔드 번들에 그대로 들어있습니다(서버 DB 아님).
   // 그래서 관리자가 조사·수정한 내용은 "덮어쓸 내용만" 여기 서버에 저장하고,
   // 방문자가 접속할 때 이 값을 기존 구장 정보 위에 덧씌워서 보여줍니다.
+  // 구장 보정정보는 두 갈래로 나눠서 관리합니다.
+  //  ① COURSE_OVERRIDES_SEED — 전국 전수조사 자료 (코드에 들어있어, 자료가 갱신되면 배포와 함께 바로 반영)
+  //  ② course-overrides-admin.json — 관리자가 화면에서 직접 고친 내용만 저장 (항상 ①보다 우선)
+  // 예전처럼 조사자료를 통째로 파일에 저장하면, 한 번 저장된 뒤로는 새 조사자료가 영원히 반영되지
+  // 않는 문제가 있어서 이렇게 분리했습니다.
+  const ADMIN_OVERRIDE_FILE = "course-overrides-admin.json";
+
+  function readAdminOverrides(): Record<string, any> {
+    return readJsonFile<Record<string, any>>(ADMIN_OVERRIDE_FILE, {});
+  }
+
+  function mergedCourseOverrides(): Record<string, any> {
+    const admin = readAdminOverrides();
+    const merged: Record<string, any> = {};
+    for (const [id, seed] of Object.entries(COURSE_OVERRIDES_SEED)) {
+      merged[id] = { ...(seed as object) };
+    }
+    for (const [id, edit] of Object.entries(admin)) {
+      merged[id] = { ...(merged[id] || {}), ...(edit as object) };
+    }
+    return merged;
+  }
+
   app.get("/api/course-overrides", (_req, res) => {
-    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", COURSE_OVERRIDES_SEED);
-    res.json({ success: true, overrides });
+    res.json({ success: true, overrides: mergedCourseOverrides() });
   });
 
   app.post("/api/course-overrides/:id", requireAdmin, (req, res) => {
-    const overrides = readJsonFile<Record<string, any>>("course-overrides.json", COURSE_OVERRIDES_SEED);
-    overrides[req.params.id] = { ...(overrides[req.params.id] || {}), ...req.body };
-    writeJsonFile("course-overrides.json", overrides);
-    res.json({ success: true, override: overrides[req.params.id] });
-  });
-
-  // AI(Gemini) + 구글 검색으로 특정 구장의 "지자체 공식 홈페이지" 정보를 실제로 찾아서
-  // 예약방법·이용요금·운영시간·주차정보 등을 채워줍니다. 자동 반영되지 않고, 관리자가
-  // 검색 결과를 확인한 뒤 수정 폼에서 "저장" 버튼을 눌러야 실제로 반영됩니다.
-  app.post("/api/gemini/research-course", requireAdmin, async (req, res) => {
-    try {
-      const { courseName, address } = req.body || {};
-      if (!courseName) {
-        return res.status(400).json({ success: false, error: "구장명이 필요합니다." });
-      }
-      const prompt = `"${courseName}"${address ? ` (주소: ${address})` : ""} 파크골프장의 공식 운영 정보를
-지자체(시·군·구) 공식 홈페이지나 공공서비스예약 페이지에서 구글 검색으로 찾아주세요.
-확실하지 않은 항목은 빈 문자열로 남기고, 절대 추측해서 지어내지 마세요.
-아래 JSON 형식으로만 응답하세요:
-{ "reservationType": "예약제/선착순/전화예약 중 확인된 것",
-  "reservationDetails": "예약 절차 요약",
-  "feeLocal": "지역주민 이용요금",
-  "feeVisitor": "관외 이용요금",
-  "operatingHours": "운영시간",
-  "closedDays": "휴장일",
-  "phoneNumber": "문의 전화번호",
-  "parkingDetails": "주차 안내",
-  "description": "2~3문장 구장 소개",
-  "confidence": "A/B+/B/C+/C 중 확인된 출처의 신뢰도",
-  "sourceUrl": "확인한 공식 페이지 URL" }`;
-
-      const ai = getGeminiAI();
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        }
-      });
-
-      const rawText = response.text || "{}";
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-      const result = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-      res.json({ success: true, result });
-    } catch (err: any) {
-      console.error("[gemini] 구장 정보 조사 실패:", err);
-      res.status(500).json({ success: false, error: "구장 정보 조사 중 오류가 발생했습니다." });
-    }
+    const admin = readAdminOverrides();
+    admin[req.params.id] = { ...(admin[req.params.id] || {}), ...req.body };
+    writeJsonFile(ADMIN_OVERRIDE_FILE, admin);
+    res.json({ success: true, override: { ...(COURSE_OVERRIDES_SEED as any)[req.params.id], ...admin[req.params.id] } });
   });
 
   // ---- 대회 소식 ----
@@ -395,100 +489,51 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // AI(Gemini) + 구글 검색으로 "현재 진행 중이거나 예정된 파크골프 대회"를 실제로 검색해서
-  // 후보 목록을 돌려줍니다. 그대로 자동 등록하지 않고, 관리자가 확인한 뒤 등록 버튼을 눌러야
-  // 실제로 저장됩니다 (날짜·장소가 틀리면 실제로 헛걸음하는 분이 생길 수 있어서, AI 결과를
-  // 그대로 믿고 자동발행하지 않는 안전장치입니다).
-  app.post("/api/gemini/search-tournaments", requireAdmin, async (req, res) => {
-    try {
-      const { region } = req.body || {};
-      const prompt = `지금 시점 기준으로, ${region && region !== '전체' ? region + ' 지역의' : '전국의'} 파크골프 대회 중
-아직 열리지 않았거나 곧 열릴 예정인 실제 대회를 구글 검색으로 찾아주세요.
-대한파크골프협회, 각 시·도 파크골프협회·연맹 공식 홈페이지나 공지사항에서 확인되는 대회만 포함하고,
-확실하지 않으면 포함하지 마세요. 최대 5건까지, 아래 JSON 배열 형식으로만 응답하세요:
-[{ "title": "대회명", "organizer": "주최 협회/연맹명", "eventDate": "YYYY-MM-DD", "location": "개최 장소",
-   "registrationPeriod": "접수기간(확인 안 되면 빈 문자열)", "contact": "문의처(확인 안 되면 빈 문자열)",
-   "sourceUrl": "출처 URL" }]`;
-
-      const ai = getGeminiAI();
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          tools: [{ googleSearch: {} }]
-        }
-      });
-
-      const rawText = response.text || "[]";
-      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-      const candidates = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-      res.json({ success: true, candidates });
-    } catch (err: any) {
-      console.error("[gemini] 대회 검색 실패:", err);
-      res.status(500).json({ success: false, error: "대회 검색 중 오류가 발생했습니다." });
-    }
-  });
-
-  // ---- 마당P 교환소 (포인트로 실제 상품 교환 신청) ----
+  // ---- 마당P 장터 (적립한 마당P로 실제 상품을 교환 신청하는 곳) ----
   interface PointShopItem {
     id: string;
     name: string;
     category: string;
-    pointCost: number;
-    referenceUrl?: string; // 실제 상품을 참고할 수 있는 링크 (쿠팡 등)
+    pointCost: number;          // 교환에 필요한 마당P (관리자가 직접 정합니다)
+    referenceUrl?: string;      // 상품 확인용 링크 (쿠팡 상품페이지 등)
+    imageUrl?: string;          // 상품 사진 주소
+    description?: string;       // 상품 설명
+    sourceType?: "쿠팡" | "일반";
+    coupangEmbedUrl?: string;   // 쿠팡추천상품일 때 쿠팡이 그려주는 위젯 주소
     isActive: boolean;
   }
 
-  const POINT_SHOP_SEED: PointShopItem[] = [
-    {
-      id: "pshop-1",
-      name: "스타벅스 아메리카노 Tall",
-      category: "카페·음료",
-      pointCost: 3000,
-      isActive: true
-    },
-    {
-      id: "pshop-2",
-      name: "까스텔바작 파크골프 멀티파우치 힙색 (CSW-245)",
-      category: "가방",
-      pointCost: 25000,
-      referenceUrl: "https://www.coupang.com/vp/products/9447375681?itemId=28103214711",
-      isActive: true
-    },
-    {
-      id: "pshop-3",
-      name: "부쿠로혼마 파크골프공 3피스 6cm 4종 세트 (B5FUPB03)",
-      category: "골프공",
-      pointCost: 12000,
-      referenceUrl: "https://www.coupang.com/vp/products/9131079903?itemId=26867746380",
-      isActive: true
-    },
-    {
-      id: "pshop-4",
-      name: "파크골프 공 회수기 4개 세트 (실리콘 집게 볼 픽업기)",
-      category: "용품",
-      pointCost: 8000,
-      referenceUrl: "https://www.coupang.com/vp/products/9169874753?itemId=27023349927",
-      isActive: true
-    },
-    {
-      id: "pshop-5",
-      name: "지맥스 남성용 파크골프 장갑 (양손 세트)",
-      category: "장갑",
-      pointCost: 15000,
-      referenceUrl: "https://www.coupang.com/vp/products/8901077673?itemId=26092981607",
-      isActive: true
-    }
-  ];
+  // 장터는 비어있는 상태로 시작합니다 — 관리자가 직접 올린 상품만 보입니다.
+  const POINT_SHOP_SEED: PointShopItem[] = [];
 
   app.get("/api/point-shop", (_req, res) => {
     const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
-    res.json({ success: true, items });
+    res.json({ success: true, items: items.filter(i => i.isActive !== false) });
   });
 
   app.post("/api/point-shop", requireAdmin, (req, res) => {
+    const b = req.body || {};
+    const name = String(b.name || "").trim();
+    const pointCost = Number(b.pointCost);
+    if (!name) {
+      return res.status(400).json({ success: false, error: "상품명을 입력해주세요." });
+    }
+    if (!Number.isFinite(pointCost) || pointCost <= 0) {
+      return res.status(400).json({ success: false, error: "교환에 필요한 마당P를 1 이상으로 입력해주세요." });
+    }
     const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
-    const newItem: PointShopItem = { ...req.body, id: `pshop-${Date.now()}`, isActive: true };
+    const newItem: PointShopItem = {
+      id: `pshop-${Date.now()}`,
+      name,
+      category: String(b.category || "기타").trim(),
+      pointCost: Math.round(pointCost),
+      referenceUrl: b.referenceUrl ? String(b.referenceUrl).trim() : undefined,
+      imageUrl: b.imageUrl ? String(b.imageUrl).trim() : undefined,
+      description: b.description ? String(b.description).trim() : undefined,
+      sourceType: b.sourceType === "쿠팡" ? "쿠팡" : "일반",
+      coupangEmbedUrl: b.coupangEmbedUrl ? String(b.coupangEmbedUrl).trim() : undefined,
+      isActive: true
+    };
     items.push(newItem);
     writeJsonFile("point-shop.json", items);
     res.status(201).json({ success: true, item: newItem });
@@ -500,19 +545,48 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  // 교환 신청 — 실물 발송은 관리자가 직접 처리합니다 (자동 결제·자동발송 시스템이 아닙니다).
+  // 교환 신청 — 보유 마당P를 확인하고, 받으실 분 정보를 받아 신청을 접수합니다.
+  // 실물 발송은 관리자가 직접 처리합니다 (자동 결제·자동발송 시스템이 아닙니다).
   app.post("/api/point-shop/:id/redeem", requireUser, (req: any, res) => {
     const items = readJsonFile<PointShopItem[]>("point-shop.json", POINT_SHOP_SEED);
-    const item = items.find(i => i.id === req.params.id && i.isActive);
+    const item = items.find(i => i.id === req.params.id && i.isActive !== false);
     if (!item) return res.status(404).json({ success: false, error: "상품을 찾을 수 없습니다." });
 
     const users = readJsonFile<AppUser[]>("users.json", []);
     const idx = users.findIndex(u => u.id === req.currentUser.id);
     if (idx === -1) return res.status(401).json({ success: false, error: "로그인이 필요합니다." });
-    if ((users[idx].points || 0) < item.pointCost) {
-      return res.status(400).json({ success: false, error: "포인트가 부족합니다." });
+
+    const have = users[idx].points || 0;
+    if (have < item.pointCost) {
+      // 화면에서 "마당P가 부족합니다" 안내창을 띄우기 위한 응답입니다.
+      return res.status(400).json({
+        success: false,
+        code: "NOT_ENOUGH_POINTS",
+        error: "마당P가 부족합니다.",
+        required: item.pointCost,
+        have
+      });
     }
-    users[idx].points -= item.pointCost;
+
+    const b = req.body || {};
+    const recipientName = String(b.recipientName || "").trim();
+    const recipientPhone = String(b.recipientPhone || "").replace(/[^0-9]/g, "");
+    const postcode = String(b.postcode || "").trim();
+    const roadAddress = String(b.roadAddress || "").trim();
+    const detailAddress = String(b.detailAddress || "").trim();
+
+    if (!recipientName) {
+      return res.status(400).json({ success: false, error: "받으실 분 성함을 입력해주세요." });
+    }
+    if (recipientPhone.length < 9 || recipientPhone.length > 11) {
+      return res.status(400).json({ success: false, error: "연락처를 정확히 입력해주세요." });
+    }
+    if (!roadAddress) {
+      return res.status(400).json({ success: false, error: "주소를 입력해주세요." });
+    }
+
+    // 마당P 차감 (여기서부터는 실제로 포인트가 빠집니다)
+    users[idx].points = have - item.pointCost;
     writeJsonFile("users.json", users);
 
     const redemptions = readJsonFile<any[]>("redemptions.json", []);
@@ -521,18 +595,24 @@ async function startServer() {
       userId: req.currentUser.id,
       userNickname: req.currentUser.nickname,
       userPhone: req.currentUser.phone,
+      itemId: item.id,
       itemName: item.name,
       pointCost: item.pointCost,
+      recipientName,
+      recipientPhone,
+      postcode,
+      roadAddress,
+      detailAddress,
+      memo: b.memo ? String(b.memo).trim() : "",
       status: "접수됨",
       createdAt: new Date().toISOString()
     };
     redemptions.unshift(newRedemption);
     writeJsonFile("redemptions.json", redemptions);
 
-    res.json({ success: true, remainingPoints: users[idx].points });
+    res.json({ success: true, remainingPoints: users[idx].points, redemption: newRedemption });
   });
 
-  // 관리자가 교환 신청 목록을 확인하고 실제 발송 처리하는 화면용
   app.get("/api/redemptions", requireAdmin, (_req, res) => {
     const redemptions = readJsonFile<any[]>("redemptions.json", []);
     res.json({ success: true, redemptions });
@@ -641,8 +721,15 @@ async function startServer() {
     };
     restaurants.unshift(newPost);
     writeJsonFile("restaurants.json", restaurants);
-    awardPoints(req.currentUser.id, 150);
-    res.status(201).json({ success: true, restaurant: newPost, deleteToken });
+    const pointInfo = requestPoints(
+      req.currentUser,
+      ACTIVITY_POINT,
+      "맛집",
+      newPost.id,
+      `[${newPost.courseName}] ${newPost.restaurantName}`,
+      String(body.description || "")
+    );
+    res.status(201).json({ success: true, restaurant: newPost, deleteToken, pointInfo });
   });
 
   app.post("/api/restaurants/:id/self-delete", (req, res) => {
@@ -798,7 +885,7 @@ async function startServer() {
     averageScore?: string; // 선택: 평균 타수
     createdAt: string;
     founderNumber: number; // 가입 순서(창립회원 번호) — 몇 번째로 가입했는지
-    points: number; // 마당P (실물 없이 배지·등급용으로만 쓰다가, 추후 교환소에서 실제 상품과 교환)
+    points: number; // 마당P (실물 없이 배지·등급용으로만 쓰다가, 마당P 장터에서 실제 상품과 교환)
     badges: string[]; // 활동으로 얻은 배지 목록 (예: '창립회원', '리뷰왕' 등)
   }
 
@@ -814,21 +901,117 @@ async function startServer() {
       createdAt: u.createdAt,
       founderNumber: u.founderNumber,
       points: u.points,
-      badges: u.badges || []
+      badges: u.badges || [],
+      pendingPoints: pendingPointsOf(u.id)
     };
   }
 
-  // 리뷰·동반자모집 등 활동으로 포인트를 적립하고, 조건을 만족하면 배지도 함께 부여합니다.
-  function awardPoints(userId: string, amount: number, newBadge?: string) {
-    const users = readJsonFile<AppUser[]>("users.json", []);
-    const idx = users.findIndex(u => u.id === userId);
-    if (idx === -1) return;
-    users[idx].points = (users[idx].points || 0) + amount;
-    if (newBadge && !(users[idx].badges || []).includes(newBadge)) {
-      users[idx].badges = [...(users[idx].badges || []), newBadge];
-    }
-    writeJsonFile("users.json", users);
+  // ---- 마당P 적립 신청 (관리자 승인제) ----
+  // 회원이 글을 쓰면 곧바로 마당P를 주지 않고 "지급 대기"로 쌓아둡니다.
+  // 관리자가 글을 직접 보고 지급하면 그때 실제 마당P가 올라갑니다.
+  // 주제와 상관없는 글이나 허위 글로 마당P만 받아가는 것을 막기 위한 장치입니다.
+  interface PointRequest {
+    id: string;
+    userId: string;
+    userNickname: string;
+    type: "구장리뷰" | "맛집" | "동반자모집";
+    refId: string;        // 원래 글의 id
+    title: string;        // 관리자 화면에 보여줄 글 제목
+    preview: string;      // 글 내용 앞부분 (관리자가 내용을 보고 판단할 수 있게)
+    amount: number;
+    status: "대기" | "지급완료" | "거부";
+    createdAt: string;
+    decidedAt?: string;
+    rejectReason?: string;
   }
+
+  const POINT_REQUEST_FILE = "point-requests.json";
+  const readPointRequests = () => readJsonFile<PointRequest[]>(POINT_REQUEST_FILE, []);
+
+  /** 해당 회원의 "지급 대기" 마당P 합계 */
+  function pendingPointsOf(userId: string): number {
+    return readPointRequests()
+      .filter(r => r.userId === userId && r.status === "대기")
+      .reduce((sum, r) => sum + (r.amount || 0), 0);
+  }
+
+  /** 글 작성 시 호출 — 지급 대기 건을 만들고, 예상 잔여 마당P를 돌려줍니다. */
+  function requestPoints(
+    user: AppUser,
+    amount: number,
+    type: PointRequest["type"],
+    refId: string,
+    title: string,
+    preview: string
+  ) {
+    const list = readPointRequests();
+    const record: PointRequest = {
+      id: `preq-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      userId: user.id,
+      userNickname: user.nickname,
+      type,
+      refId,
+      title: String(title || "").slice(0, 120),
+      preview: String(preview || "").slice(0, 500),
+      amount,
+      status: "대기",
+      createdAt: new Date().toISOString()
+    };
+    list.unshift(record);
+    writeJsonFile(POINT_REQUEST_FILE, list);
+
+    const current = user.points || 0;
+    const pending = list
+      .filter(r => r.userId === user.id && r.status === "대기")
+      .reduce((sum, r) => sum + (r.amount || 0), 0);
+    return { amount, currentPoints: current, pendingPoints: pending, expectedPoints: current + pending };
+  }
+
+  // 관리자 — 지급 대기/처리 내역 조회
+  app.get("/api/point-requests", requireAdmin, (req, res) => {
+    const status = String(req.query.status || "");
+    let list = readPointRequests();
+    if (status) list = list.filter(r => r.status === status);
+    const pendingCount = readPointRequests().filter(r => r.status === "대기").length;
+    res.json({ success: true, requests: list, pendingCount });
+  });
+
+  // 관리자 — 지급 승인 (이때 실제로 마당P가 올라갑니다)
+  app.post("/api/point-requests/:id/approve", requireAdmin, (req, res) => {
+    const list = readPointRequests();
+    const idx = list.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "신청 내역을 찾을 수 없습니다." });
+    if (list[idx].status !== "대기") {
+      return res.status(400).json({ success: false, error: "이미 처리된 신청입니다." });
+    }
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const ui = users.findIndex(u => u.id === list[idx].userId);
+    if (ui === -1) return res.status(404).json({ success: false, error: "회원을 찾을 수 없습니다." });
+
+    users[ui].points = (users[ui].points || 0) + list[idx].amount;
+    writeJsonFile("users.json", users);
+
+    list[idx].status = "지급완료";
+    list[idx].decidedAt = new Date().toISOString();
+    writeJsonFile(POINT_REQUEST_FILE, list);
+
+    res.json({ success: true, request: list[idx], userPoints: users[ui].points });
+  });
+
+  // 관리자 — 지급 거부 (마당P는 올라가지 않습니다)
+  app.post("/api/point-requests/:id/reject", requireAdmin, (req, res) => {
+    const list = readPointRequests();
+    const idx = list.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "신청 내역을 찾을 수 없습니다." });
+    if (list[idx].status !== "대기") {
+      return res.status(400).json({ success: false, error: "이미 처리된 신청입니다." });
+    }
+    list[idx].status = "거부";
+    list[idx].decidedAt = new Date().toISOString();
+    list[idx].rejectReason = String(req.body?.reason || "").slice(0, 200);
+    writeJsonFile(POINT_REQUEST_FILE, list);
+    res.json({ success: true, request: list[idx] });
+  });
 
   function requireUser(req: any, res: any, next: any) {
     const authHeader = req.get("authorization") || "";
@@ -923,7 +1106,28 @@ async function startServer() {
     res.json({ success: true, user: toPublicUser(req.currentUser) });
   });
 
-  // 실제 가입자 수 — "창립회원 OOO/1,000명" 진행률바에 씁니다. 가짜 숫자를 넣지 않기 위해
+  // ---- 관리자 회원관리 ----
+  // 관리자만 가입회원 목록을 볼 수 있습니다. 비밀번호 해시는 절대 내보내지 않습니다.
+  app.get("/api/admin/users", requireAdmin, (_req, res) => {
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const list = users
+      .map(u => ({
+        id: u.id,
+        founderNumber: u.founderNumber,
+        nickname: u.nickname,
+        name: u.name,
+        phone: u.phone,
+        preferredRegion: u.preferredRegion || '',
+        averageScore: u.averageScore || '',
+        points: u.points || 0,
+        badges: u.badges || [],
+        createdAt: u.createdAt
+      }))
+      .sort((a, b) => (b.founderNumber || 0) - (a.founderNumber || 0));
+    res.json({ success: true, users: list, totalUsers: list.length });
+  });
+
+  // 실제 가입자 수 — "창립회원 OO/100명" 진행률바에 씁니다. 가짜 숫자를 넣지 않기 위해
   // 항상 실제 회원 수를 그대로 돌려줍니다.
   app.get("/api/auth/stats", (_req, res) => {
     const users = readJsonFile<AppUser[]>("users.json", []);
@@ -1041,59 +1245,6 @@ async function startServer() {
       return res.json({
         success: true,
         answer: "파크골프는 클럽 하나와 공 하나로 누구나 쉽게 즐길 수 있는 최고의 국민 스포츠입니다. 대한파크골프협회 공인 규정에 따르면 클럽 길이는 86cm 이하, 중량은 600g 이하이며 헤드에 로프트각이 없어 안전합니다. 궁금하신 구장이나 룰이 있으시면 편하게 문의해 주세요!"
-      });
-    }
-  });
-
-  // AI Park Golf News Generator for Admin
-  app.post("/api/gemini/generate-news", async (req, res) => {
-    try {
-      const { topic, category } = req.body;
-
-      const prompt = `
-당신은 파크골프 전문 기자입니다.
-주제: "${topic || '전국 파크골프장 이용 꿀팁 및 시니어 건강 스트레칭'}"
-카테고리: "${category || '협회소식'}"
-
-50~80대 시니어 독자들이 읽기 좋은 유익하고 신뢰도 높은 파크골프 뉴스 기사를 작성해주세요.
-
-반드시 아래 JSON 형식으로 응답해주세요:
-- title: 기사 제목 (신뢰감 있고 명확한 제목)
-- category: ["협회소식", "신규구장", "장비·룰", "건강·레슨", "대회결과"] 중 1개
-- summary: 2~3줄 요약
-- content: 상세 본문 (소제목과 글머리 기호를 포함하여 읽기 쉽게 3~4단락)
-- author: 작성자 (예: '파크골프마당 취재팀' 또는 '대한파크골프협회 자문단')
-`;
-
-      const ai = getGeminiAI();
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              category: { type: Type.STRING },
-              summary: { type: Type.STRING },
-              content: { type: Type.STRING },
-              author: { type: Type.STRING }
-            },
-            required: ["title", "category", "summary", "content", "author"]
-          }
-        }
-      });
-
-      const parsedData = JSON.parse(response.text || "{}");
-      return res.json({
-        success: true,
-        data: parsedData
-      });
-    } catch (error: any) {
-      console.error("Gemini news generator error:", error);
-      return res.status(500).json({
-        error: error.message || "뉴스 생성 중 오류가 발생했습니다."
       });
     }
   });
@@ -1394,8 +1545,11 @@ async function startServer() {
       cutoff.setDate(cutoff.getDate() - 1); // 어제 날짜까지 지난 대회만 삭제 (오늘·내일 대회는 유지)
       const cutoffStr = cutoff.toISOString().slice(0, 10);
       const kept = tournaments.filter(t => {
-        if (!t.eventDate) return true; // 날짜 정보가 없으면 일단 유지 (실수로 다 지우는 것 방지)
-        return t.eventDate >= cutoffStr;
+        // 여러 날 진행되는 대회는 "마지막 날"을 기준으로 판단합니다.
+        // (시작일만 보면 9월에 시작해 10월까지 이어지는 대회가 도중에 사라집니다)
+        const until = t.endDate || t.eventDate;
+        if (!until) return true; // 날짜 정보가 없으면 일단 유지 (실수로 다 지우는 것 방지)
+        return until >= cutoffStr;
       });
       if (kept.length !== tournaments.length) {
         writeJsonFile("tournaments.json", kept);

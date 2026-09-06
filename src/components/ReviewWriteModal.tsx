@@ -179,7 +179,7 @@ export const ReviewWriteModal: React.FC = () => {
       content: content.trim()
     });
 
-    alert(`[${selectedCourse.name}] 방문 솔직 후기가 성공적으로 등록되었습니다. 감사합니다!`);
+    // 등록 안내는 마당P 지급예정 안내창(PointNoticeModal)이 대신 보여줍니다.
     closeModal();
   };
 

@@ -7,17 +7,43 @@ export interface AppUser {
   averageScore?: string;
   createdAt: string;
   founderNumber: number;
-  points: number;
+  points: number; // 실제로 지급이 끝난 마당P
   badges: string[];
+  pendingPoints?: number; // 관리자 승인을 기다리는 마당P (아직 쓸 수는 없습니다)
 }
 
+// 마당P 장터에 올라가는 상품입니다. 관리자가 쿠팡추천상품 중에서 골라 올리거나,
+// 쿠팡과 무관한 일반 상품을 직접 등록할 수 있습니다.
 export interface PointShopItem {
   id: string;
   name: string;
   category: string;
-  pointCost: number;
-  referenceUrl?: string;
+  pointCost: number; // 교환에 필요한 마당P (관리자가 직접 정합니다)
+  referenceUrl?: string; // 상품을 확인할 수 있는 링크 (쿠팡 상품페이지 등)
+  imageUrl?: string; // 상품 사진 주소 (없으면 기본 아이콘이 표시됩니다)
+  description?: string; // 상품 설명 (색상·용량·구성 등)
+  sourceType?: '쿠팡' | '일반'; // 쿠팡추천상품에서 가져온 것인지, 직접 등록한 일반상품인지
+  coupangEmbedUrl?: string; // 쿠팡추천상품일 때, 쿠팡이 그려주는 위젯 주소
   isActive: boolean;
+}
+
+// 회원이 마당P로 상품 교환을 신청한 기록입니다. 실물 발송은 관리자가 직접 처리합니다.
+export interface RedemptionRequest {
+  id: string;
+  userId: string;
+  userNickname: string;
+  userPhone: string;
+  itemId: string;
+  itemName: string;
+  pointCost: number;
+  recipientName: string; // 받으실 분 성함
+  recipientPhone: string; // 받으실 분 연락처
+  postcode: string; // 우편번호
+  roadAddress: string; // 도로명(또는 지번) 주소
+  detailAddress: string; // 상세주소
+  memo?: string; // 배송 요청사항
+  status: string; // 접수됨 / 발송준비 / 발송완료 등
+  createdAt: string;
 }
 
 export type RegionCategory =
@@ -114,7 +140,8 @@ export interface Tournament {
   region?: RegionCategory;
   category?: '전국 메이저' | '지자체장기·시장기' | '시·도협회장기' | '시니어·실버' | '부부·혼성 페스티벌';
   dateRange: string;
-  eventDate: string; // YYYY-MM-DD
+  eventDate: string; // 대회 시작일 (YYYY-MM-DD)
+  endDate?: string; // 대회 종료일 — 여러 날 진행되는 대회가 도중에 사라지지 않게 합니다
   registrationPeriod: string;
   location: string;
   courseHoles?: string;
@@ -127,6 +154,8 @@ export interface Tournament {
   awardsBreakdown?: string[];
   scheduleDetail?: string;
   rulesDetail?: string;
+  registrationMethod?: string; // 접수 방법 (인터넷 접수, 이메일 접수 등)
+  sourceUrls?: string[]; // 이 정보를 확인한 공식 요강·기사 출처
   contact: string;
   inquiryTime?: string;
   status: TournamentStatus;

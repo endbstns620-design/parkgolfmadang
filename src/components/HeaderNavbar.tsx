@@ -10,12 +10,12 @@ import {
   Menu,
   X,
   Building2,
-  ShieldCheck,
   UserCheck,
   UserCircle2,
   LogIn,
   UtensilsCrossed,
-  ShoppingBag
+  ShoppingBag,
+  Coins
 } from 'lucide-react';
 
 export const HeaderNavbar: React.FC = () => {
@@ -28,6 +28,7 @@ export const HeaderNavbar: React.FC = () => {
     matches,
     reviews,
     coupangProducts,
+    pointShopItems,
     isAdmin,
     currentUser
   } = useParkGolf();
@@ -39,7 +40,7 @@ export const HeaderNavbar: React.FC = () => {
       id: 'courses',
       title: '전국 구장 정보',
       label: '전국 구장',
-      shortLabel: '구장정보',
+      shortLabel: '구장',
       icon: MapPin,
       badge: `${courses.length}`,
       badgeColor: 'bg-emerald-100 text-emerald-800'
@@ -48,7 +49,7 @@ export const HeaderNavbar: React.FC = () => {
       id: 'tournaments',
       title: '대회 소식',
       label: '대회 소식',
-      shortLabel: '대회소식',
+      shortLabel: '대회',
       icon: Trophy,
       badge: `${tournaments.length}`,
       badgeColor: 'bg-amber-100 text-amber-900'
@@ -57,7 +58,7 @@ export const HeaderNavbar: React.FC = () => {
       id: 'news',
       title: '초보 가이드',
       label: '초보 가이드',
-      shortLabel: '초보가이드',
+      shortLabel: '가이드',
       icon: BookOpen,
       badge: '필독',
       badgeColor: 'bg-blue-100 text-blue-900'
@@ -75,7 +76,7 @@ export const HeaderNavbar: React.FC = () => {
       id: 'reviews',
       title: '구장 리뷰',
       label: '구장 리뷰',
-      shortLabel: '구장리뷰',
+      shortLabel: '리뷰',
       icon: Star,
       badge: reviews.length > 0 ? `${reviews.length}` : '★후기',
       badgeColor: 'bg-amber-100 text-amber-900'
@@ -92,17 +93,26 @@ export const HeaderNavbar: React.FC = () => {
     },
     {
       id: 'shop',
-      title: '추천 상품',
-      label: '추천 상품',
-      shortLabel: '추천상품',
+      title: '쿠팡추천상품',
+      label: '쿠팡추천',
+      shortLabel: '쿠팡',
       icon: ShoppingBag,
       badge: coupangProducts.length > 0 ? `${coupangProducts.length}` : 'NEW',
       badgeColor: 'bg-red-100 text-red-800'
     },
     {
+      id: 'pointmarket',
+      title: '마당P 장터',
+      label: '마당P 장터',
+      shortLabel: '마당P',
+      icon: Coins,
+      badge: pointShopItems.length > 0 ? `${pointShopItems.length}` : '교환',
+      badgeColor: 'bg-emerald-100 text-emerald-900'
+    },
+    {
       id: 'restaurants',
       title: '구장 근처 맛집',
-      label: '구장 근처 맛집',
+      label: '근처 맛집',
       shortLabel: '맛집',
       icon: UtensilsCrossed,
       badge: '추천',
@@ -185,28 +195,29 @@ export const HeaderNavbar: React.FC = () => {
               </button>
             )}
 
-            <button
-              id="header-admin-login-btn"
-              onClick={() => openModal('admin')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-black text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border ${
-                isAdmin
-                  ? 'bg-amber-400 text-green-950 border-amber-300'
-                  : 'bg-emerald-700 hover:bg-emerald-800 text-white border-emerald-800'
-              }`}
-            >
-              {isAdmin ? <UserCheck className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />}
-              <span className="hidden sm:inline">{isAdmin ? '관리자 모드 실행 중' : '관리자 로그인'}</span>
-              <span className="inline sm:hidden">{isAdmin ? '관리자 모드' : '관리자 로그인'}</span>
-            </button>
+            {/* 관리자 로그인 버튼은 삭제했습니다 — 로그인/회원가입 창 안의 "관리자로 로그인" 링크로
+                들어갑니다. 아래 버튼은 이미 관리자 모드일 때만 보이는 '관리자 화면 열기' 버튼입니다. */}
+            {isAdmin && (
+              <button
+                id="header-admin-panel-btn"
+                onClick={() => openModal('admin')}
+                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-black text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-amber-400 text-green-950 border-amber-300"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">관리자 모드</span>
+                <span className="inline sm:hidden">관리</span>
+              </button>
+            )}
 
             {/* Mobile Menu Toggle (Removed on mobile as requested, bottom nav is primary) */}
           </div>
         </div>
 
-        {/* Category Navigation Bar — 항상 한 줄로 유지됩니다. 탭이 늘어나면 폭이 줄어들거나
-            (넓은 화면) 가로 스크롤(좁은 화면)로 대응하며, 절대 두 줄로 줄바꿈되지 않습니다. */}
-        <nav className="hidden md:block border-t border-green-100/90 py-1 sm:py-1.5 w-full">
-          <div className="flex flex-nowrap gap-0.5 sm:gap-1 md:gap-1.5 w-full items-center overflow-x-auto">
+        {/* 상단 카테고리 탭 — 시니어분들이 읽기 편하도록 글씨를 최대한 키웠습니다.
+            화면이 좁아지면 글씨와 여백이 단계적으로 줄어들 뿐, 절대 두 줄로 넘어가지 않습니다.
+            (화면 폭별: md 14px → lg 16px → xl 17px → 2xl 18px) */}
+        <nav className="hidden md:block border-t border-green-100/90 py-1.5 w-full">
+          <div className="flex flex-nowrap gap-1 lg:gap-1.5 w-full items-center">
             {visibleNavItems.map(item => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -216,22 +227,20 @@ export const HeaderNavbar: React.FC = () => {
                   id={`nav-tab-${item.id}`}
                   onClick={() => handleNavClick(item.id)}
                   title={item.title}
-                  className={`flex-1 min-w-[64px] shrink-0 flex items-center justify-center gap-0.5 sm:gap-1 px-0.5 sm:px-1 md:px-1.5 py-1.5 sm:py-2 rounded-lg font-extrabold transition-all text-[9.5px] sm:text-xs md:text-xs lg:text-sm border text-center cursor-pointer whitespace-nowrap overflow-hidden ${
+                  className={`flex-1 min-w-0 flex items-center justify-center gap-1 lg:gap-1.5 px-1 lg:px-2 py-2 lg:py-2.5 rounded-lg font-extrabold transition-all text-[14px] lg:text-[16px] xl:text-[17px] 2xl:text-[18px] border text-center cursor-pointer whitespace-nowrap overflow-hidden ${
                     isActive
                       ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-1 ring-blue-400/50'
                       : 'bg-stone-50/90 text-slate-800 border-slate-200/90 hover:bg-blue-50 hover:text-blue-950 hover:border-blue-300'
                   }`}
                 >
-                  <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${isActive ? 'text-amber-300' : 'text-blue-700'}`} />
-                  <span className="truncate hidden md:inline">{item.label}</span>
-                  <span className="truncate inline md:hidden">{item.shortLabel}</span>
-                  <span
-                    className={`hidden 2xl:inline-block text-[10px] px-1 py-0.2 rounded-full font-bold ml-0.5 ${
-                      isActive ? 'bg-white/20 text-white' : item.badgeColor
+                  <Icon
+                    className={`w-4 h-4 lg:w-5 lg:h-5 xl:w-[22px] xl:h-[22px] shrink-0 ${
+                      isActive ? 'text-amber-300' : 'text-blue-700'
                     }`}
-                  >
-                    {item.badge}
-                  </span>
+                  />
+                  {/* 화면이 넉넉하면 긴 이름, 좁으면 짧은 이름 — 어느 쪽이든 한 줄을 지킵니다 */}
+                  <span className="truncate hidden xl:inline">{item.label}</span>
+                  <span className="truncate inline xl:hidden">{item.shortLabel}</span>
                 </button>
               );
             })}

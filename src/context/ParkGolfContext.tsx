@@ -90,8 +90,33 @@ interface ParkGolfContextType {
   loginUser: (phone: string, password: string) => Promise<boolean>;
   logoutUser: () => void;
   pointShopItems: PointShopItem[];
-  redeemPointShopItem: (itemId: string) => Promise<boolean>;
-  addPointShopItem: (item: { name: string; category: string; pointCost: number; referenceUrl?: string }) => Promise<boolean>;
+  // 글을 쓰면 뜨는 "마당P 지급예정" 안내창 정보 (null이면 창을 닫은 상태)
+  pointNotice: { amount: number; expectedPoints: number; pendingPoints: number } | null;
+  closePointNotice: () => void;
+  // 관리자 — 마당P 지급 승인/거부
+  fetchPointRequests: (status?: string) => Promise<any[]>;
+  decidePointRequest: (id: string, decision: 'approve' | 'reject', reason?: string) => Promise<boolean>;
+  redeemPointShopItem: (
+    itemId: string,
+    shipping: {
+      recipientName: string;
+      recipientPhone: string;
+      postcode: string;
+      roadAddress: string;
+      detailAddress: string;
+      memo?: string;
+    }
+  ) => Promise<{ ok: boolean; notEnoughPoints?: boolean; required?: number; have?: number }>;
+  addPointShopItem: (item: {
+    name: string;
+    category: string;
+    pointCost: number;
+    referenceUrl?: string;
+    imageUrl?: string;
+    description?: string;
+    sourceType?: '쿠팡' | '일반';
+    coupangEmbedUrl?: string;
+  }) => Promise<boolean>;
   deletePointShopItem: (id: string) => Promise<void>;
   totalUsers: number;
   monthlyDrawInfo: any;
@@ -100,6 +125,7 @@ interface ParkGolfContextType {
   markDrawWinnerShipped: (id: string, shipped: boolean) => Promise<boolean>;
   fetchRedemptions: () => Promise<any[]>;
   updateRedemptionStatus: (id: string, status: string) => Promise<boolean>;
+  fetchMembers: () => Promise<any[]>;
   loginAdmin: (password: string) => Promise<boolean>;
   logoutAdmin: () => void;
   resetToDefaultData: () => void;
@@ -110,8 +136,6 @@ interface ParkGolfContextType {
   addCourse: (course: Omit<ParkCourse, 'id' | 'rating' | 'reviewCount'>) => void;
   updateCourse: (id: string, course: Partial<ParkCourse>) => void;
   deleteCourse: (id: string) => void;
-  researchCourseWithAI: (courseName: string, address: string, silent?: boolean) => Promise<any | null>;
-  researchCoursesBatch: (count: number, onProgress: (item: { course: ParkCourse; result: any | null }) => void) => Promise<void>;
   guideVideos: Record<string, { uploadedAt: string; fileName: string }>;
   uploadGuideVideo: (slot: string, file: File) => Promise<boolean>;
   deleteGuideVideo: (slot: string) => Promise<void>;
@@ -120,8 +144,6 @@ interface ParkGolfContextType {
   addTournament: (tour: Omit<Tournament, 'id'>) => void;
   updateTournament: (id: string, tour: Partial<Tournament>) => void;
   deleteTournament: (id: string) => void;
-  searchTournamentsWithAI: (region?: string, silent?: boolean) => Promise<any[]>;
-  searchTournamentsAllRegions: (onProgress: (region: string, candidates: any[]) => void) => Promise<void>;
 
   // CRUD for News
   addNews: (news: Omit<NewsItem, 'id' | 'views'>) => void;
@@ -156,7 +178,9 @@ interface ParkGolfContextType {
 const ParkGolfContext = createContext<ParkGolfContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  COURSES: 'parkgolf_madang_courses_prod_v3',
+  // 전국 553개 구장 전수조사 자료로 전면 교체하면서 v4로 올렸습니다.
+  // (예전 데이터가 저장돼 있던 방문자 브라우저도 새 구장정보로 자동으로 바뀝니다)
+  COURSES: 'parkgolf_madang_courses_prod_v4',
   TOURNAMENTS: 'parkgolf_madang_tournaments_prod_v1',
   NEWS: 'parkgolf_madang_news_prod_v2',
   REVIEWS: 'parkgolf_madang_reviews_prod_v1',
@@ -169,6 +193,14 @@ const STORAGE_KEYS = {
   MY_MATCH_TOKENS: 'parkgolf_madang_my_match_tokens',
   MY_RESTAURANT_TOKENS: 'parkgolf_madang_my_restaurant_tokens'
 };
+
+// 예전 버전에서 쓰던 구장 저장소를 지웁니다. 남겨두면 브라우저 저장공간만 차지합니다.
+try {
+  ['parkgolf_madang_courses_prod_v1', 'parkgolf_madang_courses_prod_v2', 'parkgolf_madang_courses_prod_v3']
+    .forEach(k => localStorage.removeItem(k));
+} catch {
+  /* 저장소를 못 쓰는 브라우저에서도 문제없이 넘어갑니다 */
+}
 
 export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load data from localStorage or use initial data
@@ -471,6 +503,23 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Admin Auth
+  // 관리자 전용 — 가입회원 목록 조회 (회원관리 탭)
+  const fetchMembers = async (): Promise<any[]> => {
+    try {
+      const res = await fetch('/api/admin/users', { headers: adminAuthHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '회원 목록을 불러오지 못했습니다.');
+        return [];
+      }
+      const data = await res.json();
+      return data.users || [];
+    } catch (err) {
+      console.error('회원 목록 조회 실패:', err);
+      return [];
+    }
+  };
+
   const loginAdmin = async (password: string): Promise<boolean> => {
     try {
       const res = await fetch('/api/admin/login', {
@@ -582,34 +631,107 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // 마당P로 실제 상품을 교환 신청합니다. 자동 결제·자동발송이 아니라, 신청이 접수되면
   // 관리자가 실제로 확인하고 발송을 처리합니다.
-  const redeemPointShopItem = async (itemId: string): Promise<boolean> => {
+  // ── 마당P 지급예정 안내창 ──
+  const [pointNotice, setPointNotice] = useState<
+    { amount: number; expectedPoints: number; pendingPoints: number } | null
+  >(null);
+  const closePointNotice = () => setPointNotice(null);
+
+  /** 글 등록 응답에 담겨 온 마당P 정보로 안내창을 띄우고, 내 예상 마당P도 갱신합니다. */
+  const showPointNotice = (info: any) => {
+    if (!info || typeof info.amount !== 'number') return;
+    setPointNotice({
+      amount: info.amount,
+      expectedPoints: info.expectedPoints ?? 0,
+      pendingPoints: info.pendingPoints ?? 0
+    });
+    setCurrentUser(prev => (prev ? { ...prev, pendingPoints: info.pendingPoints ?? 0 } : prev));
+  };
+
+  // 관리자 — 마당P 지급 신청 목록
+  const fetchPointRequests = async (status?: string): Promise<any[]> => {
     try {
-      const res = await fetch(`/api/point-shop/${itemId}/redeem`, {
+      const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+      const res = await fetch(`/api/point-requests${qs}`, { headers: adminAuthHeaders() });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.requests || [];
+    } catch (err) {
+      console.error('마당P 신청 목록 조회 실패:', err);
+      return [];
+    }
+  };
+
+  // 관리자 — 지급 또는 거부 처리
+  const decidePointRequest = async (
+    id: string,
+    decision: 'approve' | 'reject',
+    reason?: string
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/point-requests/${id}/${decision}`, {
         method: 'POST',
-        headers: userAuthHeaders()
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ reason: reason || '' })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || '교환 신청에 실패했습니다.');
+        alert(err.error || '처리에 실패했습니다.');
         return false;
       }
-      const data = await res.json();
-      setCurrentUser(prev => (prev ? { ...prev, points: data.remainingPoints } : prev));
-      alert('교환 신청이 접수되었습니다! 관리자가 확인 후 순차적으로 발송해드립니다.');
       return true;
     } catch (err) {
-      console.error('교환 신청 실패:', err);
-      alert('교환 신청 중 오류가 발생했습니다.');
+      console.error('마당P 지급 처리 실패:', err);
       return false;
     }
   };
 
-  // 관리자 전용 — 마당P 교환소에 새 상품 등록 / 삭제
+  // 마당P 장터 교환 신청 — 보유 마당P 확인은 서버가 최종적으로 다시 합니다.
+  // 마당P가 모자라면 notEnoughPoints를 돌려주어 화면에서 안내창을 띄웁니다.
+  const redeemPointShopItem = async (
+    itemId: string,
+    shipping: {
+      recipientName: string;
+      recipientPhone: string;
+      postcode: string;
+      roadAddress: string;
+      detailAddress: string;
+      memo?: string;
+    }
+  ): Promise<{ ok: boolean; notEnoughPoints?: boolean; required?: number; have?: number }> => {
+    try {
+      const res = await fetch(`/api/point-shop/${itemId}/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...userAuthHeaders() },
+        body: JSON.stringify(shipping)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (data.code === 'NOT_ENOUGH_POINTS') {
+          return { ok: false, notEnoughPoints: true, required: data.required, have: data.have };
+        }
+        alert(data.error || '교환 신청에 실패했습니다.');
+        return { ok: false };
+      }
+      setCurrentUser(prev => (prev ? { ...prev, points: data.remainingPoints } : prev));
+      return { ok: true };
+    } catch (err) {
+      console.error('교환 신청 실패:', err);
+      alert('교환 신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      return { ok: false };
+    }
+  };
+
+  // 관리자 전용 — 마당P 장터에 새 상품 등록 / 삭제
   const addPointShopItem = async (item: {
     name: string;
     category: string;
     pointCost: number;
     referenceUrl?: string;
+    imageUrl?: string;
+    description?: string;
+    sourceType?: '쿠팡' | '일반';
+    coupangEmbedUrl?: string;
   }): Promise<boolean> => {
     try {
       const res = await fetch('/api/point-shop', {
@@ -626,7 +748,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setPointShopItems(prev => [...prev, data.item]);
       return true;
     } catch (err) {
-      console.error('포인트샵 상품 등록 실패:', err);
+      console.error('마당P 장터 상품 등록 실패:', err);
       alert('상품 등록 중 오류가 발생했습니다.');
       return false;
     }
@@ -638,7 +760,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       await fetch(`/api/point-shop/${id}`, { method: 'DELETE', headers: adminAuthHeaders() });
       setPointShopItems(prev => prev.filter(i => i.id !== id));
     } catch (err) {
-      console.error('포인트샵 상품 삭제 실패:', err);
+      console.error('마당P 장터 상품 삭제 실패:', err);
     }
   };
 
@@ -796,46 +918,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // AI + 구글 검색으로 특정 구장의 지자체 공식 정보를 실제로 조사합니다.
-  // 결과는 그대로 저장되지 않고, 관리자가 확인 후 updateCourse로 직접 저장해야 반영됩니다.
-  const researchCourseWithAI = async (courseName: string, address: string, silent = false): Promise<any | null> => {
-    try {
-      const res = await fetch('/api/gemini/research-course', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
-        body: JSON.stringify({ courseName, address })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        if (!silent) alert(err.error || '구장 정보 조사에 실패했습니다.');
-        return null;
-      }
-      const data = await res.json();
-      return data.result || null;
-    } catch (err) {
-      console.error('구장 정보 조사 실패:', err);
-      if (!silent) alert('구장 정보 조사 중 오류가 발생했습니다.');
-      return null;
-    }
-  };
-
-  // "확인 필요"로 표시된 구장들을 하나씩 순서대로(동시에 X) AI로 조사합니다.
-  // 한 번에 너무 많이 요청하면 API가 막힐 수 있어서 순차 처리하고, 처리될 때마다
-  // onProgress로 화면에 결과를 하나씩 보여줍니다. 저장은 관리자가 확인 후 직접 해야 합니다.
-  const researchCoursesBatch = async (
-    count: number,
-    onProgress: (item: { course: ParkCourse; result: any | null }) => void
-  ): Promise<void> => {
-    const targets = courses
-      .filter(c => c.dataConfidence === 'unverified' || c.dataConfidence === 'C' || c.dataConfidence === 'C+')
-      .slice(0, count);
-
-    for (const course of targets) {
-      const result = await researchCourseWithAI(course.name, course.address, true);
-      onProgress({ course, result });
-    }
-  };
-
   // 초보가이드 영상 업로드 (관리자 전용, MP4 파일)
   const uploadGuideVideo = async (slot: string, file: File): Promise<boolean> => {
     try {
@@ -919,41 +1001,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // AI + 구글 검색으로 현재 진행되는 실제 대회 후보를 가져옵니다 (자동 등록되지 않고, 관리자가
-  // 확인 후 addTournament로 직접 등록해야 실제로 저장됩니다).
-  const searchTournamentsWithAI = async (region?: string, silent = false): Promise<any[]> => {
-    try {
-      const res = await fetch('/api/gemini/search-tournaments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
-        body: JSON.stringify({ region })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        if (!silent) alert(err.error || '대회 검색에 실패했습니다.');
-        return [];
-      }
-      const data = await res.json();
-      return data.candidates || [];
-    } catch (err) {
-      console.error('대회 검색 실패:', err);
-      if (!silent) alert('대회 검색 중 오류가 발생했습니다.');
-      return [];
-    }
-  };
-
-  // 6개 권역을 하나씩 순서대로 검색해서 후보를 모두 모읍니다 (한 번에 최대 5건이라는
-  // 제한을 권역별로 나눠 우회 — 전국을 한 번에 검색하는 것보다 지역별 대회를 더 폭넓게 찾습니다).
-  const searchTournamentsAllRegions = async (
-    onProgress: (region: string, candidates: any[]) => void
-  ): Promise<void> => {
-    const regions = ['서울/경기/인천', '강원', '충청/대전/세종', '전라/광주', '경상/대구/부산/울산', '제주'];
-    for (const region of regions) {
-      const candidates = await searchTournamentsWithAI(region, true);
-      onProgress(region, candidates);
-    }
-  };
-
   // News CRUD
   const addNews = (newsData: Omit<NewsItem, 'id' | 'views'>) => {
     const newArticle: NewsItem = {
@@ -1017,6 +1064,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const data = await res.json();
         // 서버가 부여한 실제 id로 교체
         setReviews(prev => prev.map(r => (r.id === optimisticId ? data.review : r)));
+        showPointNotice(data.pointInfo);
       } catch (err) {
         console.error('리뷰 저장 실패:', err);
       }
@@ -1077,6 +1125,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           myTokens[data.match.id] = data.deleteToken;
           localStorage.setItem(STORAGE_KEYS.MY_MATCH_TOKENS, JSON.stringify(myTokens));
         }
+        showPointNotice(data.pointInfo);
       } catch (err) {
         console.error('동반자 모집글 저장 실패:', err);
       }
@@ -1265,6 +1314,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         myTokens[data.restaurant.id] = data.deleteToken;
         localStorage.setItem(STORAGE_KEYS.MY_RESTAURANT_TOKENS, JSON.stringify(myTokens));
       }
+      showPointNotice(data.pointInfo);
       return true;
     } catch (err) {
       console.error('맛집 등록 실패:', err);
@@ -1342,6 +1392,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loginUser,
         logoutUser,
         pointShopItems,
+        pointNotice,
+        closePointNotice,
+        fetchPointRequests,
+        decidePointRequest,
         redeemPointShopItem,
         addPointShopItem,
         deletePointShopItem,
@@ -1352,6 +1406,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         markDrawWinnerShipped,
         fetchRedemptions,
         updateRedemptionStatus,
+        fetchMembers,
         loginAdmin,
         logoutAdmin,
         resetToDefaultData,
@@ -1360,16 +1415,12 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addCourse,
         updateCourse,
         deleteCourse,
-        researchCourseWithAI,
-        researchCoursesBatch,
         guideVideos,
         uploadGuideVideo,
         deleteGuideVideo,
         addTournament,
         updateTournament,
         deleteTournament,
-        searchTournamentsWithAI,
-        searchTournamentsAllRegions,
         addNews,
         updateNews,
         deleteNews,

@@ -122,7 +122,7 @@ export const MatchingPostModal: React.FC = () => {
       description: newDescription.trim() || '즐겁게 매너 지키며 함께 라운딩하실 분 환영합니다!'
     });
 
-    alert('라운딩 동반자 모집글이 성공적으로 등록되었습니다!');
+    // 등록 안내는 마당P 지급예정 안내창(PointNoticeModal)이 대신 보여줍니다.
     closeModal();
   };
 

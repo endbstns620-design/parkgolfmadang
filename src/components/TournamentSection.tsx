@@ -268,7 +268,7 @@ export const TournamentSection: React.FC = () => {
                   <img
                     src={
                       tour.posterUrl ||
-                      'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=800&q=80'
+                      '/images/card-courses-v4.png'
                     }
                     alt={tour.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -376,13 +376,25 @@ export const TournamentSection: React.FC = () => {
                   {/* Actions */}
                   <div className="space-y-2 pt-2 border-t border-slate-100">
                     <div className="grid grid-cols-2 gap-2">
-                      <a
-                        href={`tel:${tour.contact.split('/')[0].trim()}`}
-                        className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <PhoneCall className="w-3.5 h-3.5 text-green-700" />
-                        <span>전화문의</span>
-                      </a>
+                      {/* 문의 전화번호가 확인된 대회만 전화 걸기를 보여줍니다.
+                          번호가 없는 대회는 아래 "참가신청"의 공식 요강에서 확인하시면 됩니다. */}
+                      {(() => {
+                        const m = String(tour.contact || '').match(/0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4}/);
+                        return m ? (
+                          <a
+                            href={`tel:${m[0].replace(/\s/g, '')}`}
+                            className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <PhoneCall className="w-4 h-4 text-green-700" />
+                            <span>전화문의</span>
+                          </a>
+                        ) : (
+                          <div className="py-2.5 px-3 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm flex items-center justify-center gap-1">
+                            <PhoneCall className="w-4 h-4 text-slate-400" />
+                            <span>요강 확인</span>
+                          </div>
+                        );
+                      })()}
 
                       {tour.linkUrl ? (
                         <a
@@ -392,7 +404,7 @@ export const TournamentSection: React.FC = () => {
                           className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-green-950 font-black text-xs flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>참가신청</span>
+                          <span>공식 요강</span>
                         </a>
                       ) : (
                         <button

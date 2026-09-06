@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { ParkCourse, Tournament, NewsItem, AdItem } from '../types';
+import { ParkCourse, Tournament, AdItem, CoupangProduct } from '../types';
 import {
   X,
   ShieldCheck,
   Plus,
   Edit,
   Trash2,
-  Sparkles,
   Save,
   RotateCcw,
-  CheckCircle,
   AlertTriangle,
-  Upload,
   Lock,
-  Unlock,
   RefreshCw,
-  Trophy,
-  Newspaper,
   Users,
   Megaphone,
-  Star
+  Coins
 } from 'lucide-react';
+
+// 휴대폰번호를 010-1234-5678 형태로 보기 좋게 표시합니다.
+const formatPhone = (raw?: string) => {
+  const d = String(raw || '').replace(/[^0-9]/g, '');
+  if (d.length === 11) return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return raw || '-';
+};
 
 export const AdminDashboardModal: React.FC = () => {
   const {
@@ -34,24 +36,21 @@ export const AdminDashboardModal: React.FC = () => {
     addCourse,
     updateCourse,
     deleteCourse,
-    researchCourseWithAI,
-    researchCoursesBatch,
     tournaments,
     addTournament,
     updateTournament,
     deleteTournament,
-    searchTournamentsWithAI,
-    searchTournamentsAllRegions,
     fetchRedemptions,
+    fetchPointRequests,
+    decidePointRequest,
     updateRedemptionStatus,
     pointShopItems,
     addPointShopItem,
     deletePointShopItem,
     coupangProducts,
-    news,
-    addNews,
-    updateNews,
-    deleteNews,
+    addCoupangProduct,
+    deleteCoupangProduct,
+    fetchMembers,
     matches,
     updateMatchStatus,
     deleteMatch,
@@ -66,7 +65,7 @@ export const AdminDashboardModal: React.FC = () => {
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'news' | 'matches' | 'reviews' | 'ads' | 'pointshop' | 'redemptions'>('courses');
+  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'members' | 'matches' | 'reviews' | 'pointapproval' | 'ads' | 'pointshop' | 'redemptions'>('courses');
 
   // Edit / Form state for Course
   const [editingCourse, setEditingCourse] = useState<Partial<ParkCourse> | null>(null);
@@ -76,11 +75,6 @@ export const AdminDashboardModal: React.FC = () => {
   const [editingTour, setEditingTour] = useState<Partial<Tournament> | null>(null);
   const [isNewTour, setIsNewTour] = useState(false);
 
-  // Edit / Form state for News
-  const [editingNews, setEditingNews] = useState<Partial<NewsItem> | null>(null);
-  const [isNewNews, setIsNewNews] = useState(false);
-  const [aiTopic, setAiTopic] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
 
   // Edit / Form state for Ad
   const [editingAd, setEditingAd] = useState<Partial<AdItem> | null>(null);
@@ -89,30 +83,60 @@ export const AdminDashboardModal: React.FC = () => {
   // Admin Login 로딩 상태 — 다른 useState들과 함께 컴포넌트 최상단에서 항상 호출되어야 합니다.
   // (조건부 return 아래에 두면 모달이 열릴 때 hooks 호출 순서가 달라져서 리액트가 크래시합니다)
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isSearchingTournaments, setIsSearchingTournaments] = useState(false);
-  const [tournamentCandidates, setTournamentCandidates] = useState<any[]>([]);
-  const [researchingCourseId, setResearchingCourseId] = useState<string | null>(null);
-  const [isBatchResearching, setIsBatchResearching] = useState(false);
-  const [batchResearchResults, setBatchResearchResults] = useState<{ course: any; result: any }[]>([]);
-  const [isBatchSearchingTournaments, setIsBatchSearchingTournaments] = useState(false);
   const [redemptions, setRedemptions] = useState<any[]>([]);
   const [isLoadingRedemptions, setIsLoadingRedemptions] = useState(false);
-  const [newPointShopItem, setNewPointShopItem] = useState({
+  const [newPointShopItem, setNewPointShopItem] = useState<{
+    name: string;
+    category: string;
+    pointCost: string;
+    referenceUrl: string;
+    imageUrl: string;
+    description: string;
+    sourceType: '쿠팡' | '일반';
+    selectedCoupangId: string;
+    coupangEmbedUrl: string;
+  }>({
     name: '',
     category: '',
     pointCost: '',
     referenceUrl: '',
-    selectedCoupangId: ''
+    imageUrl: '',
+    description: '',
+    sourceType: '일반',
+    selectedCoupangId: '',
+    coupangEmbedUrl: ''
   });
   const [isAddingPointShopItem, setIsAddingPointShopItem] = useState(false);
+  // 마당P 승인 탭
+  const [pointRequests, setPointRequests] = useState<any[]>([]);
+  const [isLoadingPointReqs, setIsLoadingPointReqs] = useState(false);
+  const [pointReqFilter, setPointReqFilter] = useState<'대기' | '지급완료' | '거부'>('대기');
+
+  // 회원관리 탭
+  const [members, setMembers] = useState<any[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+
+  // 제휴광고 탭 안의 쿠팡추천상품 등록
+  const [coupangRawInput, setCoupangRawInput] = useState('');
+  const [coupangCategory, setCoupangCategory] = useState<CoupangProduct['category']>('클럽');
+  const [isAddingCoupang, setIsAddingCoupang] = useState(false);
+
 
   // 관리자 모달이 열려있을 때 교환 신청 배지 숫자(및 목록)를 미리 불러옵니다.
   useEffect(() => {
     if (activeModal && activeModal.type === 'admin') {
       fetchRedemptions().then(setRedemptions);
+      if (isAdmin) {
+        setIsLoadingMembers(true);
+        fetchMembers()
+          .then(setMembers)
+          .finally(() => setIsLoadingMembers(false));
+        fetchPointRequests().then(setPointRequests);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeModal]);
+  }, [activeModal, isAdmin]);
 
   if (!activeModal || activeModal.type !== 'admin') {
     return null;
@@ -132,57 +156,6 @@ export const AdminDashboardModal: React.FC = () => {
     }
   };
 
-  // AI News generation
-  const handleGenerateAiNews = async () => {
-    if (!aiTopic.trim()) {
-      alert('생성할 뉴스 주제(예: 파크골프 비거리 늘리는 타법, 2026년 신규 파크골프장 개장 소식 등)를 입력해주세요.');
-      return;
-    }
-
-    setAiLoading(true);
-    try {
-      const response = await fetch('/api/generate-news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: aiTopic.trim(), category: '건강·레슨' })
-      });
-
-      if (!response.ok) {
-        throw new Error('AI 뉴스 생성 서버 응답 오류');
-      }
-
-      const data = await response.json();
-      if (data.news) {
-        addNews({
-          title: data.news.title,
-          category: data.news.category || '건강·레슨',
-          summary: data.news.summary,
-          content: data.news.content,
-          imageUrl: 'https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?auto=format&fit=crop&w=800&q=80',
-          author: '파크골프마당 AI 취재팀',
-          source: '파크골프마당 데스크'
-        });
-        alert('✨ AI가 작성한 최신 뉴스가 성공적으로 등록되었습니다!');
-        setAiTopic('');
-      }
-    } catch (err) {
-      // Fallback local generated article if API is unconfigured
-      addNews({
-        title: `[실시간 소식] ${aiTopic}`,
-        category: '건강·레슨',
-        summary: `${aiTopic}에 대한 시니어 동호인 맞춤 전문 가이드와 핵심 정보입니다.`,
-        content: `파크골프는 무리한 관절 부담 없이 전신 유산소 운동과 하체 근력을 기를 수 있는 최고의 시니어 국민 스포츠입니다.\n\n이번 취재에서는 ${aiTopic}에 대하여 상세히 알아보고자 합니다.\n\n1. 올바른 어드레스와 그립 잡기\n2. 헤드 무게를 이용한 부드러운 스윙\n3. 라운딩 전후 10분 필수 스트레칭\n\n대한파크골프협회 공인 규정에 맞추어 안전하고 매너 있는 라운딩을 즐겨보세요!`,
-        imageUrl: 'https://images.unsplash.com/photo-1593111774240-d529f12cf4bb?auto=format&fit=crop&w=800&q=80',
-        author: '파크골프마당 취재팀',
-        source: '파크골프마당 실시간 취재'
-      });
-      alert('✨ 최신 기사가 작성되어 등록되었습니다!');
-      setAiTopic('');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden my-6 max-h-[92vh] flex flex-col text-slate-800">
@@ -195,7 +168,7 @@ export const AdminDashboardModal: React.FC = () => {
                 파크골프마당 관리자 모드
               </h2>
               <p className="text-xs text-slate-400">
-                구장 정보, 대회 일정, 뉴스, 매칭글, 광고 배너 실시간 수정 및 등록
+                구장 정보 · 대회 일정 · 회원 · 마당P · 광고 관리 (초보가이드 영상은 가이드 페이지에서)
               </p>
             </div>
           </div>
@@ -265,16 +238,22 @@ export const AdminDashboardModal: React.FC = () => {
         ) : (
           /* Logged In Dashboard */
           <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Nav Tabs — 항상 한 줄에 6개 탭이 다 보이도록 고정폭 대신 flex로 균등 분배합니다 */}
-            <div className="bg-slate-100 p-2 border-b border-slate-200 flex items-center gap-1">
+            {/* Nav Tabs — 탭이 9개로 늘어나 한 줄에 다 넣으면 글씨가 잘리므로, 화면이 좁으면
+                두 줄로 자연스럽게 넘어가도록 flex-wrap을 씁니다 (탭 이름이 항상 다 보입니다) */}
+            <div className="bg-slate-100 p-2 border-b border-slate-200 flex flex-wrap items-center gap-1">
               {[
                 { id: 'courses', label: '🏌️ 구장 관리', count: courses.length },
                 { id: 'tournaments', label: '🏆 대회 관리', count: tournaments.length },
-                { id: 'news', label: '📰 뉴스 & AI작성', count: news.length },
+                { id: 'members', label: '🧑‍🤝‍🧑 회원관리', count: members.length },
                 { id: 'matches', label: '👥 라운딩 매칭', count: matches.length },
                 { id: 'reviews', label: '⭐ 후기 관리', count: reviews.length },
+                {
+                  id: 'pointapproval',
+                  label: '🪙 마당P 승인',
+                  count: pointRequests.filter((r: any) => r.status === '대기').length
+                },
                 { id: 'ads', label: '📣 제휴광고', count: ads.length },
-                { id: 'pointshop', label: '🛍️ 포인트샵', count: pointShopItems.length },
+                { id: 'pointshop', label: '🛍️ 마당P 장터', count: pointShopItems.length },
                 { id: 'redemptions', label: '🎁 교환신청', count: redemptions.filter((r: any) => r.status === '접수됨').length }
               ].map(tab => (
                 <button
@@ -284,16 +263,15 @@ export const AdminDashboardModal: React.FC = () => {
                     setActiveTab(tab.id as any);
                     setEditingCourse(null);
                     setEditingTour(null);
-                    setEditingNews(null);
                     setEditingAd(null);
                   }}
-                  className={`flex-1 min-w-0 px-1.5 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs md:text-sm font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-0 sm:gap-1.5 overflow-hidden ${
+                  className={`grow shrink-0 basis-[30%] sm:basis-[22%] md:basis-0 px-2 sm:px-2.5 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs md:text-sm font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-0 sm:gap-1.5 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'bg-green-800 text-white shadow'
                       : 'bg-white text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  <span className="truncate max-w-full">{tab.label}</span>
+                  <span>{tab.label}</span>
                   <span className="text-[9px] sm:text-[11px] px-1.5 py-0.2 rounded-full bg-black/20 shrink-0">
                     {tab.count}
                   </span>
@@ -318,27 +296,6 @@ export const AdminDashboardModal: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={async () => {
-                          if (isBatchResearching) return;
-                          setIsBatchResearching(true);
-                          setBatchResearchResults([]);
-                          await researchCoursesBatch(10, item => {
-                            setBatchResearchResults(prev => [...prev, item]);
-                          });
-                          setIsBatchResearching(false);
-                        }}
-                        disabled={isBatchResearching}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1 shadow disabled:opacity-60"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>
-                          {isBatchResearching
-                            ? `일괄 조사 중... (${batchResearchResults.length}/10)`
-                            : '확인필요 구장 10곳 일괄조사'}
-                        </span>
-                      </button>
-
-                      <button
                       onClick={() => {
                         setIsNewCourse(true);
                         setEditingCourse({
@@ -358,7 +315,7 @@ export const AdminDashboardModal: React.FC = () => {
                           phoneNumber: '031-000-0000',
                           operatingHours: '09:00 ~ 18:00',
                           closedDays: '매주 월요일 정기휴장',
-                          imageUrl: 'https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?auto=format&fit=crop&w=800&q=80',
+                          imageUrl: '/images/card-courses-v4.png',
                           grassType: '한국형 천연잔디 (버뮤다)',
                           amenities: ['화장실', '무료주차', '클럽하우스', '휴게쉼터'],
                           isAssociationCertified: true,
@@ -374,67 +331,6 @@ export const AdminDashboardModal: React.FC = () => {
                     </button>
                     </div>
                   </div>
-
-                  {/* Batch AI Research Results */}
-                  {batchResearchResults.length > 0 && (
-                    <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-extrabold text-blue-950 text-sm flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4" />
-                          일괄조사 결과 ({batchResearchResults.length}건) — 확인 후 각각 적용해주세요
-                        </h4>
-                        <button
-                          onClick={() => setBatchResearchResults([])}
-                          className="text-xs text-blue-700 hover:text-blue-900 font-bold"
-                        >
-                          닫기
-                        </button>
-                      </div>
-                      {batchResearchResults.map(({ course, result }, idx) => (
-                        <div key={idx} className="bg-white rounded-xl p-3.5 border border-blue-200 space-y-1">
-                          <p className="font-extrabold text-slate-900 text-sm">{course.name}</p>
-                          {!result ? (
-                            <p className="text-xs text-rose-600">조사 결과를 찾지 못했습니다.</p>
-                          ) : (
-                            <>
-                              <p className="text-xs text-slate-600">
-                                📋 {result.reservationType || '미확인'} · 💰 {result.feeLocal || '?'}/{result.feeVisitor || '?'} · 🕐 {result.operatingHours || '미확인'}
-                              </p>
-                              {result.sourceUrl && (
-                                <a href={result.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline break-all">
-                                  출처: {result.sourceUrl}
-                                </a>
-                              )}
-                              <button
-                                onClick={() => {
-                                  const updated = {
-                                    ...(result.reservationType && { reservationType: result.reservationType }),
-                                    ...(result.reservationDetails && { reservationDetails: result.reservationDetails }),
-                                    ...(result.feeLocal && { feeLocal: result.feeLocal }),
-                                    ...(result.feeVisitor && { feeVisitor: result.feeVisitor }),
-                                    ...(result.operatingHours && { operatingHours: result.operatingHours }),
-                                    ...(result.closedDays && { closedDays: result.closedDays }),
-                                    ...(result.phoneNumber && { phoneNumber: result.phoneNumber }),
-                                    ...(result.parkingDetails && { parkingDetails: result.parkingDetails }),
-                                    ...(result.description && { description: result.description }),
-                                    ...(result.confidence && { dataConfidence: result.confidence }),
-                                    dataSourceNote: result.sourceUrl
-                                      ? `AI 실시간 검색으로 확인 (출처: ${result.sourceUrl})`
-                                      : course.dataSourceNote
-                                  };
-                                  updateCourse(course.id, updated);
-                                  setBatchResearchResults(prev => prev.filter((_, i) => i !== idx));
-                                }}
-                                className="w-full mt-1 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
-                              >
-                                이 내용으로 저장하기
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   {/* Course Form Editor (if editing) */}
                   {editingCourse && (
@@ -641,38 +537,6 @@ export const AdminDashboardModal: React.FC = () => {
 
                         <div className="flex items-center gap-2 shrink-0">
                           <button
-                            onClick={async () => {
-                              setResearchingCourseId(c.id);
-                              const result = await researchCourseWithAI(c.name, c.address);
-                              setResearchingCourseId(null);
-                              if (result) {
-                                setIsNewCourse(false);
-                                setEditingCourse({
-                                  ...c,
-                                  ...(result.reservationType && { reservationType: result.reservationType }),
-                                  ...(result.reservationDetails && { reservationDetails: result.reservationDetails }),
-                                  ...(result.feeLocal && { feeLocal: result.feeLocal }),
-                                  ...(result.feeVisitor && { feeVisitor: result.feeVisitor }),
-                                  ...(result.operatingHours && { operatingHours: result.operatingHours }),
-                                  ...(result.closedDays && { closedDays: result.closedDays }),
-                                  ...(result.phoneNumber && { phoneNumber: result.phoneNumber }),
-                                  ...(result.parkingDetails && { parkingDetails: result.parkingDetails }),
-                                  ...(result.description && { description: result.description }),
-                                  ...(result.confidence && { dataConfidence: result.confidence }),
-                                  dataSourceNote: result.sourceUrl
-                                    ? `AI 실시간 검색으로 확인 (출처: ${result.sourceUrl})`
-                                    : c.dataSourceNote
-                                });
-                                alert('AI 검색 결과를 수정 폼에 채워넣었습니다. 내용을 확인하시고 저장 버튼을 눌러주세요.');
-                              }
-                            }}
-                            disabled={researchingCourseId === c.id}
-                            className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold text-xs flex items-center gap-1 disabled:opacity-60"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>{researchingCourseId === c.id ? '조사 중...' : 'AI 조사'}</span>
-                          </button>
-                          <button
                             onClick={() => {
                               setIsNewCourse(false);
                               setEditingCourse(c);
@@ -715,37 +579,6 @@ export const AdminDashboardModal: React.FC = () => {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={async () => {
-                          setIsSearchingTournaments(true);
-                          const results = await searchTournamentsWithAI();
-                          setIsSearchingTournaments(false);
-                          setTournamentCandidates(results);
-                        }}
-                        disabled={isSearchingTournaments}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1 disabled:opacity-60"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>{isSearchingTournaments ? '검색 중...' : 'AI 실시간 검색'}</span>
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          if (isBatchSearchingTournaments) return;
-                          setIsBatchSearchingTournaments(true);
-                          setTournamentCandidates([]);
-                          await searchTournamentsAllRegions((_region, candidates) => {
-                            setTournamentCandidates(prev => [...prev, ...candidates]);
-                          });
-                          setIsBatchSearchingTournaments(false);
-                        }}
-                        disabled={isBatchSearchingTournaments}
-                        className="px-4 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs sm:text-sm flex items-center gap-1 disabled:opacity-60"
-                      >
-                        <Sparkles className="w-4 h-4" />
-                        <span>{isBatchSearchingTournaments ? '전국 검색 중...' : '전국 6개 권역 일괄검색'}</span>
-                      </button>
-
-                      <button
                         onClick={() => {
                           setIsNewTour(true);
                           setEditingTour({
@@ -772,67 +605,6 @@ export const AdminDashboardModal: React.FC = () => {
                       </button>
                     </div>
                   </div>
-
-                  {/* AI 검색 결과 — 관리자가 확인하고 "이 대회 등록하기"를 눌러야 실제로 저장됩니다. */}
-                  {tournamentCandidates.length > 0 && (
-                    <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-extrabold text-blue-950 text-sm flex items-center gap-1.5">
-                          <Sparkles className="w-4 h-4" />
-                          구글 검색으로 찾은 대회 후보 ({tournamentCandidates.length}건) — 확인 후 등록해주세요
-                        </h4>
-                        <button
-                          onClick={() => setTournamentCandidates([])}
-                          className="text-xs text-blue-700 hover:text-blue-900 font-bold"
-                        >
-                          닫기
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-blue-800">
-                        AI가 실시간 검색으로 찾은 정보라 정확하지 않을 수 있습니다. 날짜·장소를 꼭 확인하시고 등록해주세요.
-                      </p>
-                      {tournamentCandidates.map((c, idx) => (
-                        <div key={idx} className="bg-white rounded-xl p-3.5 border border-blue-200 space-y-1">
-                          <p className="font-extrabold text-slate-900 text-sm">{c.title}</p>
-                          <p className="text-xs text-slate-600">
-                            📅 {c.eventDate} · 📍 {c.location} · 주최: {c.organizer}
-                          </p>
-                          {c.registrationPeriod && <p className="text-xs text-slate-500">접수: {c.registrationPeriod}</p>}
-                          {c.contact && <p className="text-xs text-slate-500">문의: {c.contact}</p>}
-                          {c.sourceUrl && (
-                            <a href={c.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 underline break-all">
-                              출처: {c.sourceUrl}
-                            </a>
-                          )}
-                          <button
-                            onClick={() => {
-                              setIsNewTour(true);
-                              setEditingTour({
-                                title: c.title || '',
-                                organizer: c.organizer || '',
-                                eventDate: c.eventDate || '2026-06-01',
-                                dateRange: c.eventDate || '',
-                                registrationPeriod: c.registrationPeriod || '',
-                                location: c.location || '',
-                                status: '접수중',
-                                prizePool: '',
-                                eligibility: '',
-                                participationFee: '',
-                                contact: c.contact || '',
-                                linkUrl: c.sourceUrl || '',
-                                description: `※ AI 실시간 검색으로 수집된 정보입니다. 등록 전 출처(${c.sourceUrl || '미확인'})에서 정확한 내용을 다시 확인해주세요.`,
-                                isFeatured: false
-                              });
-                              setTournamentCandidates([]);
-                            }}
-                            className="w-full mt-1 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer"
-                          >
-                            이 대회 등록 폼 채우기
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   {editingTour && (
                     <div className="bg-amber-50 p-5 rounded-3xl border-2 border-amber-400 space-y-4">
@@ -967,61 +739,102 @@ export const AdminDashboardModal: React.FC = () => {
                 </div>
               )}
 
-              {/* TAB 3: NEWS & AI ARTICLE GENERATOR */}
-              {activeTab === 'news' && (
-                <div className="space-y-6">
-                  {/* AI Auto-Writer Box */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-5 rounded-3xl border-2 border-blue-300 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-blue-600" />
-                      <h4 className="font-extrabold text-blue-950 text-base">
-                        ✨ AI 실시간 파크골프 뉴스/기사 자동생성
-                      </h4>
+              {/* TAB: 회원관리 */}
+              {activeTab === 'members' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-slate-900">
+                        가입회원 관리 (총 {members.length}명)
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        실명·휴대폰번호는 개인정보입니다. 본인 확인·경품 발송 등 꼭 필요한 용도로만 사용해주세요.
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-600 font-medium">
-                      작성하고 싶은 주제 키워드를 입력하시면 AI가 시니어 눈높이에 맞춘 전문 기사를 즉시 작성하여 포털에 게시합니다.
-                    </p>
-
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="예: 70대 어르신을 위한 무릎 관절 보호 파크골프 스윙법"
-                        value={aiTopic}
-                        onChange={e => setAiTopic(e.target.value)}
-                        className="flex-1 p-3 rounded-xl border border-blue-200 font-medium text-xs sm:text-sm focus:outline-none"
-                      />
-                      <button
-                        onClick={handleGenerateAiNews}
-                        disabled={aiLoading}
-                        className="px-5 py-3 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shrink-0 disabled:opacity-50"
-                      >
-                        {aiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                        <span>{aiLoading ? '작성중...' : 'AI 기사 생성'}</span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        setIsLoadingMembers(true);
+                        fetchMembers()
+                          .then(setMembers)
+                          .finally(() => setIsLoadingMembers(false));
+                      }}
+                      disabled={isLoadingMembers}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoadingMembers ? 'animate-spin' : ''}`} />
+                      <span>{isLoadingMembers ? '불러오는 중...' : '새로고침'}</span>
+                    </button>
                   </div>
 
-                  {/* Manual News List */}
-                  <div className="space-y-3">
-                    {news.map(n => (
-                      <div
-                        key={n.id}
-                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold text-blue-700">[{n.category}]</span>
-                          <h5 className="font-bold text-slate-900 text-sm truncate">{n.title}</h5>
-                          <span className="text-xs text-slate-400">📅 {n.date} | 👁️ {n.views}회</span>
-                        </div>
-                        <button
-                          onClick={() => deleteNews(n.id)}
-                          className="p-2 rounded-xl bg-rose-100 text-rose-700 text-xs font-bold shrink-0"
-                        >
-                          삭제
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  <input
+                    type="text"
+                    value={memberSearch}
+                    onChange={e => setMemberSearch(e.target.value)}
+                    placeholder="닉네임 · 이름 · 휴대폰번호 · 지역으로 검색"
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl text-sm"
+                  />
+
+                  {members.length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
+                      <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                      <p className="font-bold">{isLoadingMembers ? '회원 목록을 불러오는 중입니다...' : '아직 가입한 회원이 없습니다.'}</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="w-full text-xs sm:text-sm whitespace-nowrap">
+                        <thead className="bg-slate-100 text-slate-700">
+                          <tr>
+                            <th className="px-3 py-2.5 text-left font-extrabold">번호</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">닉네임</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">이름</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">휴대폰</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">지역</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">평균타수</th>
+                            <th className="px-3 py-2.5 text-right font-extrabold">마당P</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">배지</th>
+                            <th className="px-3 py-2.5 text-left font-extrabold">가입일</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {members
+                            .filter(m => {
+                              const q = memberSearch.trim().toLowerCase();
+                              if (!q) return true;
+                              return [m.nickname, m.name, m.phone, m.preferredRegion]
+                                .filter(Boolean)
+                                .some((v: string) => String(v).toLowerCase().includes(q));
+                            })
+                            .map(m => (
+                              <tr key={m.id} className="border-t border-slate-200 hover:bg-slate-50">
+                                <td className="px-3 py-2.5 font-bold text-slate-500">{m.founderNumber}</td>
+                                <td className="px-3 py-2.5 font-extrabold text-slate-900">{m.nickname}</td>
+                                <td className="px-3 py-2.5 text-slate-700">{m.name}</td>
+                                <td className="px-3 py-2.5 text-slate-700">{formatPhone(m.phone)}</td>
+                                <td className="px-3 py-2.5 text-slate-600">{m.preferredRegion || '-'}</td>
+                                <td className="px-3 py-2.5 text-slate-600">{m.averageScore || '-'}</td>
+                                <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700">
+                                  {Number(m.points || 0).toLocaleString()}P
+                                </td>
+                                <td className="px-3 py-2.5">
+                                  <div className="flex flex-wrap gap-1">
+                                    {(m.badges || []).length === 0 ? (
+                                      <span className="text-slate-400">-</span>
+                                    ) : (
+                                      (m.badges || []).map((b: string, i: number) => (
+                                        <span key={i} className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold">
+                                          {b}
+                                        </span>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-slate-500">{m.createdAt}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1100,9 +913,227 @@ export const AdminDashboardModal: React.FC = () => {
                 </div>
               )}
 
-              {/* TAB 6: ADS */}
+              {/* TAB: 마당P 승인 — 회원이 쓴 글을 직접 보고 지급 여부를 정합니다 */}
+              {activeTab === 'pointapproval' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-lg font-extrabold text-slate-900">
+                        마당P 지급 승인 (대기 {pointRequests.filter((r: any) => r.status === '대기').length}건)
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        회원이 글을 올리면 마당P가 바로 지급되지 않고 여기 쌓입니다. 글 내용을 확인하시고
+                        지급 또는 거부를 눌러주세요. <strong>지급</strong>을 누르는 순간 회원 마당P가 올라갑니다.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsLoadingPointReqs(true);
+                        fetchPointRequests()
+                          .then(setPointRequests)
+                          .finally(() => setIsLoadingPointReqs(false));
+                      }}
+                      disabled={isLoadingPointReqs}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoadingPointReqs ? 'animate-spin' : ''}`} />
+                      <span>{isLoadingPointReqs ? '불러오는 중...' : '새로고침'}</span>
+                    </button>
+                  </div>
+
+                  {/* 상태별 보기 */}
+                  <div className="flex items-center gap-2">
+                    {(['대기', '지급완료', '거부'] as const).map(st => (
+                      <button
+                        key={st}
+                        onClick={() => setPointReqFilter(st)}
+                        className={`px-4 py-2 rounded-xl font-bold text-sm border-2 cursor-pointer ${
+                          pointReqFilter === st
+                            ? 'bg-green-800 text-white border-green-900'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        {st} ({pointRequests.filter((r: any) => r.status === st).length})
+                      </button>
+                    ))}
+                  </div>
+
+                  {pointRequests.filter((r: any) => r.status === pointReqFilter).length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
+                      <Coins className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                      <p className="font-bold">{pointReqFilter} 상태인 신청이 없습니다.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pointRequests
+                        .filter((r: any) => r.status === pointReqFilter)
+                        .map((r: any) => (
+                          <div key={r.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-xs font-extrabold text-white bg-slate-600 px-2 py-0.5 rounded-full">
+                                {r.type}
+                              </span>
+                              <span
+                                className={`text-xs font-extrabold px-2 py-0.5 rounded-full ${
+                                  r.status === '대기'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : r.status === '지급완료'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-rose-100 text-rose-700'
+                                }`}
+                              >
+                                {r.status}
+                              </span>
+                              <span className="text-sm font-extrabold text-emerald-700">
+                                {Number(r.amount).toLocaleString()}마당P
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {r.userNickname}님 · {new Date(r.createdAt).toLocaleString('ko-KR')}
+                              </span>
+                            </div>
+
+                            <h5 className="font-extrabold text-slate-900 text-sm sm:text-base">{r.title}</h5>
+
+                            {/* 글 내용 — 주제에 맞는 글인지, 허위 글은 아닌지 여기서 확인하시면 됩니다 */}
+                            <div className="bg-white border border-slate-200 rounded-xl p-3 text-xs sm:text-sm text-slate-700 whitespace-pre-line max-h-40 overflow-y-auto leading-relaxed">
+                              {r.preview?.trim() ? r.preview : <span className="text-slate-400">(본문 없음)</span>}
+                            </div>
+
+                            {r.status === '거부' && r.rejectReason && (
+                              <p className="text-xs text-rose-700 font-bold">거부 사유: {r.rejectReason}</p>
+                            )}
+
+                            {r.status === '대기' && (
+                              <div className="flex items-center gap-2 pt-1">
+                                <button
+                                  onClick={async () => {
+                                    if (!window.confirm(`${r.userNickname}님께 ${Number(r.amount).toLocaleString()}마당P를 지급하시겠습니까?`)) return;
+                                    const ok = await decidePointRequest(r.id, 'approve');
+                                    if (ok) {
+                                      setPointRequests(prev =>
+                                        prev.map(x => (x.id === r.id ? { ...x, status: '지급완료' } : x))
+                                      );
+                                      fetchMembers().then(setMembers);
+                                    }
+                                  }}
+                                  className="flex-1 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm cursor-pointer"
+                                >
+                                  마당P 지급하기
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    const reason = window.prompt(
+                                      '거부 사유를 적어주세요. (예: 주제와 관계없는 글 / 내용이 사실과 다름)',
+                                      ''
+                                    );
+                                    if (reason === null) return;
+                                    const ok = await decidePointRequest(r.id, 'reject', reason);
+                                    if (ok) {
+                                      setPointRequests(prev =>
+                                        prev.map(x =>
+                                          x.id === r.id ? { ...x, status: '거부', rejectReason: reason } : x
+                                        )
+                                      );
+                                    }
+                                  }}
+                                  className="flex-1 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-extrabold text-sm cursor-pointer"
+                                >
+                                  지급 거부
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 6: ADS (제휴광고 + 쿠팡추천상품 등록) */}
               {activeTab === 'ads' && (
-                <div className="space-y-3">
+                <div className="space-y-6">
+                  {/* 쿠팡추천상품 등록 — 방문자 화면에서 옮겨온 관리자 전용 등록 기능입니다 */}
+                  <div className="bg-red-50/70 p-5 rounded-3xl border-2 border-red-300 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Megaphone className="w-5 h-5 text-red-700" />
+                      <h4 className="font-extrabold text-red-950 text-base">
+                        쿠팡추천상품 등록 (현재 {coupangProducts.length}개)
+                      </h4>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">
+                        쿠팡파트너스 링크 (또는 iframe 코드) *
+                      </label>
+                      <textarea
+                        value={coupangRawInput}
+                        onChange={e => setCoupangRawInput(e.target.value)}
+                        rows={4}
+                        placeholder={'https://coupa.ng/xxxxxx\n\n또는\n\n<iframe src="https://coupa.ng/xxxxxx" width="120" height="240" ...></iframe>'}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-mono"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        쿠팡파트너스에서 만드신 단축 URL이나 "이미지+텍스트" HTML 코드를 그대로 붙여넣으시면 됩니다.
+                        상품명·이미지·가격은 쿠팡이 자동으로 보여줍니다.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">카테고리 *</label>
+                      <select
+                        value={coupangCategory}
+                        onChange={e => setCoupangCategory(e.target.value as CoupangProduct['category'])}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm bg-white font-bold"
+                      >
+                        {(['클럽', '공인구', '가방·파우치', '장갑·잡화', '의류·신발', '기타'] as CoupangProduct['category'][]).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        방문자 화면의 "쿠팡추천상품" 탭에서 이 카테고리로 골라볼 수 있습니다.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (!coupangRawInput.trim()) {
+                          alert('쿠팡파트너스 링크(또는 iframe 코드)를 붙여넣어주세요.');
+                          return;
+                        }
+                        setIsAddingCoupang(true);
+                        const ok = await addCoupangProduct({ rawInput: coupangRawInput, category: coupangCategory });
+                        setIsAddingCoupang(false);
+                        if (ok) {
+                          setCoupangRawInput('');
+                          alert('쿠팡추천상품이 등록되었습니다.');
+                        }
+                      }}
+                      disabled={isAddingCoupang}
+                      className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-extrabold text-sm shadow disabled:opacity-60 cursor-pointer"
+                    >
+                      {isAddingCoupang ? '등록 중...' : '쿠팡추천상품 등록하기'}
+                    </button>
+
+                    {coupangProducts.length > 0 && (
+                      <div className="space-y-2 pt-2 border-t border-red-200">
+                        {coupangProducts.map((cp: any) => (
+                          <div key={cp.id} className="flex items-center justify-between gap-3 bg-white rounded-xl px-3 py-2 border border-red-200">
+                            <div className="min-w-0">
+                              <span className="text-xs font-extrabold text-red-800">[{cp.category}]</span>
+                              <p className="text-[11px] text-slate-500 truncate">{cp.embedUrl}</p>
+                            </div>
+                            <button
+                              onClick={() => deleteCoupangProduct(cp.id)}
+                              className="p-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold shrink-0 cursor-pointer"
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <h3 className="font-extrabold text-slate-900">
                       추천 용품 & 제휴 업체 광고 관리 ({ads.length}개)
@@ -1132,75 +1163,149 @@ export const AdminDashboardModal: React.FC = () => {
 
               {activeTab === 'pointshop' && (
                 <div className="space-y-5">
-                  <h3 className="font-extrabold text-slate-900">마당P 교환소 상품 관리 ({pointShopItems.length}개)</h3>
+                  <div>
+                    <h3 className="text-lg font-extrabold text-slate-900">마당P 장터 상품 관리 ({pointShopItems.length}개)</h3>
+                    <p className="text-xs text-slate-500">
+                      여기에 올린 상품이 방문자 화면의 "마당P 장터" 탭에 그대로 보입니다.
+                    </p>
+                  </div>
 
                   {/* 새 상품 등록 폼 */}
-                  <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 space-y-3">
-                    <h4 className="font-extrabold text-emerald-950 text-sm">새 상품 등록</h4>
+                  <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-5 space-y-4">
+                    <h4 className="font-extrabold text-emerald-950 text-base">새 상품 등록</h4>
 
+                    {/* ① 상품 종류 고르기 */}
                     <div>
-                      <label className="text-xs font-bold text-slate-600 mb-1 block">
-                        이미 광고 중인 쿠팡 상품에서 가져오기 (선택)
-                      </label>
-                      <select
-                        value={newPointShopItem.selectedCoupangId}
-                        onChange={e => {
-                          const selected = coupangProducts.find((p: any) => p.id === e.target.value);
-                          setNewPointShopItem({
-                            ...newPointShopItem,
-                            selectedCoupangId: e.target.value,
-                            referenceUrl: selected ? selected.embedUrl : newPointShopItem.referenceUrl,
-                            category: selected ? selected.category : newPointShopItem.category
-                          });
-                        }}
-                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
-                      >
-                        <option value="">직접 링크 입력 (아래 참고링크에 붙여넣기)</option>
-                        {coupangProducts.map((p: any) => (
-                          <option key={p.id} value={p.id}>
-                            [{p.category}] {p.embedUrl}
-                          </option>
+                      <label className="text-sm font-bold text-slate-700 mb-1.5 block">① 어떤 상품인가요?</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['쿠팡', '일반'] as const).map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() =>
+                              setNewPointShopItem({
+                                ...newPointShopItem,
+                                sourceType: t,
+                                selectedCoupangId: '',
+                                coupangEmbedUrl: ''
+                              })
+                            }
+                            className={`py-3 rounded-xl font-extrabold text-sm border-2 cursor-pointer transition-colors ${
+                              newPointShopItem.sourceType === t
+                                ? 'bg-emerald-700 text-white border-emerald-800'
+                                : 'bg-white text-slate-700 border-slate-300 hover:border-emerald-400'
+                            }`}
+                          >
+                            {t === '쿠팡' ? '쿠팡추천상품에서 고르기' : '일반상품 직접 등록'}
+                          </button>
                         ))}
-                      </select>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* ② 쿠팡상품이면 목록에서 선택 */}
+                    {newPointShopItem.sourceType === '쿠팡' && (
                       <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">상품명 *</label>
+                        <label className="text-sm font-bold text-slate-700 mb-1.5 block">
+                          ② 등록해 둔 쿠팡추천상품 중에서 고르기
+                        </label>
+                        {coupangProducts.length === 0 ? (
+                          <p className="text-sm text-rose-700 font-bold bg-rose-50 border border-rose-200 rounded-xl p-3">
+                            등록된 쿠팡추천상품이 없습니다. "제휴광고" 탭에서 먼저 쿠팡상품을 등록해주세요.
+                          </p>
+                        ) : (
+                          <select
+                            value={newPointShopItem.selectedCoupangId}
+                            onChange={e => {
+                              const sel = coupangProducts.find((p: any) => p.id === e.target.value);
+                              setNewPointShopItem({
+                                ...newPointShopItem,
+                                selectedCoupangId: e.target.value,
+                                coupangEmbedUrl: sel ? sel.embedUrl : '',
+                                referenceUrl: sel ? sel.embedUrl : newPointShopItem.referenceUrl,
+                                category: sel ? sel.category : newPointShopItem.category
+                              });
+                            }}
+                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
+                          >
+                            <option value="">쿠팡상품을 골라주세요</option>
+                            {coupangProducts.map((p: any) => (
+                              <option key={p.id} value={p.id}>
+                                [{p.category}] {p.embedUrl}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          고르시면 장터에 쿠팡 위젯(사진·가격)이 그대로 보입니다. 상품명과 교환 마당P는 아래에 입력해주세요.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* ③ 공통 입력 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-bold text-slate-700 mb-1.5 block">상품명 *</label>
                         <input
                           type="text"
                           value={newPointShopItem.name}
                           onChange={e => setNewPointShopItem({ ...newPointShopItem, name: e.target.value })}
-                          placeholder="예: 지맥스 파크골프 장갑"
-                          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
+                          placeholder="예: 지맥스 파크골프 장갑 (양손 세트)"
+                          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-bold"
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-bold text-slate-600 mb-1 block">카테고리</label>
+                        <label className="text-sm font-bold text-slate-700 mb-1.5 block">분류</label>
                         <input
                           type="text"
                           value={newPointShopItem.category}
                           onChange={e => setNewPointShopItem({ ...newPointShopItem, category: e.target.value })}
-                          placeholder="예: 장갑, 골프공, 가방"
+                          placeholder="예: 장갑, 공, 가방, 상품권"
                           className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-600 mb-1 block">차감 포인트(마당P) *</label>
+                      <label className="text-sm font-bold text-slate-700 mb-1.5 block">
+                        교환에 필요한 마당P * <span className="text-slate-400 font-medium">— 직접 정하시면 됩니다</span>
+                      </label>
                       <input
                         type="number"
+                        min={1}
                         value={newPointShopItem.pointCost}
                         onChange={e => setNewPointShopItem({ ...newPointShopItem, pointCost: e.target.value })}
                         placeholder="예: 15000"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-base font-extrabold"
+                      />
+                    </div>
+
+                    {newPointShopItem.sourceType === '일반' && (
+                      <div>
+                        <label className="text-sm font-bold text-slate-700 mb-1.5 block">상품 사진 주소 (선택)</label>
+                        <input
+                          type="text"
+                          value={newPointShopItem.imageUrl}
+                          onChange={e => setNewPointShopItem({ ...newPointShopItem, imageUrl: e.target.value })}
+                          placeholder="https://... (비워두시면 선물상자 아이콘이 표시됩니다)"
+                          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-mono"
+                        />
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-sm font-bold text-slate-700 mb-1.5 block">상품 설명 (선택)</label>
+                      <textarea
+                        value={newPointShopItem.description}
+                        onChange={e => setNewPointShopItem({ ...newPointShopItem, description: e.target.value })}
+                        rows={3}
+                        placeholder="색상·용량·구성 등 회원분들이 알아야 할 내용을 적어주세요."
                         className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
                       />
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-600 mb-1 block">
-                        참고 링크(쿠팡 상품 URL) — "상품보기" 클릭 시 이동할 주소
+                      <label className="text-sm font-bold text-slate-700 mb-1.5 block">
+                        상품 확인 링크 (선택) — 장터에서 "상품 자세히 보기"로 이동합니다
                       </label>
                       <input
                         type="text"
@@ -1213,8 +1318,16 @@ export const AdminDashboardModal: React.FC = () => {
 
                     <button
                       onClick={async () => {
-                        if (!newPointShopItem.name.trim() || !newPointShopItem.pointCost) {
-                          alert('상품명과 차감 포인트는 필수입니다.');
+                        if (!newPointShopItem.name.trim()) {
+                          alert('상품명을 입력해주세요.');
+                          return;
+                        }
+                        if (!newPointShopItem.pointCost || Number(newPointShopItem.pointCost) <= 0) {
+                          alert('교환에 필요한 마당P를 1 이상으로 입력해주세요.');
+                          return;
+                        }
+                        if (newPointShopItem.sourceType === '쿠팡' && !newPointShopItem.coupangEmbedUrl) {
+                          alert('쿠팡추천상품을 목록에서 골라주세요. (또는 "일반상품 직접 등록"을 선택해주세요)');
                           return;
                         }
                         setIsAddingPointShopItem(true);
@@ -1222,50 +1335,60 @@ export const AdminDashboardModal: React.FC = () => {
                           name: newPointShopItem.name.trim(),
                           category: newPointShopItem.category.trim() || '기타',
                           pointCost: Number(newPointShopItem.pointCost),
-                          referenceUrl: newPointShopItem.referenceUrl.trim() || undefined
+                          referenceUrl: newPointShopItem.referenceUrl.trim() || undefined,
+                          imageUrl: newPointShopItem.imageUrl.trim() || undefined,
+                          description: newPointShopItem.description.trim() || undefined,
+                          sourceType: newPointShopItem.sourceType,
+                          coupangEmbedUrl: newPointShopItem.coupangEmbedUrl || undefined
                         });
                         setIsAddingPointShopItem(false);
                         if (success) {
-                          setNewPointShopItem({ name: '', category: '', pointCost: '', referenceUrl: '', selectedCoupangId: '' });
+                          setNewPointShopItem({
+                            name: '', category: '', pointCost: '', referenceUrl: '',
+                            imageUrl: '', description: '', sourceType: '일반',
+                            selectedCoupangId: '', coupangEmbedUrl: ''
+                          });
+                          alert('마당P 장터에 상품이 등록되었습니다.');
                         }
                       }}
                       disabled={isAddingPointShopItem}
-                      className="w-full py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm disabled:opacity-60"
+                      className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-sm shadow disabled:opacity-60 cursor-pointer"
                     >
-                      {isAddingPointShopItem ? '등록 중...' : '상품 등록하기'}
+                      {isAddingPointShopItem ? '등록 중...' : '마당P 장터에 등록하기'}
                     </button>
                   </div>
 
-                  {/* 기존 상품 목록 */}
+                  {/* 등록된 상품 목록 */}
                   <div className="space-y-2">
-                    {pointShopItems.map((item: any) => (
-                      <div
-                        key={item.id}
-                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3"
-                      >
-                        <div>
-                          <span className="text-xs font-bold text-purple-700">[{item.category}]</span>
-                          <h5 className="font-bold text-slate-900 text-sm">{item.name}</h5>
-                          <span className="text-xs text-emerald-700 font-bold">{item.pointCost.toLocaleString()}P</span>
-                          {item.referenceUrl && (
-                            <a
-                              href={item.referenceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] text-slate-400 hover:text-slate-600 block truncate max-w-md"
-                            >
-                              {item.referenceUrl}
-                            </a>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => deletePointShopItem(item.id)}
-                          className="p-2 rounded-xl bg-rose-100 text-rose-700 text-xs font-bold shrink-0"
+                    {pointShopItems.length === 0 ? (
+                      <p className="py-10 text-center text-slate-400 font-bold bg-slate-50 rounded-2xl border border-slate-200">
+                        아직 등록된 상품이 없습니다.
+                      </p>
+                    ) : (
+                      pointShopItems.map((item: any) => (
+                        <div
+                          key={item.id}
+                          className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3"
                         >
-                          삭제
-                        </button>
-                      </div>
-                    ))}
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-purple-700">[{item.category}]</span>
+                            {item.sourceType === '쿠팡' && (
+                              <span className="ml-1.5 text-xs font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">쿠팡</span>
+                            )}
+                            <h5 className="font-bold text-slate-900 text-sm truncate">{item.name}</h5>
+                            <span className="text-sm text-emerald-700 font-extrabold">
+                              {Number(item.pointCost).toLocaleString()}마당P
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => deletePointShopItem(item.id)}
+                            className="p-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold shrink-0 cursor-pointer"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1274,7 +1397,7 @@ export const AdminDashboardModal: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="font-extrabold text-slate-900">
-                      마당P 교환 신청 관리 ({redemptions.length}건)
+                      마당P 장터 교환신청 관리 ({redemptions.length}건)
                     </h3>
                     <button
                       onClick={async () => {
@@ -1296,9 +1419,9 @@ export const AdminDashboardModal: React.FC = () => {
                     redemptions.map((r: any) => (
                       <div
                         key={r.id}
-                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3 flex-wrap"
+                        className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start justify-between gap-3 flex-wrap"
                       >
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <span
                             className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full mb-1 ${
                               r.status === '접수됨'
@@ -1312,9 +1435,39 @@ export const AdminDashboardModal: React.FC = () => {
                           </span>
                           <h5 className="font-bold text-slate-900 text-sm">{r.itemName}</h5>
                           <p className="text-xs text-slate-500">
-                            신청자: {r.userNickname} · 연락처: {r.userPhone} · {r.pointCost.toLocaleString()}P 사용
+                            신청자: {r.userNickname} · 가입 연락처: {formatPhone(r.userPhone)} ·{' '}
+                            {Number(r.pointCost).toLocaleString()}마당P 차감
                           </p>
-                          <p className="text-[11px] text-slate-400">
+
+                          {/* 배송지 — 실물을 보내려면 이 정보가 필요합니다 */}
+                          <div className="mt-2 bg-white rounded-xl border border-slate-200 p-3 text-xs sm:text-sm space-y-0.5">
+                            <p className="font-extrabold text-slate-800">📦 받으실 곳</p>
+                            <p className="text-slate-700">
+                              <strong>{r.recipientName || '-'}</strong> · {formatPhone(r.recipientPhone)}
+                            </p>
+                            <p className="text-slate-700">
+                              {r.postcode ? `(${r.postcode}) ` : ''}
+                              {r.roadAddress || '-'} {r.detailAddress || ''}
+                            </p>
+                            {r.memo && <p className="text-slate-500">요청사항: {r.memo}</p>}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const text = `${r.recipientName} / ${formatPhone(r.recipientPhone)} / ${
+                                  r.postcode ? `(${r.postcode}) ` : ''
+                                }${r.roadAddress || ''} ${r.detailAddress || ''}`.trim();
+                                navigator.clipboard
+                                  ?.writeText(text)
+                                  .then(() => alert('배송지를 복사했습니다.'))
+                                  .catch(() => alert(text));
+                              }}
+                              className="mt-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
+                            >
+                              배송지 복사하기
+                            </button>
+                          </div>
+
+                          <p className="text-[11px] text-slate-400 mt-1">
                             신청일시: {new Date(r.createdAt).toLocaleString('ko-KR')}
                           </p>
                         </div>

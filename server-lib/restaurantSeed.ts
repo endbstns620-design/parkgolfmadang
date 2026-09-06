@@ -31,7 +31,7 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-004',
-    courseName: '온고을 파크골프장',
+    courseName: '마전교파크골프장',
     region: '전북 전주시',
     restaurantName: '한국집',
     menu: '전주비빔밥·육회비빔밥',
