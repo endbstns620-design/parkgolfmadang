@@ -98,6 +98,10 @@ interface ParkGolfContextType {
   totalUsers: number;
   fetchRedemptions: () => Promise<any[]>;
   updateRedemptionStatus: (id: string, status: string) => Promise<boolean>;
+  monthlyDrawInfo: any;
+  runMonthlyDraw: () => Promise<any | null>;
+  fetchMonthlyDrawWinners: () => Promise<any[]>;
+  markDrawWinnerShipped: (id: string, shipped: boolean) => Promise<boolean>;
   loginAdmin: (password: string) => Promise<boolean>;
   logoutAdmin: () => void;
   resetToDefaultData: () => void;
@@ -235,7 +239,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes, pointShopRes, authStatsRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes, pointShopRes, authStatsRes, monthlyDrawRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
@@ -245,7 +249,8 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           fetch('/api/course-overrides'),
           fetch('/api/guide-videos'),
           fetch('/api/point-shop'),
-          fetch('/api/auth/stats')
+          fetch('/api/auth/stats'),
+          fetch('/api/monthly-draw/info')
         ]);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
@@ -295,6 +300,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           const data = await authStatsRes.json();
           if (data.success) setTotalUsers(data.totalUsers);
         }
+        if (monthlyDrawRes.ok) {
+          const data = await monthlyDrawRes.json();
+          if (data.success) setMonthlyDrawInfo(data);
+        }
       } catch (err) {
         // 서버에서 못 가져오면 localStorage에 저장된 값(초기 state)을 그대로 사용합니다.
         console.warn('서버에서 공유 데이터를 불러오지 못했습니다. 로컬 데이터로 표시합니다.', err);
@@ -318,6 +327,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [pointShopItems, setPointShopItems] = useState<PointShopItem[]>([]);
   const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [monthlyDrawInfo, setMonthlyDrawInfo] = useState<any>(null);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
   // 저장된 회원 로그인 토큰이 아직 유효한지 서버에 물어봅니다 (탭을 새로고침해도 로그인 유지).
@@ -680,6 +690,51 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return res.ok;
     } catch (err) {
       console.error('교환 신청 상태 변경 실패:', err);
+      return false;
+    }
+  };
+
+
+  // 관리자 전용 — 이달의 신규회원 추첨 실행 및 당첨자 목록 관리
+  const runMonthlyDraw = async (): Promise<any | null> => {
+    try {
+      const res = await fetch('/api/monthly-draw/run', { method: 'POST', headers: adminAuthHeaders() });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '추첨에 실패했습니다.');
+        return null;
+      }
+      const data = await res.json();
+      return data.winner;
+    } catch (err) {
+      console.error('추첨 실패:', err);
+      alert('추첨 중 오류가 발생했습니다.');
+      return null;
+    }
+  };
+
+  const fetchMonthlyDrawWinners = async (): Promise<any[]> => {
+    try {
+      const res = await fetch('/api/monthly-draw/winners', { headers: adminAuthHeaders() });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.winners || [];
+    } catch (err) {
+      console.error('당첨자 목록 조회 실패:', err);
+      return [];
+    }
+  };
+
+  const markDrawWinnerShipped = async (id: string, shipped: boolean): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/monthly-draw/winners/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ shipped })
+      });
+      return res.ok;
+    } catch (err) {
+      console.error('발송 상태 변경 실패:', err);
       return false;
     }
   };
@@ -1324,6 +1379,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         totalUsers,
         fetchRedemptions,
         updateRedemptionStatus,
+        monthlyDrawInfo,
+        runMonthlyDraw,
+        fetchMonthlyDrawWinners,
+        markDrawWinnerShipped,
         loginAdmin,
         logoutAdmin,
         resetToDefaultData,

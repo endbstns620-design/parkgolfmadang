@@ -10,7 +10,7 @@ import { InstallAppBanner } from './InstallAppBanner';
 const MAIN_BANNER_IMAGE_URL = '/images/hero-sunset-v5.jpg';
 
 export const MainHomeSection: React.FC = () => {
-  const { courses, totalUsers, currentUser, setActiveTab, openModal, reviews, matches, restaurants } = useParkGolf();
+  const { courses, totalUsers, currentUser, setActiveTab, openModal, reviews, matches, restaurants, monthlyDrawInfo } = useParkGolf();
 
   const today = new Date().toISOString().slice(0, 10);
   const todayReviews = reviews.filter(r => r.createdAt === today).length;
@@ -80,6 +80,58 @@ export const MainHomeSection: React.FC = () => {
       </section>
 
       <InstallAppBanner />
+
+      {/* 이달의 신규회원 추첨 이벤트 — 실제 상품·실제 참여인원 기준, 자동응모(신규가입만 하면 자동 참여) */}
+      {monthlyDrawInfo && (
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 mb-6">
+          <div className="bg-gradient-to-r from-violet-50 to-fuchsia-50 border-2 border-violet-300 rounded-2xl p-5 sm:p-6 shadow-md">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white border-2 border-violet-200 flex items-center justify-center text-4xl sm:text-5xl shrink-0 shadow-sm">
+                💊
+              </div>
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-violet-600 text-white text-[11px] sm:text-xs font-black mb-1.5">
+                  이달의 신규회원 추첨 이벤트
+                </div>
+                <p className="font-black text-slate-900 text-base sm:text-lg leading-snug">
+                  이번 달 신규가입자 중 1명께{' '}
+                  <span className="text-violet-700">{monthlyDrawInfo.prize.name}</span>을 보내드려요!
+                </p>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                  이번 달({monthlyDrawInfo.currentMonth}) 신규가입만 하시면 자동으로 응모됩니다 · 별도 신청 불필요
+                </p>
+                <p className="text-xs sm:text-sm font-bold text-violet-700 mt-1.5">
+                  현재 {monthlyDrawInfo.eligibleCount}명 응모 중
+                  {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 이번 달 추첨 완료!'}
+                </p>
+              </div>
+              {!currentUser && (
+                <button
+                  onClick={() => openModal('auth')}
+                  className="shrink-0 px-5 py-3 rounded-xl bg-violet-700 hover:bg-violet-800 text-white font-black text-sm sm:text-base shadow cursor-pointer whitespace-nowrap"
+                >
+                  지금 가입하고 응모하기
+                </button>
+              )}
+            </div>
+
+            {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-violet-200 flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+                <span className="text-xs font-bold text-slate-500">지난 당첨자:</span>
+                {monthlyDrawInfo.recentWinners.map((w: any, i: number) => (
+                  <span key={i} className="text-xs font-bold text-violet-700 bg-white px-2 py-0.5 rounded-full border border-violet-200">
+                    {w.month} {w.nickname}님
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[10px] text-slate-400 mt-3 text-center sm:text-left">
+              * 본 이벤트 상품은 파크골프마당 운영자가 직접 구매하여 당첨자께 발송합니다. 제품 문의: 웰리타스토어
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* 창립회원 진행 현황 — 실제 가입자 수 기준, 가짜 숫자 없음 */}
       <section className="bg-gradient-to-r from-emerald-800 to-green-900 py-8 px-4">
