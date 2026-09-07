@@ -157,15 +157,26 @@ async function startServer() {
   // 자료를 새로 넣어도 화면에 반영되지 않습니다. 그래서 켜질 때마다 저장된 파일을 최신
   // 자료에 맞춰줍니다. 관리자·방문자가 직접 올린 내용은 건드리지 않습니다.
   const PARKGOLF_PHOTOS = {
-    course: "/images/card-courses-v4.png",       // 하천변 파크골프장 전경
-    tournament: "/images/card-tournaments-v4.png", // 깃대가 꽂힌 코스
-    guide: "/images/card-guide-v4.png",           // 코스 안내판을 보는 어르신
-    players: "/images/card-community-v4.png"      // 파크골프 채를 든 시니어들
+    course: "/images/course-default.jpg",       // 하천변 파크골프장 전경
+    tournament: "/images/tournament-sunset.jpg", // 깃대가 꽂힌 코스
+    guide: "/images/course-golden.jpg",           // 코스 안내판을 보는 어르신
+    players: "/images/course-wide.jpg"      // 파크골프 채를 든 시니어들
   };
 
+  // 바꿔야 할 옛 사진들 — 외부 골프 사진(파크골프가 아님)과 저해상도 카드 이미지입니다.
+  const OUTDATED_PHOTO_PATTERNS = [
+    "images.unsplash.com",
+    "/images/card-courses-v4.png",
+    "/images/card-tournaments-v4.png",
+    "/images/card-guide-v4.png",
+    "/images/card-community-v4.png",
+    "/images/hero-sunset-v5.jpg",
+    "/images/hero-sunset-v6.jpg"
+  ];
+
   function toParkGolfPhoto(url: string, fallback: string): string {
-    if (typeof url !== "string" || !url.includes("images.unsplash.com")) return url;
-    return fallback;
+    if (typeof url !== "string") return url;
+    return OUTDATED_PHOTO_PATTERNS.some(pat => url.includes(pat)) ? fallback : url;
   }
 
   function migrateStoredData() {

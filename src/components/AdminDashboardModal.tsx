@@ -323,7 +323,7 @@ export const AdminDashboardModal: React.FC = () => {
                           phoneNumber: '031-000-0000',
                           operatingHours: '09:00 ~ 18:00',
                           closedDays: '매주 월요일 정기휴장',
-                          imageUrl: '/images/card-courses-v4.png',
+                          imageUrl: '/images/course-default.jpg',
                           grassType: '한국형 천연잔디 (버뮤다)',
                           amenities: ['화장실', '무료주차', '클럽하우스', '휴게쉼터'],
                           isAssociationCertified: true,

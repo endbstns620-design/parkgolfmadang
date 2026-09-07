@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { SocialChannelsSection } from './SocialChannelsSection';
 
-// 메인 배너 이미지 — 노을 지는 골프장 사진 (텍스트 없는 깨끗한 사진이라 겹침 문제 없음)
-const MAIN_BANNER_IMAGE_URL = '/images/hero-sunset-v5.jpg';
+// 메인 배너 이미지 — 대표님이 직접 주신 실제 파크골프장 사진입니다.
+// 원본이 4032×3024로 넉넉해서, 큰 화면에서도 또렷하게 보이도록 2400px로 넣었습니다.
+const MAIN_BANNER_IMAGE_URL = '/images/hero-parkgolf-v7.jpg';
 
 // 웰리타-Y 밀크씨슬 테아닌 3병 세트(3개월분) 실제 제품 사진입니다.
 const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-milkthistle.jpg';
@@ -21,57 +23,70 @@ export const MainHomeSection: React.FC = () => {
   const founderProgress = Math.min(100, Math.round((totalUsers / FOUNDER_GOAL) * 100));
 
   const categoryCards = [
-    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/card-courses-v4.png' },
-    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', image: '/images/card-tournaments-v4.png' },
+    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/course-wide.jpg' },
+    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', image: '/images/tournament-sunset.jpg' },
     { id: 'news', title: '초보자 가이드', desc: '처음 시작하는 분들을 위한 친절한 안내', image: '/images/card-guide-v4.png' },
     { id: 'matching', title: '커뮤니티', desc: '함께하는 이야기, 더 즐거운 파크골프', image: '/images/card-community-v4.png' }
   ];
 
   return (
     <div className="bg-white">
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden">
-        <img
-          src={MAIN_BANNER_IMAGE_URL}
-          alt="파크골프를 즐기는 시니어 부부와 파크골프장 표지판"
-          className="w-full h-[440px] sm:h-[500px] md:h-[580px] object-cover object-[30%_center]"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-green-950/90 via-green-950/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-green-950/70 via-transparent to-transparent" />
+      {/* Hero Banner — 사진을 배경으로 깔고 글은 흐름대로 쌓습니다.
+          (예전처럼 사진 위에 겹쳐두면 "글씨 아주 크게"를 고르셨을 때 글이 잘립니다) */}
+      <section
+        className="relative bg-cover"
+        style={{ backgroundImage: `url(${MAIN_BANNER_IMAGE_URL})`, backgroundPosition: 'center 62%' }}
+      >
+        {/* 사진 위에 글씨가 잘 읽히도록 어둡게 덮습니다 */}
+        {/* 왼쪽은 글씨가 잘 읽히게 진하게, 오른쪽은 구장 사진이 살아나도록 옅게 덮습니다 */}
+        <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 via-green-950/70 to-green-950/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-green-950/55 via-transparent to-green-950/25" />
 
-        <div className="absolute inset-0 flex items-center">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 text-green-950 text-xs sm:text-sm font-black mb-4 animate-pulse">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>파크골프마당 GRAND OPEN · 창립회원 모집중</span>
-              </div>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] mb-4 text-white drop-shadow-lg">
-                창립회원 <span className="text-amber-300">{FOUNDER_GOAL.toLocaleString()}명</span> 한정 모집!
-              </h1>
-              <p className="text-lg sm:text-xl text-green-50 font-bold mb-7 drop-shadow-sm">
-                지금 가입하시면, 대한민국 파크골프 대표 정보마당의{' '}
-                <br className="hidden sm:block" />
-                <span className="text-amber-200 font-black">진짜 '창립멤버'</span>가 되십니다.
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-20">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 text-green-950 text-sm sm:text-base font-black mb-5">
+              <Sparkles className="w-4 h-4" />
+              <span>📢 전국 파크골프 동호인 여러분께</span>
+            </div>
+
+            {/* ① 사이트 소개 */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.2] mb-4 text-white drop-shadow-lg">
+              ⛳ <span className="text-amber-300">파크골프마당</span>이<br />
+              문을 열었습니다
+            </h1>
+
+            <p className="text-lg sm:text-xl md:text-2xl text-green-50 font-bold leading-relaxed mb-7 drop-shadow-sm">
+              구장 정보만 보는 곳이 아닙니다.<br />
+              파크골프를 좋아하는 분들이 <span className="text-amber-200 font-black">함께 만들어가는</span><br />
+              종합 커뮤니티를 만들어 갑니다.
+            </p>
+
+            {/* ② 창립회원 모집 */}
+            <div className="bg-green-950/70 border-2 border-amber-300/60 rounded-3xl p-5 sm:p-6 backdrop-blur-sm">
+              <p className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight mb-2">
+                🎉 창립회원 <span className="text-amber-300">{FOUNDER_GOAL.toLocaleString()}명</span> 한정 모집!
+              </p>
+              <p className="text-base sm:text-lg md:text-xl text-green-100 font-bold mb-5">
+                지금 가입하시면 진짜 <span className="text-amber-200 font-black">'창립멤버'</span>가 되십니다.
               </p>
 
               {currentUser ? (
                 <button
                   onClick={() => openModal('myPage')}
-                  className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-green-950 font-black text-lg sm:text-xl shadow-2xl transition-all cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-green-950 font-black text-lg sm:text-xl shadow-2xl transition-all cursor-pointer"
                 >
                   {currentUser.nickname}님, {currentUser.points.toLocaleString()}P 확인하기 →
                 </button>
               ) : (
                 <button
                   onClick={() => openModal('auth')}
-                  className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-green-950 font-black text-lg sm:text-xl shadow-2xl transition-all cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-green-950 font-black text-lg sm:text-xl shadow-2xl transition-all cursor-pointer"
                 >
                   무료로 창립회원 가입하기 →
                 </button>
               )}
-              <p className="text-base sm:text-lg text-amber-200 font-black mt-4 drop-shadow-sm">
+
+              <p className="text-base sm:text-lg text-amber-200 font-black mt-4">
                 가입만 해도 1,000 마당P 즉시 지급 · 이미 {totalUsers}명 함께하고 있어요
               </p>
             </div>
@@ -261,6 +276,9 @@ export const MainHomeSection: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 유튜브 · 네이버 밴드 안내 — 카테고리 카드 바로 아래에 둡니다 */}
+      <SocialChannelsSection />
 
       {/* Closing Quote */}
       <section className="bg-green-50 py-8 px-4 text-center">

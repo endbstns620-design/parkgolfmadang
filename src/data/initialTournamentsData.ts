@@ -26,7 +26,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://dnublog.co.kr/2026/08/29/%EC%A0%9C5%ED%9A%8C-%EC%A0%95%EC%9D%8D%EC%8B%9C%EC%9E%A5%EB%B0%B0-%EC%A0%84%EA%B5%AD%ED%8C%8C%ED%81%AC%EA%B3%A8%ED%94%84%EB%8C%80%ED%9A%8C-%EC%B0%B8%EA%B0%80%EC%8B%A0%EC%B2%AD%C2%B7%EC%9D%BC%EC%A0%95/'],
     description: '신태인파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -52,7 +52,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://dongnepg.com/competitions/17'],
     description: '서봉파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -78,7 +78,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://parkgolflife.com/?page_id=120&t_id=42',
     sourceUrls: ['https://parkgolflife.com/?page_id=120&t_id=42', 'https://www.chosun.com/sports/golf/2026/08/27/MY2GENDBGAYDCYTFGMYWEMJWGM/'],
     description: '성주 참외파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -104,7 +104,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://parkgolflife.com/?page_id=120&t_id=42',
     sourceUrls: ['https://parkgolflife.com/?page_id=120&t_id=42', 'https://www.etnews.com/20260826000133'],
     description: '화순파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -130,7 +130,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://parkgolflife.com/?page_id=120&t_id=42',
     sourceUrls: ['https://parkgolflife.com/?page_id=120&t_id=42', 'https://www.etnews.com/20260826000133'],
     description: '포천 한여울파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -156,7 +156,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://parkgolflife.com/?page_id=120&t_id=42',
     sourceUrls: ['https://parkgolflife.com/?page_id=120&t_id=42', 'https://www.newspim.com/news/view/20260821000518'],
     description: '인천아시아드주경기장파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -182,7 +182,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://ongreen.tistory.com/m/139'],
     description: '합천파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -208,7 +208,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://parkgolfall.com/%EC%A0%9C2%ED%9A%8C-%EC%9A%B8%EC%A7%84%EA%B5%B0%EC%88%98%EB%B0%B0-%EC%A0%84%EA%B5%AD-%ED%8C%8C%ED%81%AC%EA%B3%A8%ED%94%84%EB%8C%80%ED%9A%8C-%EC%8B%A0%EC%B2%AD-%EB%B0%A9%EB%B2%95-%EC%B0%B8%EA%B0%80/'],
     description: '울진파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -234,7 +234,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://parkgolflife.com/',
     sourceUrls: ['https://parkgolflife.com/', 'https://parkgolfnow.com/t/goryeong-daegaya/'],
     description: '대가야파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -260,7 +260,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://dongnepg.com/competitions/18',
     sourceUrls: ['https://dongnepg.com/competitions/18', 'https://parkgolflife.com/'],
     description: '예천 한천파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -286,7 +286,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://sevenstarscore.com/',
     sourceUrls: ['https://sevenstarscore.com/', 'https://www.geconomy.co.kr/mobile/article.html?no=323050'],
     description: '신태인파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: true,
     isCertifiedHost: false,
     views: 0
@@ -312,7 +312,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.yna.co.kr/view/AKR20260824115700030',
     sourceUrls: ['https://www.yna.co.kr/view/AKR20260824115700030', 'https://www.kpgf.kr/'],
     description: '서재파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -338,7 +338,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://dongnepg.com/competitions/5'],
     description: '다사세천파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -364,7 +364,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://www.wpgnews.com/tournament'],
     description: '송백파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -390,7 +390,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://www.wpgnews.com/tournament'],
     description: '오수의견파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -416,7 +416,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://weparkgolf.com/prizes'],
     description: '양평파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -442,7 +442,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://weparkgolf.com/prizes'],
     description: '대저생태공원 파크골프장에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-tournaments-v4.png',
+    posterUrl: '/images/tournament-sunset.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0
@@ -468,7 +468,7 @@ export const INITIAL_TOURNAMENTS: Tournament[] = [
     linkUrl: 'https://www.kpga7330.com/competitions',
     sourceUrls: ['https://www.kpga7330.com/competitions', 'https://weparkgolf.com/prizes'],
     description: '모집요강의 지역별 장소에서 열리는 대회입니다. 일정·접수·시상 내용은 2026년 남은 대회 검증자료(기준일 2026-09-07)로 확인했습니다. 신청 전 아래 공식 출처에서 최종 일정을 다시 확인해주세요.',
-    posterUrl: '/images/card-community-v4.png',
+    posterUrl: '/images/course-golden.jpg',
     isFeatured: false,
     isCertifiedHost: false,
     views: 0

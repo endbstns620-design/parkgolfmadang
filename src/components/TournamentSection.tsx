@@ -268,7 +268,7 @@ export const TournamentSection: React.FC = () => {
                   <img
                     src={
                       tour.posterUrl ||
-                      '/images/card-courses-v4.png'
+                      '/images/tournament-sunset.jpg'
                     }
                     alt={tour.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
