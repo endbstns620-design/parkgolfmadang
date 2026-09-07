@@ -12,6 +12,13 @@ const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-milkthistle.jpg';
 // 제품 성분 안내 이미지 (밀크씨슬·L-테아닌·비타민D·마그네슘)
 const WELITA_INGREDIENT_IMAGE_URL = '/images/welita-y-ingredients.jpg';
 
+// 마당P가 쌓여서 상품으로 바뀌는 흐름 (1번째 오픈이벤트 아래에 표시)
+const POINT_STEPS = [
+  { no: 1, emoji: '✍️', title: '글 쓰기', desc: '구장리뷰 · 맛집\n동반자모집' },
+  { no: 2, emoji: '🪙', title: '마당P 적립', desc: '글 하나에\n+300 마당P' },
+  { no: 3, emoji: '🎁', title: '상품 교환', desc: '마당P 장터에서\n제품으로' }
+];
+
 export const MainHomeSection: React.FC = () => {
   const { totalUsers, currentUser, setActiveTab, openModal, monthlyDrawInfo } = useParkGolf();
 
@@ -108,7 +115,7 @@ export const MainHomeSection: React.FC = () => {
                 1번째 오픈이벤트
               </span>
 
-              <p className="text-white font-black text-2xl sm:text-3xl md:text-4xl leading-tight mb-4">
+              <p className="text-white font-black text-2xl sm:text-3xl leading-tight mb-4">
                 창립회원 신규가입 즉시<br />
                 <span className="text-amber-300">1,000 마당P</span> 지급!
               </p>
@@ -116,7 +123,7 @@ export const MainHomeSection: React.FC = () => {
               {/* 활동 적립 안내 — 시니어분들이 한눈에 읽으실 수 있게 크게 표시합니다.
                   실제 지급은 운영자 확인 후이므로 그 점도 함께 적어둡니다. */}
               <div className="bg-emerald-950/50 rounded-2xl px-5 py-4 mb-4 border border-amber-300/30">
-                <p className="text-white font-black text-xl sm:text-2xl md:text-3xl leading-snug">
+                <p className="text-white font-black text-xl sm:text-2xl leading-snug">
                   구장리뷰 · 맛집 · 동반자모집<br />
                   글 하나에 <span className="text-amber-300">+300 마당P</span>
                 </p>
@@ -125,7 +132,7 @@ export const MainHomeSection: React.FC = () => {
                 </p>
               </div>
 
-              <p className="text-amber-200 font-black text-lg sm:text-xl md:text-2xl leading-snug mb-5">
+              <p className="text-amber-200 font-black text-lg sm:text-xl leading-snug mb-5">
                 모은 마당P는 <span className="text-white">마당P 장터</span>에서{' '}
                 제품으로 바꿔 가세요!
               </p>
@@ -139,6 +146,47 @@ export const MainHomeSection: React.FC = () => {
               <p className="text-white font-black text-lg sm:text-xl">
                 현재 <span className="text-amber-300 text-2xl sm:text-3xl">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명
               </p>
+
+              {/* 마당P가 어떻게 쌓이고 어디에 쓰이는지 —
+                  처음 오신 어르신도 흐름을 한눈에 아시도록 3단계로 보여드립니다. */}
+              <div className="mt-6 pt-5 border-t border-white/20">
+                <p className="text-center text-amber-200 font-black text-lg sm:text-xl mb-4">
+                  마당P, 이렇게 쓰입니다
+                </p>
+
+                <div className="flex items-start justify-between gap-1">
+                  {POINT_STEPS.map((step, i) => (
+                    <React.Fragment key={step.no}>
+                      <div className="flex-1 text-center min-w-0">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-3xl sm:text-4xl mb-2">
+                          {step.emoji}
+                        </div>
+                        <p className="text-white font-black text-base sm:text-lg leading-tight">
+                          {step.title}
+                        </p>
+                        <p className="text-green-100 font-bold text-sm sm:text-base leading-snug mt-0.5 whitespace-pre-line break-keep">
+                          {step.desc}
+                        </p>
+                      </div>
+                      {i < POINT_STEPS.length - 1 && (
+                        <div className="pt-4 sm:pt-5 text-amber-300 text-2xl sm:text-3xl font-black shrink-0">
+                          →
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('pointmarket');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="mt-5 w-full py-4 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-amber-300/60 text-amber-200 font-black text-lg sm:text-xl transition-colors cursor-pointer"
+                >
+                  🎁 마당P 장터 구경하기 →
+                </button>
+              </div>
             </div>
 
             {/* 2번째 오픈이벤트 */}
@@ -183,7 +231,7 @@ export const MainHomeSection: React.FC = () => {
                   신규 가입 시 경품 <span className="text-amber-300">자동응모!</span>
                 </p>
 
-                <p className="text-amber-200 font-black text-xl sm:text-2xl md:text-3xl leading-snug mb-4">
+                <p className="text-amber-200 font-black text-xl sm:text-2xl leading-snug mb-4">
                   랜덤추첨 1분께<br />
                   <span className="text-white">{monthlyDrawInfo.prize.value}</span> 웰리타 영양제 증정
                 </p>
