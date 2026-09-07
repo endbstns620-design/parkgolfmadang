@@ -118,6 +118,7 @@ interface ParkGolfContextType {
     coupangEmbedUrl?: string;
   }) => Promise<boolean>;
   deletePointShopItem: (id: string) => Promise<void>;
+  uploadPointShopImage: (file: File) => Promise<string | null>;
   totalUsers: number;
   monthlyDrawInfo: any;
   runMonthlyDraw: () => Promise<any | null>;
@@ -167,8 +168,9 @@ interface ParkGolfContextType {
   deleteAd: (id: string) => void;
   toggleAdStatus: (id: string) => void;
   coupangProducts: CoupangProduct[];
-  addCoupangProduct: (input: { rawInput: string; category?: CoupangProduct['category'] }) => Promise<boolean>;
+  addCoupangProduct: (input: { rawInput: string; category?: CoupangProduct['category']; productName?: string }) => Promise<boolean>;
   deleteCoupangProduct: (id: string) => void;
+  renameCoupangProduct: (id: string, productName: string) => Promise<boolean>;
   restaurants: RestaurantPost[];
   addRestaurant: (postData: Omit<RestaurantPost, 'id' | 'createdAt'>) => Promise<boolean>;
   deleteRestaurant: (id: string) => void;
@@ -754,6 +756,30 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // 관리자 전용 — 상품 사진을 서버에 올리고, 화면에서 쓸 주소를 돌려받습니다.
+  const uploadPointShopImage = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/point-shop/upload-image', {
+        method: 'POST',
+        headers: adminAuthHeaders(), // Content-Type은 브라우저가 알아서 붙입니다
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '사진 올리기에 실패했습니다.');
+        return null;
+      }
+      const data = await res.json();
+      return data.imageUrl || null;
+    } catch (err) {
+      console.error('상품 사진 업로드 실패:', err);
+      alert('사진을 올리는 중 오류가 발생했습니다.');
+      return null;
+    }
+  };
+
   const deletePointShopItem = async (id: string): Promise<void> => {
     if (!window.confirm('이 상품을 삭제하시겠습니까?')) return;
     try {
@@ -1264,7 +1290,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // 쿠팡파트너스 상품 CRUD (등록·삭제는 관리자만 가능 — 서버에서도 requireAdmin으로 이중 검증)
-  const addCoupangProduct = async (input: { rawInput: string; category?: CoupangProduct['category'] }): Promise<boolean> => {
+  const addCoupangProduct = async (input: { rawInput: string; category?: CoupangProduct['category']; productName?: string }): Promise<boolean> => {
     try {
       const res = await fetch('/api/coupang-products', {
         method: 'POST',
@@ -1282,6 +1308,28 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (err) {
       console.error('쿠팡 상품 등록 실패:', err);
       alert('상품 등록 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  // 이미 등록해 둔 쿠팡상품의 이름을 붙이거나 고칩니다.
+  const renameCoupangProduct = async (id: string, productName: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/coupang-products/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ productName })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '상품 이름 저장에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      setCoupangProducts(prev => prev.map(p => (p.id === id ? data.product : p)));
+      return true;
+    } catch (err) {
+      console.error('쿠팡상품 이름 저장 실패:', err);
       return false;
     }
   };
@@ -1399,6 +1447,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         redeemPointShopItem,
         addPointShopItem,
         deletePointShopItem,
+        uploadPointShopImage,
         totalUsers,
         monthlyDrawInfo,
         runMonthlyDraw,
@@ -1438,6 +1487,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         coupangProducts,
         addCoupangProduct,
         deleteCoupangProduct,
+        renameCoupangProduct,
         restaurants,
         addRestaurant,
         deleteRestaurant,

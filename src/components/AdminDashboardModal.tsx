@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { ParkCourse, Tournament, AdItem, CoupangProduct } from '../types';
 import {
@@ -14,7 +14,8 @@ import {
   RefreshCw,
   Users,
   Megaphone,
-  Coins
+  Coins,
+  Upload
 } from 'lucide-react';
 
 // 휴대폰번호를 010-1234-5678 형태로 보기 좋게 표시합니다.
@@ -47,9 +48,11 @@ export const AdminDashboardModal: React.FC = () => {
     pointShopItems,
     addPointShopItem,
     deletePointShopItem,
+    uploadPointShopImage,
     coupangProducts,
     addCoupangProduct,
     deleteCoupangProduct,
+    renameCoupangProduct,
     fetchMembers,
     matches,
     updateMatchStatus,
@@ -119,8 +122,13 @@ export const AdminDashboardModal: React.FC = () => {
 
   // 제휴광고 탭 안의 쿠팡추천상품 등록
   const [coupangRawInput, setCoupangRawInput] = useState('');
+  const [coupangName, setCoupangName] = useState('');
   const [coupangCategory, setCoupangCategory] = useState<CoupangProduct['category']>('클럽');
   const [isAddingCoupang, setIsAddingCoupang] = useState(false);
+
+  // 마당P 장터 — 일반상품 사진 올리기
+  const [isUploadingItemImage, setIsUploadingItemImage] = useState(false);
+  const itemImageInputRef = useRef<HTMLInputElement>(null);
 
 
   // 관리자 모달이 열려있을 때 교환 신청 배지 숫자(및 목록)를 미리 불러옵니다.
@@ -1079,6 +1087,19 @@ export const AdminDashboardModal: React.FC = () => {
                     </div>
 
                     <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">
+                        상품 이름 * <span className="text-slate-400 font-medium">— 나중에 마당P 장터에 올릴 때 자동으로 채워집니다</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={coupangName}
+                        onChange={e => setCoupangName(e.target.value)}
+                        placeholder="예: 지맥스 남성용 파크골프 장갑 (양손 세트)"
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-bold"
+                      />
+                    </div>
+
+                    <div>
                       <label className="text-xs font-bold text-slate-600 mb-1 block">카테고리 *</label>
                       <select
                         value={coupangCategory}
@@ -1100,11 +1121,20 @@ export const AdminDashboardModal: React.FC = () => {
                           alert('쿠팡파트너스 링크(또는 iframe 코드)를 붙여넣어주세요.');
                           return;
                         }
+                        if (!coupangName.trim()) {
+                          alert('상품 이름을 적어주세요. 나중에 마당P 장터에 올릴 때 이 이름으로 찾으시게 됩니다.');
+                          return;
+                        }
                         setIsAddingCoupang(true);
-                        const ok = await addCoupangProduct({ rawInput: coupangRawInput, category: coupangCategory });
+                        const ok = await addCoupangProduct({
+                          rawInput: coupangRawInput,
+                          category: coupangCategory,
+                          productName: coupangName.trim()
+                        });
                         setIsAddingCoupang(false);
                         if (ok) {
                           setCoupangRawInput('');
+                          setCoupangName('');
                           alert('쿠팡추천상품이 등록되었습니다.');
                         }
                       }}
@@ -1120,14 +1150,32 @@ export const AdminDashboardModal: React.FC = () => {
                           <div key={cp.id} className="flex items-center justify-between gap-3 bg-white rounded-xl px-3 py-2 border border-red-200">
                             <div className="min-w-0">
                               <span className="text-xs font-extrabold text-red-800">[{cp.category}]</span>
-                              <p className="text-[11px] text-slate-500 truncate">{cp.embedUrl}</p>
+                              <p className="text-sm font-bold text-slate-900 truncate">
+                                {cp.productName || '(이름 없음)'}
+                              </p>
+                              <p className="text-[11px] text-slate-400 truncate">{cp.embedUrl}</p>
                             </div>
-                            <button
-                              onClick={() => deleteCoupangProduct(cp.id)}
-                              className="p-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold shrink-0 cursor-pointer"
-                            >
-                              삭제
-                            </button>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={async () => {
+                                  const name = window.prompt(
+                                    '이 상품의 이름을 적어주세요. (마당P 장터에 올릴 때 이 이름으로 찾으시게 됩니다)',
+                                    cp.productName || ''
+                                  );
+                                  if (name === null) return;
+                                  await renameCoupangProduct(cp.id, name);
+                                }}
+                                className="p-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold cursor-pointer"
+                              >
+                                이름수정
+                              </button>
+                              <button
+                                onClick={() => deleteCoupangProduct(cp.id)}
+                                className="p-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold cursor-pointer"
+                              >
+                                삭제
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1213,31 +1261,67 @@ export const AdminDashboardModal: React.FC = () => {
                             등록된 쿠팡추천상품이 없습니다. "제휴광고" 탭에서 먼저 쿠팡상품을 등록해주세요.
                           </p>
                         ) : (
-                          <select
-                            value={newPointShopItem.selectedCoupangId}
-                            onChange={e => {
-                              const sel = coupangProducts.find((p: any) => p.id === e.target.value);
-                              setNewPointShopItem({
-                                ...newPointShopItem,
-                                selectedCoupangId: e.target.value,
-                                coupangEmbedUrl: sel ? sel.embedUrl : '',
-                                referenceUrl: sel ? sel.embedUrl : newPointShopItem.referenceUrl,
-                                category: sel ? sel.category : newPointShopItem.category
-                              });
-                            }}
-                            className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm"
-                          >
-                            <option value="">쿠팡상품을 골라주세요</option>
-                            {coupangProducts.map((p: any) => (
-                              <option key={p.id} value={p.id}>
-                                [{p.category}] {p.embedUrl}
-                              </option>
-                            ))}
-                          </select>
+                          <>
+                            {/* 실제 쿠팡 상품 사진을 보고 고르실 수 있게 카드로 보여줍니다.
+                                고르시면 아래 상품명·분류가 자동으로 채워집니다. */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                              {coupangProducts.map((cp: any) => {
+                                const selected = newPointShopItem.selectedCoupangId === cp.id;
+                                return (
+                                  <button
+                                    key={cp.id}
+                                    type="button"
+                                    onClick={() =>
+                                      setNewPointShopItem({
+                                        ...newPointShopItem,
+                                        selectedCoupangId: cp.id,
+                                        coupangEmbedUrl: cp.embedUrl,
+                                        referenceUrl: cp.embedUrl,
+                                        // 상품명·분류 자동 입력 (필요하면 아래에서 고치실 수 있습니다)
+                                        name: cp.productName || newPointShopItem.name,
+                                        category: cp.category === '전체' ? '기타' : cp.category
+                                      })
+                                    }
+                                    className={`relative text-left rounded-2xl border-2 p-2 transition-all cursor-pointer ${
+                                      selected
+                                        ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-300'
+                                        : 'border-slate-200 bg-white hover:border-emerald-400'
+                                    }`}
+                                  >
+                                    {selected && (
+                                      <span className="absolute top-1.5 right-1.5 z-10 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] font-black">
+                                        선택됨
+                                      </span>
+                                    )}
+                                    {/* 쿠팡 위젯 — 사진·가격이 그대로 보여서 어떤 상품인지 바로 아실 수 있습니다.
+                                        카드 전체를 눌러야 선택되도록 위젯 위는 클릭을 막아뒀습니다. */}
+                                    <div className="relative w-full h-[190px] overflow-hidden rounded-xl bg-white">
+                                      <iframe
+                                        src={cp.embedUrl}
+                                        width="100%"
+                                        height={190}
+                                        frameBorder="0"
+                                        scrolling="no"
+                                        referrerPolicy="unsafe-url"
+                                        title={`coupang-pick-${cp.id}`}
+                                        className="w-full pointer-events-none"
+                                      />
+                                      <div className="absolute inset-0" />
+                                    </div>
+                                    <p className="mt-1.5 text-xs font-extrabold text-slate-900 line-clamp-2 leading-snug">
+                                      {cp.productName || '(이름 없이 등록된 상품)'}
+                                    </p>
+                                    <span className="text-[11px] font-bold text-red-700">[{cp.category}]</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-2">
+                              상품을 누르시면 아래 <strong>상품명 · 분류</strong>가 자동으로 채워집니다.
+                              (이름이 비어 있으면 "제휴광고" 탭에서 그 상품에 이름을 적어주세요)
+                            </p>
+                          </>
                         )}
-                        <p className="text-[11px] text-slate-500 mt-1">
-                          고르시면 장터에 쿠팡 위젯(사진·가격)이 그대로 보입니다. 상품명과 교환 마당P는 아래에 입력해주세요.
-                        </p>
                       </div>
                     )}
 
@@ -1281,14 +1365,65 @@ export const AdminDashboardModal: React.FC = () => {
 
                     {newPointShopItem.sourceType === '일반' && (
                       <div>
-                        <label className="text-sm font-bold text-slate-700 mb-1.5 block">상품 사진 주소 (선택)</label>
+                        <label className="text-sm font-bold text-slate-700 mb-1.5 block">
+                          상품 사진 (선택) <span className="text-slate-400 font-medium">— 컴퓨터·휴대폰에 있는 사진을 그대로 올리시면 됩니다</span>
+                        </label>
+
                         <input
-                          type="text"
-                          value={newPointShopItem.imageUrl}
-                          onChange={e => setNewPointShopItem({ ...newPointShopItem, imageUrl: e.target.value })}
-                          placeholder="https://... (비워두시면 선물상자 아이콘이 표시됩니다)"
-                          className="w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm font-mono"
+                          ref={itemImageInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setIsUploadingItemImage(true);
+                            const url = await uploadPointShopImage(file);
+                            setIsUploadingItemImage(false);
+                            if (url) setNewPointShopItem(prev => ({ ...prev, imageUrl: url }));
+                            if (itemImageInputRef.current) itemImageInputRef.current.value = '';
+                          }}
                         />
+
+                        {newPointShopItem.imageUrl ? (
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={newPointShopItem.imageUrl}
+                              alt="올리신 상품 사진"
+                              className="w-32 h-32 object-contain bg-white rounded-xl border-2 border-emerald-300 shrink-0"
+                            />
+                            <div className="flex flex-col gap-2">
+                              <button
+                                type="button"
+                                onClick={() => itemImageInputRef.current?.click()}
+                                disabled={isUploadingItemImage}
+                                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-sm disabled:opacity-60 cursor-pointer"
+                              >
+                                {isUploadingItemImage ? '올리는 중...' : '다른 사진으로 바꾸기'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setNewPointShopItem({ ...newPointShopItem, imageUrl: '' })}
+                                className="px-4 py-2.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold text-sm cursor-pointer"
+                              >
+                                사진 빼기
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => itemImageInputRef.current?.click()}
+                            disabled={isUploadingItemImage}
+                            className="w-full py-6 rounded-xl border-2 border-dashed border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 text-slate-600 font-bold text-base flex flex-col items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer transition-colors"
+                          >
+                            <Upload className="w-7 h-7 text-slate-400" />
+                            <span>{isUploadingItemImage ? '사진 올리는 중...' : '여기를 눌러 상품 사진 고르기'}</span>
+                            <span className="text-xs font-medium text-slate-400">
+                              JPG · PNG · 8MB 이하 (안 올리시면 선물상자 아이콘이 표시됩니다)
+                            </span>
+                          </button>
+                        )}
                       </div>
                     )}
 

@@ -247,6 +247,8 @@ export interface CoupangProduct {
   embedUrl: string;
   embedWidth: number;
   embedHeight: number;
+  // 관리자가 알아보기 쉽도록 적어두는 상품 이름입니다. (마당P 장터에 올릴 때 자동으로 채워집니다)
+  productName?: string;
   createdAt: string;
 }
 

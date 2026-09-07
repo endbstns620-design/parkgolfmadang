@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
 
@@ -7,9 +7,14 @@ const MAIN_BANNER_IMAGE_URL = '/images/hero-sunset-v5.jpg';
 
 // 웰리타-Y 밀크씨슬 테아닌 3병 세트(3개월분) 실제 제품 사진입니다.
 const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-milkthistle.jpg';
+// 제품 성분 안내 이미지 (밀크씨슬·L-테아닌·비타민D·마그네슘)
+const WELITA_INGREDIENT_IMAGE_URL = '/images/welita-y-ingredients.jpg';
 
 export const MainHomeSection: React.FC = () => {
   const { totalUsers, currentUser, setActiveTab, openModal, monthlyDrawInfo } = useParkGolf();
+
+  // 경품 사진을 눌렀을 때 크게 보여주기 (어르신들이 작은 글씨를 읽으실 수 있게)
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   // 창립회원 모집 인원 — 이 숫자만 바꾸면 헤드라인·진행률바가 한꺼번에 따라갑니다.
   const FOUNDER_GOAL = 100;
@@ -93,11 +98,15 @@ export const MainHomeSection: React.FC = () => {
                 <span className="text-amber-300">1,000 마당P</span> 지급!
               </p>
 
-              {/* 활동 적립 안내 — 시니어분들이 한눈에 읽으실 수 있게 크게 표시합니다 */}
+              {/* 활동 적립 안내 — 시니어분들이 한눈에 읽으실 수 있게 크게 표시합니다.
+                  실제 지급은 운영자 확인 후이므로 그 점도 함께 적어둡니다. */}
               <div className="bg-emerald-950/50 rounded-2xl px-5 py-4 mb-4 border border-amber-300/30">
                 <p className="text-white font-black text-xl sm:text-2xl md:text-3xl leading-snug">
                   구장리뷰 · 맛집 · 동반자모집<br />
-                  글만 써도 <span className="text-amber-300">+300 마당P</span>
+                  글 하나에 <span className="text-amber-300">+300 마당P</span>
+                </p>
+                <p className="text-green-100 font-bold text-base sm:text-lg mt-2">
+                  운영자 확인 후 24시간 안에 넣어드립니다
                 </p>
               </div>
 
@@ -124,22 +133,40 @@ export const MainHomeSection: React.FC = () => {
                   2번째 오픈이벤트
                 </span>
 
-                <div className="flex items-center gap-4 mb-4">
-                  {WELITA_PRODUCT_IMAGE_URL ? (
+                {/* 제품 사진과 성분 안내를 나란히 — 누르시면 크게 볼 수 있습니다 */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setZoomImage(WELITA_PRODUCT_IMAGE_URL)}
+                    className="rounded-2xl overflow-hidden bg-white border-2 border-amber-300/60 shadow-lg cursor-zoom-in"
+                    title="크게 보기"
+                  >
                     <img
                       src={WELITA_PRODUCT_IMAGE_URL}
                       alt="웰리타-Y 밀크씨슬 테아닌 영양제 3병 세트 (3개월분)"
-                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover bg-white shrink-0 border-2 border-amber-300/60 shadow-lg"
+                      className="w-full h-auto object-cover"
                     />
-                  ) : (
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-white/90 flex items-center justify-center text-5xl shrink-0">
-                      💊
-                    </div>
-                  )}
-                  <p className="text-white font-black text-2xl sm:text-3xl leading-tight">
-                    신규 가입 시<br />경품 <span className="text-amber-300">자동응모!</span>
-                  </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setZoomImage(WELITA_INGREDIENT_IMAGE_URL)}
+                    className="rounded-2xl overflow-hidden bg-white border-2 border-amber-300/60 shadow-lg cursor-zoom-in"
+                    title="크게 보기"
+                  >
+                    <img
+                      src={WELITA_INGREDIENT_IMAGE_URL}
+                      alt="웰리타-Y 주요 성분 안내 — 밀크씨슬, L-테아닌, 비타민D, 마그네슘"
+                      className="w-full h-auto object-cover"
+                    />
+                  </button>
                 </div>
+                <p className="text-center text-sm sm:text-base font-bold text-green-100 mb-4">
+                  👆 사진을 누르시면 크게 보실 수 있습니다
+                </p>
+
+                <p className="text-white font-black text-2xl sm:text-3xl leading-tight mb-4">
+                  신규 가입 시 경품 <span className="text-amber-300">자동응모!</span>
+                </p>
 
                 <p className="text-amber-200 font-black text-xl sm:text-2xl md:text-3xl leading-snug mb-4">
                   랜덤추첨 1분께<br />
@@ -170,7 +197,7 @@ export const MainHomeSection: React.FC = () => {
                   rel="noopener noreferrer"
                   className="inline-block text-lg sm:text-xl font-black text-amber-200 underline hover:text-amber-100 mb-3"
                 >
-                  판매자정보 : {monthlyDrawInfo.prize.brand} →
+                  제품보기 : {monthlyDrawInfo.prize.brand} →
                 </a>
 
                 <p className="text-base sm:text-lg font-bold text-green-100 leading-snug pt-3 border-t border-white/20">
@@ -216,6 +243,24 @@ export const MainHomeSection: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {/* 사진 크게 보기 */}
+      {zoomImage && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/85 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setZoomImage(null)}
+        >
+          <div className="relative max-w-3xl w-full max-h-[92vh] overflow-y-auto">
+            <img src={zoomImage} alt="웰리타 경품 안내" className="w-full h-auto rounded-2xl bg-white" />
+            <button
+              onClick={() => setZoomImage(null)}
+              className="sticky bottom-3 left-1/2 -translate-x-1/2 mt-3 px-8 py-4 rounded-xl bg-white text-slate-900 font-black text-lg shadow-2xl cursor-pointer"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Closing Quote */}
       <section className="bg-green-50 py-8 px-4 text-center">

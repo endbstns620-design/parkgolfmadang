@@ -627,6 +627,56 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  // ---- 마당P 장터 상품 사진 업로드 (관리자 전용) ----
+  // 링크를 찾아 붙여넣지 않고, 컴퓨터·휴대폰에 있는 사진을 그대로 올리실 수 있게 합니다.
+  const productImagesDir = path.join(process.cwd(), "data", "product-images");
+  if (!fs.existsSync(productImagesDir)) {
+    fs.mkdirSync(productImagesDir, { recursive: true });
+  }
+
+  const ALLOWED_IMAGE_TYPES: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif"
+  };
+
+  const productImageUpload = multer({
+    storage: multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, productImagesDir),
+      filename: (_req, file, cb) => {
+        const ext = ALLOWED_IMAGE_TYPES[file.mimetype] || ".jpg";
+        cb(null, `item-${Date.now()}-${crypto.randomBytes(4).toString("hex")}${ext}`);
+      }
+    }),
+    limits: { fileSize: 8 * 1024 * 1024 }, // 사진 한 장당 최대 8MB
+    fileFilter: (_req, file, cb) => {
+      if (!ALLOWED_IMAGE_TYPES[file.mimetype]) {
+        return cb(new Error("사진 파일(JPG, PNG, WEBP, GIF)만 올리실 수 있습니다."));
+      }
+      cb(null, true);
+    }
+  });
+
+  // 올린 사진을 그대로 내려주는 정적 경로
+  app.use("/product-images", express.static(productImagesDir));
+
+  app.post("/api/point-shop/upload-image", requireAdmin, (req, res) => {
+    productImageUpload.single("image")(req, res, err => {
+      if (err) {
+        const tooBig = String(err.message || "").includes("File too large");
+        return res.status(400).json({
+          success: false,
+          error: tooBig ? "사진 용량이 너무 큽니다. 8MB 이하로 올려주세요." : err.message || "사진 올리기에 실패했습니다."
+        });
+      }
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: "사진 파일이 없습니다." });
+      }
+      res.status(201).json({ success: true, imageUrl: `/product-images/${req.file.filename}` });
+    });
+  });
+
   // ---- 초보가이드 영상 (1~5편, 관리자만 업로드 가능) ----
   // MP4 파일은 용량이 커서 JSON에 담지 않고, 서버 디스크(영구 볼륨)에 직접 저장합니다.
   // ⚠️ Railway 볼륨 용량 제한을 넘으면 업로드가 실패하니, 볼륨 크기를 충분히 늘려주세요.
@@ -798,11 +848,27 @@ async function startServer() {
       embedUrl,
       embedWidth,
       embedHeight,
+      productName: body.productName ? String(body.productName).trim().slice(0, 120) : undefined,
       createdAt: new Date().toISOString().slice(0, 10)
     };
     products.unshift(newProduct);
     writeJsonFile("coupang-products.json", products);
     res.status(201).json({ success: true, product: newProduct });
+  });
+
+  // 이미 등록해 둔 쿠팡상품에 이름을 붙이거나 고칠 때 씁니다.
+  // (이름이 있어야 마당P 장터에 올릴 때 어떤 상품인지 바로 알 수 있습니다)
+  app.patch("/api/coupang-products/:id", requireAdmin, (req, res) => {
+    const products = readJsonFile<CoupangProduct[]>("coupang-products.json", []);
+    const idx = products.findIndex(p => p.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "상품을 찾을 수 없습니다." });
+    const b = req.body || {};
+    if (typeof b.productName === "string") {
+      products[idx].productName = b.productName.trim().slice(0, 120) || undefined;
+    }
+    if (b.category) products[idx].category = b.category;
+    writeJsonFile("coupang-products.json", products);
+    res.json({ success: true, product: products[idx] });
   });
 
   app.delete("/api/coupang-products/:id", requireAdmin, (req, res) => {
@@ -1149,7 +1215,7 @@ async function startServer() {
     name: '웰리타-Y 밀크씨슬 테아닌 간건강 긴장완화 영양제 180정 (3개월분)',
     brand: '웰리타스토어',
     value: '45,000원 상당',
-    sellerProfileUrl: 'https://smartstore.naver.com/welita/profile?cp=1'
+    sellerProfileUrl: 'https://smartstore.naver.com/welita'
   };
 
   app.get("/api/monthly-draw/info", (_req, res) => {
