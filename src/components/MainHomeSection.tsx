@@ -63,9 +63,11 @@ export const MainHomeSection: React.FC = () => {
             </h1>
 
             <p className="text-lg sm:text-xl md:text-2xl text-green-50 font-bold leading-relaxed mb-7 drop-shadow-sm">
-              구장 정보만 보는 곳이 아닙니다.<br />
-              파크골프를 좋아하는 분들이 <span className="text-amber-200 font-black">함께 만들어가는</span><br />
-              종합 커뮤니티를 만들어 갑니다.
+              파크골프를 사랑하는 동호인들이 모여<br />
+              정보를 나누는 곳입니다.<br />
+              구장정보 · 대회소식은 물론<br />
+              구장 근처 맛집 · 동반자 모집까지{' '}
+              <span className="text-amber-200 font-black whitespace-nowrap">여기 다 있습니다.</span>
             </p>
 
             {/* ② 창립회원 모집 */}

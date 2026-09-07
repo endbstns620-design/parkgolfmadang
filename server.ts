@@ -185,18 +185,35 @@ async function startServer() {
       // 2026년 남은 대회 검증자료로 대회 목록을 새로 만들었습니다.
       // 서버에 예전 대회 목록이 저장돼 있으면 새 자료로 갈아끼웁니다.
       // (관리자가 직접 등록한 대회는 id가 다르므로 그대로 남겨둡니다)
+      // 사전 조사한 대회(INITIAL_TOURNAMENTS)가 늘어나거나 일정이 바뀌어도, 서버에 파일이
+      // 한 번 저장되고 나면 반영되지 않던 문제가 있어 여기서 맞춰줍니다.
+      // 관리자가 직접 등록한 대회(id가 tour-2026-로 시작하지 않음)는 그대로 둡니다.
       const tours = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
-      const hasNewSeed = tours.some(t => String(t.id || "").startsWith("tour-2026-"));
-      if (!hasNewSeed) {
-        const adminAdded = tours.filter(
-          t => !String(t.id || "").startsWith("tour-") || /^tour-\d+$/.test(String(t.id)) === false
-        );
-        const kept = adminAdded.filter(t => !/^tour-\d+$/.test(String(t.id || "")));
-        const merged = [...INITIAL_TOURNAMENTS, ...kept];
+      const isSeedTour = (t: any) => String(t?.id || "").startsWith("tour-2026-");
+      const storedSeedTours = new Map(tours.filter(isSeedTour).map(t => [t.id, t]));
+      const keptTours = tours.filter(t => !isSeedTour(t) && !/^tour-\d+$/.test(String(t?.id || "")));
+      // 조회수는 이용자가 쌓은 값이라 그대로 이어받고, 나머지 항목만 비교합니다.
+      const withoutViews = (t: any) => {
+        const { views, ...rest } = t || {};
+        return JSON.stringify(rest);
+      };
+      const tourSeedChanged =
+        INITIAL_TOURNAMENTS.some(t => {
+          const stored = storedSeedTours.get(t.id);
+          return !stored || withoutViews(stored) !== withoutViews(t);
+        }) || tours.filter(isSeedTour).some(t => !INITIAL_TOURNAMENTS.find(s => s.id === t.id));
+      if (tourSeedChanged) {
+        const merged = [
+          ...INITIAL_TOURNAMENTS.map(t => ({
+            ...t,
+            views: Number(storedSeedTours.get(t.id)?.views) || t.views || 0
+          })),
+          ...keptTours
+        ];
         writeJsonFile("tournaments.json", merged);
         console.log(
-          `[대회정리] 2026년 남은 대회 검증자료 ${INITIAL_TOURNAMENTS.length}건으로 갱신했습니다.` +
-            (kept.length ? ` (관리자가 등록한 ${kept.length}건은 유지)` : "")
+          `[대회정리] 사전조사 대회 ${INITIAL_TOURNAMENTS.length}건으로 갱신했습니다.` +
+            (keptTours.length ? ` (관리자가 등록한 ${keptTours.length}건은 유지)` : "")
         );
       }
 
