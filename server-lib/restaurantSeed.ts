@@ -44,8 +44,8 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-005',
-    courseName: '대전권역 파크골프장',
-    region: '충청·대전·세종',
+    courseName: '버드내태평파크골프장',
+    region: '대전 중구',
     restaurantName: '성심당 대전역점',
     menu: '튀김소보로·부추빵',
     address: '대전 동구 중앙로 215 (대전역사 2층)',
@@ -57,7 +57,7 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-016',
-    courseName: '강남파크골프장',
+    courseName: '용상파크골프장',
     region: '경북 안동시',
     restaurantName: '안동서문찜닭',
     menu: '안동찜닭·쪼림닭',
@@ -83,7 +83,7 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-022',
-    courseName: '군산 파크골프장',
+    courseName: '군산파크골프장(수송체육공원 파크골프장)',
     region: '전북 군산시',
     restaurantName: '이성당',
     menu: '단팥빵·야채빵',
@@ -96,8 +96,8 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-024',
-    courseName: '부산권역 파크골프장',
-    region: '경상 부산시',
+    courseName: '전포1배수지 파크골프장',
+    region: '부산 부산진구',
     restaurantName: '원조부산밀면',
     menu: '밀면',
     address: '부산 동구 중앙대로23번길 7',
@@ -109,8 +109,8 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-025',
-    courseName: '부산권역 파크골프장',
-    region: '경상 부산시 해운대구',
+    courseName: '전포1배수지 파크골프장',
+    region: '부산 부산진구',
     restaurantName: '가야밀면',
     menu: '밀면',
     address: '부산 해운대구 좌동순환로 27',
@@ -122,8 +122,8 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-026',
-    courseName: '제주권역 파크골프장',
-    region: '제주시',
+    courseName: '아라동파크골프장',
+    region: '제주 제주시',
     restaurantName: '문치비',
     menu: '흑돼지구이',
     address: '제주 서귀포시 신서로32번길 14 (강정동) 1층',
@@ -135,8 +135,8 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-027',
-    courseName: '제주권역 파크골프장',
-    region: '서귀포시',
+    courseName: '강창학파크골프장',
+    region: '제주 서귀포시',
     restaurantName: '돈사돈 서귀포점',
     menu: '생근고기 흑돼지구이',
     address: '제주 서귀포시 강정마을 인근',
@@ -148,7 +148,7 @@ export const RESTAURANT_SEED: RestaurantPost[] = [
   },
   {
     id: 'rest-seed-030',
-    courseName: '진해권역 파크골프장',
+    courseName: '진해 소사파크골프장',
     region: '경남 창원시 진해구',
     restaurantName: '수백당 자은점',
     menu: '한우곱창전골·순대국·마늘보쌈수육',

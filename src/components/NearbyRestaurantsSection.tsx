@@ -25,12 +25,11 @@ export const NearbyRestaurantsSection: React.FC = () => {
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return restaurants;
     const q = searchQuery.trim().toLowerCase();
+    // 지역·메뉴는 글쓸 때 선택 항목이라 비어 있을 수 있습니다.
+    // 값이 없어도 검색이 멈추지 않도록 빈 문자열로 받아 처리합니다.
+    const has = (v?: string) => String(v || '').toLowerCase().includes(q);
     return restaurants.filter(
-      r =>
-        r.restaurantName.toLowerCase().includes(q) ||
-        r.courseName.toLowerCase().includes(q) ||
-        r.region.toLowerCase().includes(q) ||
-        r.menu.toLowerCase().includes(q)
+      r => has(r.restaurantName) || has(r.courseName) || has(r.region) || has(r.menu) || has(r.address)
     );
   }, [restaurants, searchQuery]);
 

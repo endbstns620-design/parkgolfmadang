@@ -152,10 +152,10 @@ async function startServer() {
   // 브라우저 localStorage에만 저장되면 방문자마다 다른 데이터를 보게 되므로,
   // 서버 파일 저장소를 거쳐 모든 방문자가 같은 데이터를 보도록 합니다.
   // =========================================================================
-  // ── 사진 정리 (한 번만 실행되는 자동 보정) ──
-  // 예전에 넣어뒀던 외부 사진(images.unsplash.com)은 파크골프가 아니라 일반 골프 사진이라
-  // 파크골프마당이 직접 쓰는 파크골프 사진으로 바꿉니다. 서버에 이미 저장된 파일
-  // (data/tournaments.json 등)도 함께 고쳐야 실제 화면에 반영됩니다.
+  // ── 저장된 데이터 자동 보정 (서버가 켜질 때 한 번 실행) ──
+  // 대회·맛집·사진 같은 기본 자료는 코드에 들어있지만, 서버에 파일이 한 번 저장되고 나면
+  // 자료를 새로 넣어도 화면에 반영되지 않습니다. 그래서 켜질 때마다 저장된 파일을 최신
+  // 자료에 맞춰줍니다. 관리자·방문자가 직접 올린 내용은 건드리지 않습니다.
   const PARKGOLF_PHOTOS = {
     course: "/images/card-courses-v4.png",       // 하천변 파크골프장 전경
     tournament: "/images/card-tournaments-v4.png", // 깃대가 꽂힌 코스
@@ -168,7 +168,7 @@ async function startServer() {
     return fallback;
   }
 
-  function migrateStoredPhotos() {
+  function migrateStoredData() {
     try {
       // ── 대회 정보 갱신 ──
       // 2026년 남은 대회 검증자료로 대회 목록을 새로 만들었습니다.
@@ -186,6 +186,31 @@ async function startServer() {
         console.log(
           `[대회정리] 2026년 남은 대회 검증자료 ${INITIAL_TOURNAMENTS.length}건으로 갱신했습니다.` +
             (kept.length ? ` (관리자가 등록한 ${kept.length}건은 유지)` : "")
+        );
+      }
+
+      // ── 맛집 정보 갱신 ──
+      // 사전 조사한 맛집(RESTAURANT_SEED)이 늘어나거나 내용이 바뀌어도, 서버에 파일이
+      // 한 번 저장되고 나면 반영되지 않던 문제가 있어 여기서 맞춰줍니다.
+      // 방문자가 직접 올린 글(rest-seed-로 시작하지 않는 id)은 그대로 둡니다.
+      const stored = readJsonFile<any[]>("restaurants.json", RESTAURANT_SEED);
+      const seedById = new Map(RESTAURANT_SEED.map(r => [r.id, r]));
+      const visitorPosts = stored.filter(r => !String(r.id || "").startsWith("rest-seed-"));
+      const storedSeedIds = new Set(
+        stored.filter(r => String(r.id || "").startsWith("rest-seed-")).map(r => r.id)
+      );
+      const seedChanged =
+        RESTAURANT_SEED.some(r => !storedSeedIds.has(r.id)) ||
+        stored.some(r => {
+          const seed = seedById.get(r.id);
+          return seed && JSON.stringify(seed) !== JSON.stringify(r);
+        });
+      if (seedChanged) {
+        // 사전조사 맛집은 항상 최신 자료로, 방문자 글은 뒤에 그대로 이어붙입니다.
+        writeJsonFile("restaurants.json", [...RESTAURANT_SEED, ...visitorPosts]);
+        console.log(
+          `[맛집정리] 사전조사 맛집 ${RESTAURANT_SEED.length}곳으로 갱신했습니다.` +
+            (visitorPosts.length ? ` (방문자가 올린 ${visitorPosts.length}건은 유지)` : "")
         );
       }
 
@@ -222,7 +247,7 @@ async function startServer() {
       console.error("[사진정리] 실패(무시하고 계속 진행합니다):", err);
     }
   }
-  migrateStoredPhotos();
+  migrateStoredData();
 
   const { validatePostContent } = await import("./src/utils/contentModeration");
 
@@ -763,6 +788,14 @@ async function startServer() {
     const deleteToken = crypto.randomBytes(20).toString("hex");
     const newPost = {
       ...body,
+      // 선택 항목이 비어 있어도 항상 빈 문자열로 채워둡니다.
+      // (값이 아예 없으면 목록 검색 같은 곳에서 오류가 납니다)
+      region: String(body.region || ""),
+      menu: String(body.menu || ""),
+      address: String(body.address || ""),
+      phoneNumber: String(body.phoneNumber || ""),
+      businessHours: String(body.businessHours || ""),
+      description: String(body.description || ""),
       authorName,
       authorUserId: req.currentUser.id,
       id: `rest-${Date.now()}`,
