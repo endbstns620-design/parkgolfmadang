@@ -8,16 +8,15 @@ import { SponsorBannerSection } from './SponsorBannerSection';
 // 원본이 4032×3024로 넉넉해서, 큰 화면에서도 또렷하게 보이도록 2400px로 넣었습니다.
 const MAIN_BANNER_IMAGE_URL = '/images/hero-parkgolf-v7.jpg';
 
-// 웰리타-Y 밀크씨슬 테아닌 3병 세트(3개월분) 실제 제품 사진입니다.
-const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-milkthistle.jpg';
-// 제품 성분 안내 이미지 (밀크씨슬·L-테아닌·비타민D·마그네슘)
-const WELITA_INGREDIENT_IMAGE_URL = '/images/welita-y-ingredients.jpg';
+// 웰리타-Y 대표 사진 (가로형). 제품·성분·문구가 한 장에 들어 있어서
+// 예전처럼 두 장을 나란히 두지 않고 한 장만 넣습니다. 가로가 길어 잘리지 않습니다.
+const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-hero.jpg';
 
 // 마당P가 쌓여서 상품으로 바뀌는 흐름 (1번째 오픈이벤트 아래에 표시)
 const POINT_STEPS = [
-  { no: 1, emoji: '✍️', title: '글 쓰기', desc: '구장리뷰 · 맛집\n동반자모집' },
-  { no: 2, emoji: '🪙', title: '마당P 적립', desc: '글 하나에\n+300 마당P' },
-  { no: 3, emoji: '🎁', title: '상품 교환', desc: '마당P 장터에서\n제품으로' }
+  { no: 1, emoji: '✍️', title: '글 쓰기', short: '리뷰 · 맛집 · 동반자' },
+  { no: 2, emoji: '🪙', title: '마당P 적립', short: '글 하나에 +300P' },
+  { no: 3, emoji: '🎁', title: '상품 교환', short: '마당P 장터에서' }
 ];
 
 export const MainHomeSection: React.FC = () => {
@@ -30,12 +29,6 @@ export const MainHomeSection: React.FC = () => {
   const FOUNDER_GOAL = 100;
   const founderProgress = Math.min(100, Math.round((totalUsers / FOUNDER_GOAL) * 100));
 
-  const categoryCards = [
-    { id: 'courses', title: '전국 구장 지도', desc: '내 주변 파크골프장 한눈에 보기', image: '/images/course-wide.jpg' },
-    { id: 'tournaments', title: '대회·행사 소식', desc: '전국 대회 일정과 참가 정보', image: '/images/tournament-sunset.jpg' },
-    { id: 'news', title: '초보자 가이드', desc: '처음 시작하는 분들을 위한 친절한 안내', image: '/images/card-guide-v4.png' },
-    { id: 'matching', title: '커뮤니티', desc: '함께하는 이야기, 더 즐거운 파크골프', image: '/images/card-community-v4.png' }
-  ];
 
   return (
     <div className="bg-white">
@@ -50,8 +43,9 @@ export const MainHomeSection: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-green-950/95 via-green-950/70 to-green-950/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-green-950/55 via-transparent to-green-950/25" />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-20">
-          <div className="max-w-2xl">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-8 xl:gap-10 items-stretch">
+          <div className="max-w-2xl mx-auto xl:mx-0 w-full flex flex-col justify-center">
             <div className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-amber-400 text-green-950 text-sm sm:text-base font-black mb-5">
               <Sparkles className="w-4 h-4" />
               <span>📢 전국 파크골프 동호인 여러분께</span>
@@ -101,83 +95,49 @@ export const MainHomeSection: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* 창립회원 오픈이벤트 — 한눈에 확 들어오게, 짧고 굵게 */}
-      <section className="bg-gradient-to-r from-emerald-800 to-green-900 py-10 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-7">
-            <span className="text-amber-300 font-black text-2xl sm:text-3xl">🎉 창립회원 오픈이벤트</span>
-          </div>
+          {/* 오른쪽: 창립회원 오픈이벤트
+              왼쪽 소개 칼럼과 높이를 맞추기 위해 두 박스를 같은 크기(auto-rows-fr)로 두고,
+              문구는 꼭 필요한 것만 남겼습니다. (왼쪽에 이미 있는 '100명 한정·이미 N명' 진행바는 뺐습니다) */}
+          <div className="w-full max-w-2xl mx-auto xl:mx-0 rounded-3xl bg-green-950/70 border-2 border-amber-300/40 backdrop-blur-sm p-4">
+            <div className="text-center mb-2.5">
+              <span className="text-amber-300 font-black text-xl sm:text-2xl">🎉 창립회원 오픈이벤트</span>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 1번째 오픈이벤트 */}
-            <div className="bg-white/10 rounded-2xl border border-white/20 p-6 sm:p-7">
-              <span className="inline-block px-3.5 py-1.5 rounded-full bg-amber-400 text-green-950 text-base sm:text-lg font-black mb-4">
-                1번째 오픈이벤트
-              </span>
+            <div className="grid grid-cols-1 xl:auto-rows-fr gap-2.5">
+              {/* 1번째 오픈이벤트 */}
+              <div className="bg-white/10 rounded-2xl border border-white/20 p-4 flex flex-col">
+                <span className="self-start px-3 py-1 rounded-full bg-amber-400 text-green-950 text-sm sm:text-base font-black mb-2.5">
+                  1번째 오픈이벤트
+                </span>
 
-              <p className="text-white font-black text-2xl sm:text-3xl leading-tight mb-4">
-                창립회원 신규가입 즉시<br />
-                <span className="text-amber-300">1,000 마당P</span> 지급!
-              </p>
-
-              {/* 활동 적립 안내 — 시니어분들이 한눈에 읽으실 수 있게 크게 표시합니다.
-                  실제 지급은 운영자 확인 후이므로 그 점도 함께 적어둡니다. */}
-              <div className="bg-emerald-950/50 rounded-2xl px-5 py-4 mb-4 border border-amber-300/30">
-                <p className="text-white font-black text-xl sm:text-2xl leading-snug">
-                  구장리뷰 · 맛집 · 동반자모집<br />
-                  글 하나에 <span className="text-amber-300">+300 마당P</span>
-                </p>
-                <p className="text-green-100 font-bold text-base sm:text-lg mt-2">
-                  운영자 확인 후 24시간 안에 넣어드립니다
-                </p>
-              </div>
-
-              <p className="text-amber-200 font-black text-lg sm:text-xl leading-snug mb-5">
-                모은 마당P는 <span className="text-white">마당P 장터</span>에서{' '}
-                제품으로 바꿔 가세요!
-              </p>
-
-              <div className="w-full h-4 bg-emerald-950/60 rounded-full overflow-hidden mb-2">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-400 to-amber-300 rounded-full transition-all duration-700"
-                  style={{ width: `${Math.max(founderProgress, 2)}%` }}
-                />
-              </div>
-              <p className="text-white font-black text-lg sm:text-xl">
-                현재 <span className="text-amber-300 text-2xl sm:text-3xl">{totalUsers}</span> / {FOUNDER_GOAL.toLocaleString()}명
-              </p>
-
-              {/* 마당P가 어떻게 쌓이고 어디에 쓰이는지 —
-                  처음 오신 어르신도 흐름을 한눈에 아시도록 3단계로 보여드립니다. */}
-              <div className="mt-6 pt-5 border-t border-white/20">
-                <p className="text-center text-amber-200 font-black text-lg sm:text-xl mb-4">
-                  마당P, 이렇게 쓰입니다
+                <p className="text-white font-black text-xl sm:text-2xl leading-tight mb-2.5">
+                  가입 즉시 <span className="text-amber-300">1,000 마당P</span> 지급!
                 </p>
 
-                <div className="flex items-start justify-between gap-1">
-                  {POINT_STEPS.map((step, i) => (
-                    <React.Fragment key={step.no}>
-                      <div className="flex-1 text-center min-w-0">
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-3xl sm:text-4xl mb-2">
-                          {step.emoji}
+                {/* 마당P가 어떻게 쌓이고 어디에 쓰이는지 — 3단계로 짧게 */}
+                <div className="flex-1 flex flex-col justify-center bg-emerald-950/50 rounded-2xl px-3 py-2 border border-amber-300/30">
+                  <div className="flex flex-col min-[400px]:flex-row items-stretch min-[400px]:items-start justify-between gap-1.5 min-[400px]:gap-1">
+                    {POINT_STEPS.map((step, i) => (
+                      <React.Fragment key={step.no}>
+                        <div className="flex-1 text-center min-w-0">
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-2xl sm:text-3xl mb-1.5">
+                            {step.emoji}
+                          </div>
+                          <p className="text-white font-black text-base sm:text-lg leading-tight">{step.title}</p>
+                          <p className="text-amber-200 font-bold text-sm sm:text-base leading-snug mt-0.5 break-keep">
+                            {step.short}
+                          </p>
                         </div>
-                        <p className="text-white font-black text-base sm:text-lg leading-tight">
-                          {step.title}
-                        </p>
-                        <p className="text-green-100 font-bold text-sm sm:text-base leading-snug mt-0.5 whitespace-pre-line break-keep">
-                          {step.desc}
-                        </p>
-                      </div>
-                      {i < POINT_STEPS.length - 1 && (
-                        <div className="pt-4 sm:pt-5 text-amber-300 text-2xl sm:text-3xl font-black shrink-0">
-                          →
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
+                        {i < POINT_STEPS.length - 1 && (
+                          <div className="text-center min-[400px]:pt-5 text-amber-300 text-2xl font-black shrink-0">
+                            <span className="min-[400px]:hidden">↓</span>
+                            <span className="hidden min-[400px]:inline">→</span>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
                 </div>
 
                 <button
@@ -185,133 +145,92 @@ export const MainHomeSection: React.FC = () => {
                     setActiveTab('pointmarket');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="mt-5 w-full py-4 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-amber-300/60 text-amber-200 font-black text-lg sm:text-xl transition-colors cursor-pointer"
+                  className="mt-auto pt-3 w-full cursor-pointer"
                 >
-                  🎁 마당P 장터 구경하기 →
+                  <span className="block w-full py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-amber-300/60 text-amber-200 font-black text-base sm:text-lg transition-colors">
+                    🎁 마당P 장터 구경하기 →
+                  </span>
                 </button>
               </div>
-            </div>
 
-            {/* 2번째 오픈이벤트 */}
-            {monthlyDrawInfo && (
-              <div className="bg-white/10 rounded-2xl border border-white/20 p-6 sm:p-7">
-                <span className="inline-block px-3.5 py-1.5 rounded-full bg-violet-400 text-violet-950 text-base sm:text-lg font-black mb-4">
-                  2번째 오픈이벤트
-                </span>
+              {/* 2번째 오픈이벤트 */}
+              {monthlyDrawInfo && (
+                <div className="bg-white/10 rounded-2xl border border-white/20 p-4 flex flex-col">
+                  <span className="self-start px-3 py-1 rounded-full bg-violet-400 text-violet-950 text-sm sm:text-base font-black mb-2.5">
+                    2번째 오픈이벤트
+                  </span>
 
-                {/* 제품 사진과 성분 안내를 나란히 — 누르시면 크게 볼 수 있습니다 */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <p className="text-white font-black text-xl sm:text-2xl leading-tight mb-2">
+                    신규 가입 시 경품 <span className="text-amber-300">자동응모!</span>
+                  </p>
+
+                  {/* 경품 제품 사진 — 가로형 한 장이라 어느 화면에서도 잘리지 않습니다 */}
                   <button
                     type="button"
                     onClick={() => setZoomImage(WELITA_PRODUCT_IMAGE_URL)}
-                    className="rounded-2xl overflow-hidden bg-white border-2 border-amber-300/60 shadow-lg cursor-zoom-in"
+                    className="block w-full max-w-[320px] mx-auto mb-2 rounded-xl overflow-hidden border-2 border-amber-300/60 cursor-zoom-in"
                     title="크게 보기"
                   >
                     <img
                       src={WELITA_PRODUCT_IMAGE_URL}
-                      alt="웰리타-Y 밀크씨슬 테아닌 영양제 3병 세트 (3개월분)"
-                      className="w-full h-auto object-cover"
+                      alt="웰리타-Y 간건강 밀크씨슬 · 스트레스 완화 테아닌 영양제"
+                      className="w-full h-auto"
                     />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setZoomImage(WELITA_INGREDIENT_IMAGE_URL)}
-                    className="rounded-2xl overflow-hidden bg-white border-2 border-amber-300/60 shadow-lg cursor-zoom-in"
-                    title="크게 보기"
-                  >
-                    <img
-                      src={WELITA_INGREDIENT_IMAGE_URL}
-                      alt="웰리타-Y 주요 성분 안내 — 밀크씨슬, L-테아닌, 비타민D, 마그네슘"
-                      className="w-full h-auto object-cover"
-                    />
-                  </button>
-                </div>
-                <p className="text-center text-sm sm:text-base font-bold text-green-100 mb-4">
-                  👆 사진을 누르시면 크게 보실 수 있습니다
-                </p>
 
-                <p className="text-white font-black text-2xl sm:text-3xl leading-tight mb-4">
-                  신규 가입 시 경품 <span className="text-amber-300">자동응모!</span>
-                </p>
+                  <p className="text-amber-200 font-black text-base sm:text-lg leading-snug">
+                    랜덤추첨 1분께 <span className="text-white">{monthlyDrawInfo.prize.value}</span> 웰리타 영양제 증정
+                  </p>
 
-                <p className="text-amber-200 font-black text-xl sm:text-2xl leading-snug mb-4">
-                  랜덤추첨 1분께<br />
-                  <span className="text-white">{monthlyDrawInfo.prize.value}</span> 웰리타 영양제 증정
-                </p>
+                  <p className="text-green-100 font-bold text-sm sm:text-base mt-1">
+                    👆 사진 누르면 크게 · 현재{' '}
+                    <span className="text-amber-300 font-black">{monthlyDrawInfo.eligibleCount}명</span> 응모 중
+                    {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 추첨 완료'}
+                  </p>
 
-                <p className="text-white font-black text-lg sm:text-xl mb-3">
-                  현재 <span className="text-amber-300">{monthlyDrawInfo.eligibleCount}명</span> 응모 중
-                  {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 이번 달 추첨 완료!'}
-                </p>
+                  {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                      {monthlyDrawInfo.recentWinners.map((w: any, i: number) => (
+                        <span
+                          key={i}
+                          className="text-xs sm:text-sm font-black text-amber-200 bg-white/15 px-2.5 py-1 rounded-full"
+                        >
+                          🎉 {w.month} {w.nickname}님 당첨
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (
-                  <div className="mb-4 flex items-center gap-2 flex-wrap">
-                    {monthlyDrawInfo.recentWinners.map((w: any, i: number) => (
-                      <span
-                        key={i}
-                        className="text-base sm:text-lg font-black text-amber-200 bg-white/15 px-3.5 py-1.5 rounded-full"
-                      >
-                        🎉 {w.month} {w.nickname}님 당첨
-                      </span>
-                    ))}
+                  <div className="mt-auto pt-3">
+                    <a
+                      href={monthlyDrawInfo.prize.sellerProfileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-full py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-amber-300/60 text-amber-200 font-black text-base sm:text-lg text-center transition-colors"
+                    >
+                      제품보기 : {monthlyDrawInfo.prize.brand} →
+                    </a>
+                    <p className="text-green-200/80 font-medium text-xs mt-1.5 leading-snug">
+                      * 본 경품은 {monthlyDrawInfo.prize.brand}에서 후원받은 제품입니다.
+                    </p>
                   </div>
-                )}
-
-                <a
-                  href={monthlyDrawInfo.prize.sellerProfileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block text-lg sm:text-xl font-black text-amber-200 underline hover:text-amber-100 mb-3"
-                >
-                  제품보기 : {monthlyDrawInfo.prize.brand} →
-                </a>
-
-                <p className="text-base sm:text-lg font-bold text-green-100 leading-snug pt-3 border-t border-white/20">
-                  * {monthlyDrawInfo.prize.brand}는 파크골프마당 공식 후원 업체이며,{' '}
-                  <br className="hidden sm:block" />
-                  본 경품은 후원받은 제품입니다.
-                </p>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
+          </div>
           </div>
         </div>
       </section>
 
-      {/* Category Cards */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-10">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {categoryCards.map(card => (
-            <button
-              key={card.id}
-              onClick={() => {
-                setActiveTab(card.id);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="text-left bg-white rounded-2xl border border-slate-200 hover:shadow-lg transition-all cursor-pointer overflow-hidden group"
-            >
-              <div className="aspect-video overflow-hidden bg-slate-100">
-                <img
-                  src={card.image}
-                  alt={card.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-sm sm:text-base text-slate-900">{card.title}</span>
-                  <span className="w-7 h-7 rounded-full bg-green-900 text-white flex items-center justify-center text-xs group-hover:bg-emerald-600 transition-colors">
-                    →
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1">{card.desc}</p>
-              </div>
-            </button>
-          ))}
+
+
+      {/* 후원사 배너(왼쪽) + 유튜브·밴드(오른쪽, 위아래로) */}
+      <section className="bg-slate-50 border-y border-slate-200 py-10 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-5 lg:gap-6 items-stretch">
+          <SponsorBannerSection />
+          <SocialChannelsSection />
         </div>
       </section>
-
-      {/* 후원사 배너 — 카테고리 카드를 본 뒤에 나오도록 아래에 둡니다 */}
-      <SponsorBannerSection />
 
       {/* 사진 크게 보기 */}
       {zoomImage && (
@@ -330,9 +249,6 @@ export const MainHomeSection: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* 유튜브 · 네이버 밴드 안내 — 카테고리 카드 바로 아래에 둡니다 */}
-      <SocialChannelsSection />
 
       {/* Closing Quote */}
       <section className="bg-green-50 py-8 px-4 text-center">

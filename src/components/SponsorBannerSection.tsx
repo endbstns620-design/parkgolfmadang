@@ -52,17 +52,17 @@ export const SponsorBannerSection: React.FC = () => {
   const points = Array.isArray(banner.points) ? banner.points.filter(p => p?.name) : [];
 
   return (
-    <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-10">
+    <div className="h-full flex flex-col">
       <a
         href={banner.linkUrl || '#'}
         target="_blank"
         rel="noopener noreferrer sponsored"
         onClick={() => trackMainBanner(banner.id, 'click')}
-        className="block rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow cursor-pointer bg-gradient-to-br sm:bg-gradient-to-r from-green-950 via-green-800 to-green-700"
+        className="flex-1 flex flex-col rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow cursor-pointer bg-gradient-to-br from-green-950 via-green-800 to-green-700"
       >
-        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-7 p-5 sm:p-6">
+        <div className="flex-1 flex flex-col items-center sm:flex-row sm:items-center gap-5 p-5 sm:p-6">
           {banner.imageUrl && (
-            <div className="w-40 h-40 sm:w-36 sm:h-36 lg:w-44 lg:h-44 shrink-0 rounded-2xl bg-white border-4 border-amber-300 overflow-hidden">
+            <div className="w-36 h-36 sm:w-32 sm:h-32 lg:w-36 lg:h-36 shrink-0 self-center rounded-2xl bg-white border-4 border-amber-300 overflow-hidden">
               <img
                 src={banner.imageUrl}
                 alt={banner.sponsorName || '후원사 제품 사진'}
@@ -114,7 +114,10 @@ export const SponsorBannerSection: React.FC = () => {
             )}
           </div>
 
-          <span className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-green-950 font-black text-lg sm:text-xl shadow-[0_4px_0_#d97706] transition-colors">
+        </div>
+
+        <div className="px-5 sm:px-6 pb-5 sm:pb-6">
+          <span className="w-full inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-amber-400 hover:bg-amber-300 text-green-950 font-black text-lg sm:text-xl shadow-[0_4px_0_#d97706] transition-colors">
             {banner.buttonText || '자세히 보기'}
             <ExternalLink className="w-5 h-5" />
           </span>
@@ -142,6 +145,6 @@ export const SponsorBannerSection: React.FC = () => {
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 };

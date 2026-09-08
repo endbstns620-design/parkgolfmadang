@@ -815,65 +815,6 @@ async function startServer() {
     });
   });
 
-  // ---- 초보가이드 영상 (1~5편, 관리자만 업로드 가능) ----
-  // MP4 파일은 용량이 커서 JSON에 담지 않고, 서버 디스크(영구 볼륨)에 직접 저장합니다.
-  // ⚠️ Railway 볼륨 용량 제한을 넘으면 업로드가 실패하니, 볼륨 크기를 충분히 늘려주세요.
-  const videosDir = path.join(process.cwd(), "data", "videos");
-  if (!fs.existsSync(videosDir)) {
-    fs.mkdirSync(videosDir, { recursive: true });
-  }
-
-  const videoUpload = multer({
-    storage: multer.diskStorage({
-      destination: (_req, _file, cb) => cb(null, videosDir),
-      filename: (req, _file, cb) => cb(null, `guide-${req.params.slot}.mp4`)
-    }),
-    limits: { fileSize: 300 * 1024 * 1024 }, // 편당 최대 300MB
-    fileFilter: (_req, file, cb) => {
-      if (file.mimetype !== "video/mp4") {
-        return cb(new Error("MP4 파일만 업로드할 수 있습니다."));
-      }
-      cb(null, true);
-    }
-  });
-
-  // 업로드된 영상 파일을 그대로 내려주는 정적 경로
-  app.use("/videos", express.static(videosDir));
-
-  app.get("/api/guide-videos", (_req, res) => {
-    const meta = readJsonFile<Record<string, { uploadedAt: string; fileName: string }>>("guide-videos.json", {});
-    res.json({ success: true, videos: meta });
-  });
-
-  app.post("/api/guide-videos/:slot", requireAdmin, (req, res) => {
-    const slot = req.params.slot;
-    if (!["1", "2", "3", "4", "5"].includes(slot)) {
-      return res.status(400).json({ success: false, error: "잘못된 편 번호입니다." });
-    }
-    videoUpload.single("video")(req, res, err => {
-      if (err) {
-        return res.status(400).json({ success: false, error: err.message || "업로드에 실패했습니다." });
-      }
-      if (!req.file) {
-        return res.status(400).json({ success: false, error: "영상 파일이 없습니다." });
-      }
-      const meta = readJsonFile<Record<string, any>>("guide-videos.json", {});
-      meta[slot] = { uploadedAt: new Date().toISOString(), fileName: `guide-${slot}.mp4` };
-      writeJsonFile("guide-videos.json", meta);
-      res.status(201).json({ success: true, videoUrl: `/videos/guide-${slot}.mp4` });
-    });
-  });
-
-  app.delete("/api/guide-videos/:slot", requireAdmin, (req, res) => {
-    const slot = req.params.slot;
-    const filePath = path.join(videosDir, `guide-${slot}.mp4`);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    const meta = readJsonFile<Record<string, any>>("guide-videos.json", {});
-    delete meta[slot];
-    writeJsonFile("guide-videos.json", meta);
-    res.json({ success: true });
-  });
-
   // ---- 구장 근처 맛집 게시판 ----
   // 방문자 누구나 글을 쓸 수 있고(스팸 필터만 적용), 본인 글은 삭제 토큰으로 직접 삭제할 수 있습니다.
   // 서버에 저장된 데이터가 없으면 사전 조사한 30곳(RESTAURANT_SEED)으로 시작합니다.

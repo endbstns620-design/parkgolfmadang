@@ -6,7 +6,6 @@ import { HeaderNavbar } from './components/HeaderNavbar';
 import { MainHomeSection } from './components/MainHomeSection';
 import { ParkCoursesSection } from './components/ParkCoursesSection';
 import { TournamentSection } from './components/TournamentSection';
-import { BeginnerVideoGuideSection } from './components/BeginnerVideoGuideSection';
 import { ReviewsSection } from './components/ReviewsSection';
 import { ClubMatchingSection } from './components/ClubMatchingSection';
 import { AdsSection } from './components/AdsSection';
@@ -53,9 +52,6 @@ const ParkGolfApp: React.FC = () => {
 
       case 'tournaments':
         return <TournamentSection />;
-
-      case 'news':
-        return <BeginnerVideoGuideSection />;
 
       case 'matching':
         return <ClubMatchingSection />;

@@ -144,9 +144,6 @@ interface ParkGolfContextType {
   addCourse: (course: Omit<ParkCourse, 'id' | 'rating' | 'reviewCount'>) => void;
   updateCourse: (id: string, course: Partial<ParkCourse>) => void;
   deleteCourse: (id: string) => void;
-  guideVideos: Record<string, { uploadedAt: string; fileName: string }>;
-  uploadGuideVideo: (slot: string, file: File) => Promise<boolean>;
-  deleteGuideVideo: (slot: string) => Promise<void>;
 
   // CRUD for Tournaments
   addTournament: (tour: Omit<Tournament, 'id'>) => void;
@@ -272,14 +269,13 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const [coupangProducts, setCoupangProducts] = useState<CoupangProduct[]>([]);
   const [restaurants, setRestaurants] = useState<RestaurantPost[]>([]);
-  const [guideVideos, setGuideVideos] = useState<Record<string, { uploadedAt: string; fileName: string }>>({});
 
   // 서버에 저장된 리뷰 · 동반자모집 · 광고 · 쿠팡파트너스 상품을 불러옵니다.
   // 이렇게 해야 방문자 A가 남긴 글을 방문자 B도 볼 수 있습니다 (localStorage는 브라우저별로 분리되어 있어 공유되지 않습니다).
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes, pointShopRes, authStatsRes, monthlyDrawRes, mainBannersRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, pointShopRes, authStatsRes, monthlyDrawRes, mainBannersRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
@@ -287,7 +283,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           fetch('/api/restaurants'),
           fetch('/api/tournaments'),
           fetch('/api/course-overrides'),
-          fetch('/api/guide-videos'),
           fetch('/api/point-shop'),
           fetch('/api/auth/stats'),
           fetch('/api/monthly-draw/info'),
@@ -332,10 +327,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               prev.map(c => (data.overrides[c.id] ? { ...c, ...data.overrides[c.id] } : c))
             );
           }
-        }
-        if (guideVideosRes.ok) {
-          const data = await guideVideosRes.json();
-          if (data.success) setGuideVideos(data.videos);
         }
         if (pointShopRes.ok) {
           const data = await pointShopRes.json();
@@ -1046,42 +1037,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // 초보가이드 영상 업로드 (관리자 전용, MP4 파일)
-  const uploadGuideVideo = async (slot: string, file: File): Promise<boolean> => {
-    try {
-      const formData = new FormData();
-      formData.append('video', file);
-      const res = await fetch(`/api/guide-videos/${slot}`, {
-        method: 'POST',
-        headers: adminAuthHeaders(), // Content-Type은 지정하지 않음 (브라우저가 자동으로 boundary 포함해서 설정)
-        body: formData
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || '영상 업로드에 실패했습니다.');
-        return false;
-      }
-      setGuideVideos(prev => ({ ...prev, [slot]: { uploadedAt: new Date().toISOString(), fileName: `guide-${slot}.mp4` } }));
-      return true;
-    } catch (err) {
-      console.error('영상 업로드 실패:', err);
-      alert('영상 업로드 중 오류가 발생했습니다. 파일 용량이 너무 크지 않은지 확인해주세요.');
-      return false;
-    }
-  };
 
-  const deleteGuideVideo = async (slot: string): Promise<void> => {
-    if (!window.confirm(`${slot}편 영상을 삭제하시겠습니까?`)) return;
-    try {
-      await fetch(`/api/guide-videos/${slot}`, { method: 'DELETE', headers: adminAuthHeaders() });
-      setGuideVideos(prev => {
-        const next = { ...prev };
-        delete next[slot];
-        return next;
-      });
-    } catch (err) {
-      console.error('영상 삭제 실패:', err);
-    }
-  };
 
   // Tournament CRUD
   const addTournament = (tourData: Omit<Tournament, 'id'>) => {
@@ -1571,9 +1527,6 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         addCourse,
         updateCourse,
         deleteCourse,
-        guideVideos,
-        uploadGuideVideo,
-        deleteGuideVideo,
         addTournament,
         updateTournament,
         deleteTournament,

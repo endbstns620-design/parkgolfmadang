@@ -7,7 +7,6 @@ import {
   Users,
   Star,
   Megaphone,
-  BookOpen,
   Menu,
   X,
   Building2,
@@ -54,15 +53,6 @@ export const HeaderNavbar: React.FC = () => {
       icon: Trophy,
       badge: `${tournaments.length}`,
       badgeColor: 'bg-amber-100 text-amber-900'
-    },
-    {
-      id: 'news',
-      title: '초보 가이드',
-      label: '초보 가이드',
-      shortLabel: '가이드',
-      icon: BookOpen,
-      badge: '필독',
-      badgeColor: 'bg-blue-100 text-blue-900'
     },
     {
       id: 'matching',

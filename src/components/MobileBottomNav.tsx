@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { MapPin, Trophy, BookOpen, Users, Star, UtensilsCrossed, ShoppingBag, Coins } from 'lucide-react';
+import { MapPin, Trophy, Users, Star, UtensilsCrossed, ShoppingBag, Coins } from 'lucide-react';
 
 export const MobileBottomNav: React.FC = () => {
   const { activeTab, setActiveTab, matches, reviews } = useParkGolf();
@@ -35,18 +35,6 @@ export const MobileBottomNav: React.FC = () => {
         >
           <Trophy className={`w-[22px] h-[22px] ${activeTab === 'tournaments' ? 'text-amber-600 stroke-[2.5]' : 'stroke-[1.75]'}`} />
           <span className="text-[11px] mt-0.5 font-extrabold whitespace-nowrap">대회</span>
-        </button>
-
-        {/* Tab 3: 초보가이드 */}
-        <button
-          id="m-nav-news"
-          onClick={() => handleTabClick('news')}
-          className={`flex flex-col items-center justify-center py-1.5 rounded-lg transition-colors cursor-pointer ${
-            activeTab === 'news' ? 'text-blue-700 font-black bg-blue-50/80' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <BookOpen className={`w-[22px] h-[22px] ${activeTab === 'news' ? 'text-emerald-600 stroke-[2.5]' : 'stroke-[1.75]'}`} />
-          <span className="text-[11px] mt-0.5 font-extrabold whitespace-nowrap">가이드</span>
         </button>
 
         {/* Tab 4: 동반자모집 */}
