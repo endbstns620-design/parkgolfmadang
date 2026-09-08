@@ -47,25 +47,68 @@ export const TournamentSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Calculate D-day
-  const getDDay = (eventDateStr: string) => {
+  // 일정 글자가 '2026-09-\n01'처럼 날짜 중간에서 잘리지 않도록
+  // 띄어쓰기 단위로만 줄이 바뀌게 합니다.
+  const ScheduleText = ({ text }: { text: string }) => (
+    <>
+      {text.split(' ').map((word, i) => (
+        <span key={i} className="inline-block whitespace-nowrap">
+          {word}
+          {i < text.split(' ').length - 1 ? '\u00A0' : ''}
+        </span>
+      ))}
+    </>
+  );
+
+  // 대회의 남은 일수를 계산합니다.
+  // rank : 목록 정렬에 쓰는 순서 (0=진행중, 1=시작 전, 2=종료)
+  // days : 시작까지 남은 일수 (정렬 보조값)
+  const DAY_MS = 1000 * 60 * 60 * 24;
+
+  const getDDayInfo = (startStr: string, endStr?: string) => {
+    const fallback = { label: '', color: '', rank: 3, days: Number.MAX_SAFE_INTEGER };
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const target = new Date(eventDateStr);
-      target.setHours(0, 0, 0, 0);
-      const diffTime = target.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      if (diffDays === 0) return { label: 'D-Day 오늘', color: 'bg-red-500 text-white animate-bounce' };
-      if (diffDays > 0) return { label: `D-${diffDays}`, color: 'bg-amber-100 text-amber-900 border border-amber-300' };
-      return { label: '대회종료', color: 'bg-slate-200 text-slate-700' };
+
+      const start = new Date(startStr);
+      if (isNaN(start.getTime())) return fallback;
+      start.setHours(0, 0, 0, 0);
+
+      const endRaw = endStr ? new Date(endStr) : start;
+      const end = isNaN(endRaw.getTime()) ? start : endRaw;
+      end.setHours(0, 0, 0, 0);
+
+      const toStart = Math.round((start.getTime() - today.getTime()) / DAY_MS);
+      const toEnd = Math.round((end.getTime() - today.getTime()) / DAY_MS);
+
+      // 아직 시작 전
+      if (toStart > 0) {
+        return {
+          label: `D-${toStart}`,
+          color: 'bg-amber-100 text-amber-900 border border-amber-300',
+          rank: 1,
+          days: toStart
+        };
+      }
+      // 오늘 시작
+      if (toStart === 0) {
+        return { label: 'D-Day 오늘', color: 'bg-red-500 text-white animate-bounce', rank: 0, days: 0 };
+      }
+      // 시작했지만 아직 끝나지 않음
+      if (toEnd >= 0) {
+        return { label: '대회 진행중', color: 'bg-red-500 text-white', rank: 0, days: toStart };
+      }
+      // 이미 끝난 대회
+      return { label: '대회종료', color: 'bg-slate-200 text-slate-700', rank: 2, days: -toEnd };
     } catch {
-      return { label: '', color: '' };
+      return fallback;
     }
   };
 
   const filteredTournaments = useMemo(() => {
-    return tournaments.filter(t => {
+    // 정렬 기준: 진행중인 대회 → 날짜가 가까운 대회 → 끝난 대회(최근 순)
+    const filtered = tournaments.filter(t => {
       // Region filter
       if (selectedRegion !== '전체') {
         if (t.region && t.region !== selectedRegion) return false;
@@ -87,6 +130,14 @@ export const TournamentSection: React.FC = () => {
         if (!matchTitle && !matchLoc && !matchOrg && !matchDesc) return false;
       }
       return true;
+    });
+
+    return filtered.sort((a, b) => {
+      const ka = getDDayInfo(a.eventDate, a.endDate);
+      const kb = getDDayInfo(b.eventDate, b.endDate);
+      if (ka.rank !== kb.rank) return ka.rank - kb.rank;
+      if (ka.days !== kb.days) return ka.days - kb.days;
+      return a.title.localeCompare(b.title, 'ko');
     });
   }, [tournaments, selectedRegion, selectedCategory, statusFilter, searchQuery]);
 
@@ -254,181 +305,97 @@ export const TournamentSection: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTournaments.map(tour => {
-            const dday = getDDay(tour.eventDate);
-            return (
-              <div
-                key={tour.id}
-                id={`tour-card-${tour.id}`}
-                className="bg-white rounded-3xl border border-amber-200/90 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between hover-lift overflow-hidden group"
-              >
-                {/* Top Image & Ribbons */}
-                <div className="relative h-44 sm:h-48 w-full bg-slate-100 overflow-hidden">
-                  <img
-                    src={
-                      tour.posterUrl ||
-                      '/images/tournament-sunset.jpg'
-                    }
-                    alt={tour.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        /* 게시판 형식 — 대회명을 누르면 상세 정보가 열립니다.
+           시니어분들이 목록을 한눈에 훑고 원하는 대회만 골라 보시기 편합니다. */
+        <div className="bg-white rounded-3xl border border-amber-200 overflow-hidden shadow-sm">
+          {/* 표 머리글 — 넓은 화면에서만 보입니다 */}
+          <div className="hidden md:grid grid-cols-[56px_1fr_206px_206px_106px] gap-3 px-5 py-3 bg-green-900 text-white font-black text-[15px] lg:text-base">
+            <span className="text-center">번호</span>
+            <span>대회명</span>
+            <span>일정</span>
+            <span>장소</span>
+            <span className="text-center">접수</span>
+          </div>
 
-                  {/* Badges on Top */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 flex-wrap">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-black shadow-md ${
-                        tour.status === '접수중'
-                          ? 'bg-emerald-600 text-white'
-                          : tour.status === '마감임박'
-                          ? 'bg-rose-600 text-white animate-pulse'
-                          : tour.status === '접수예정'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-600 text-white'
-                      }`}
-                    >
-                      {tour.status}
+          <ul className="divide-y divide-slate-200">
+            {filteredTournaments.map((tour, idx) => {
+              const dday = getDDayInfo(tour.eventDate, tour.endDate);
+              const no = idx + 1;
+              const statusColor =
+                tour.status === '접수중'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                  : tour.status === '접수예정'
+                  ? 'bg-blue-100 text-blue-900 border-blue-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300';
+
+              return (
+                <li key={tour.id} id={`tour-row-${tour.id}`}>
+                  <button
+                    type="button"
+                    onClick={() => openModal('tournamentDetail', tour)}
+                    className="w-full text-left px-4 sm:px-5 py-4 hover:bg-amber-50/70 transition-colors cursor-pointer md:grid md:grid-cols-[56px_1fr_206px_206px_106px] md:gap-3 md:items-center"
+                  >
+                    {/* 번호 */}
+                    <span className="hidden md:block text-center text-slate-500 font-bold text-[15px]">{no}</span>
+
+                    {/* 대회명 — 게시판 제목 */}
+                    <span className="block min-w-0">
+                      <span className="flex items-center gap-2 flex-wrap">
+                        {tour.isFeatured && (
+                          <span className="shrink-0 px-2 py-0.5 rounded-md bg-amber-400 text-amber-950 text-xs font-black">주요</span>
+                        )}
+                        <span className="font-black text-green-950 text-lg sm:text-xl leading-snug hover:underline">
+                          {tour.title}
+                        </span>
+                        <span className={`shrink-0 px-2 py-0.5 rounded-md text-xs font-black ${dday.color}`}>
+                          {dday.label}
+                        </span>
+                      </span>
+
+                      {/* 좁은 화면에서는 일정·장소를 제목 아래에 함께 보여줍니다 */}
+                      <span className="md:hidden mt-1.5 flex flex-col gap-1 text-[15px] font-bold text-slate-600">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4 text-amber-600 shrink-0" />
+                          <ScheduleText text={tour.dateRange || tour.eventDate} />
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
+                          {tour.location}
+                        </span>
+                        <span className={`self-start px-2 py-0.5 rounded-md border text-xs font-black ${statusColor}`}>
+                          {tour.status}
+                        </span>
+                      </span>
                     </span>
 
-                    {dday.label && (
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-extrabold shadow-sm ${dday.color}`}>
-                        {dday.label}
+                    {/* 일정 (넓은 화면) */}
+                    <span className="hidden md:block text-[15px] font-bold text-slate-700 leading-snug">
+                      <ScheduleText text={tour.dateRange || tour.eventDate} />
+                    </span>
+
+                    {/* 장소 (넓은 화면) */}
+                    <span className="hidden md:block text-[15px] font-bold text-slate-700 leading-snug">
+                      {tour.location}
+                    </span>
+
+                    {/* 접수 상태 (넓은 화면) */}
+                    <span className="hidden md:flex justify-center">
+                      <span className={`px-2.5 py-1 rounded-lg border text-[13px] font-black whitespace-nowrap ${statusColor}`}>
+                        {tour.status}
                       </span>
-                    )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
 
-                    {tour.region && (
-                      <span className="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-black/60 text-emerald-300 backdrop-blur-xs">
-                        {tour.region}
-                      </span>
-                    )}
-                  </div>
-
-                  {tour.isFeatured && (
-                    <div className="absolute top-3 right-3 bg-gradient-to-l from-amber-400 to-amber-300 text-green-950 text-[11px] font-black px-2.5 py-1 rounded-full shadow flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> 메이저
-                    </div>
-                  )}
-
-                  {/* Title overlay at bottom of image */}
-                  <div className="absolute bottom-3 left-3 right-3 text-white">
-                    {tour.category && (
-                      <span className="text-[11px] font-bold text-amber-300 block mb-0.5">
-                        {tour.category}
-                      </span>
-                    )}
-                    <h3 className="text-base sm:text-lg font-black leading-snug line-clamp-2 text-white drop-shadow-md">
-                      {tour.title}
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Card Body */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    {/* Organizer */}
-                    <div className="text-xs text-slate-500 font-semibold mb-3 flex items-center gap-1">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                      <span className="truncate">{tour.organizer}</span>
-                    </div>
-
-                    {/* Spec Summary Box */}
-                    <div className="bg-amber-50/70 rounded-2xl p-3 border border-amber-200/70 space-y-1.5 text-xs text-slate-700 mb-3">
-                      <div className="flex items-start gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-slate-600">대회일: </span>
-                          <strong className="text-slate-900">{tour.dateRange}</strong>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-slate-600">접수기간: </span>
-                          <span className="text-slate-800 font-medium">{tour.registrationPeriod}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-slate-600">개최지: </span>
-                          <span className="text-slate-900 font-semibold">{tour.location}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start gap-1.5">
-                        <Gift className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold text-slate-600">총상금: </span>
-                          <strong className="text-rose-700 font-extrabold">{tour.prizePool}</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-600 line-clamp-2 mb-3 font-medium leading-relaxed">
-                      {tour.description}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* 문의 전화번호가 확인된 대회만 전화 걸기를 보여줍니다.
-                          번호가 없는 대회는 아래 "참가신청"의 공식 요강에서 확인하시면 됩니다. */}
-                      {(() => {
-                        const m = String(tour.contact || '').match(/0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4}/);
-                        return m ? (
-                          <a
-                            href={`tel:${m[0].replace(/\s/g, '')}`}
-                            className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                          >
-                            <PhoneCall className="w-4 h-4 text-green-700" />
-                            <span>전화문의</span>
-                          </a>
-                        ) : (
-                          <div className="py-2.5 px-3 rounded-xl bg-slate-100 text-slate-500 font-bold text-sm flex items-center justify-center gap-1">
-                            <PhoneCall className="w-4 h-4 text-slate-400" />
-                            <span>요강 확인</span>
-                          </div>
-                        );
-                      })()}
-
-                      {tour.linkUrl ? (
-                        <a
-                          href={tour.linkUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-green-950 font-black text-xs flex items-center justify-center gap-1 shadow-xs transition-colors cursor-pointer"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>공식 요강</span>
-                        </a>
-                      ) : (
-                        <button
-                          onClick={() => openModal('tournamentDetail', tour)}
-                          className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-500 text-green-950 font-black text-xs cursor-pointer"
-                        >
-                          요강확인
-                        </button>
-                      )}
-                    </div>
-
-                    <button
-                      id={`tour-detail-btn-${tour.id}`}
-                      onClick={() => openModal('tournamentDetail', tour)}
-                      className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
-                    >
-                      <span>대회요강 및 상세 정보</span>
-                      <ChevronRight className="w-4 h-4 text-amber-400" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          {/* 출처 안내 — 대회 정보를 어디서 확인했는지 밝힙니다 */}
+          <div className="px-5 py-4 bg-slate-50 border-t border-slate-200 text-[14px] sm:text-[15px] text-slate-600 font-medium leading-relaxed">
+            <span className="font-black text-slate-800">정보 출처</span> · 대한파크골프협회, 대한파크골프연맹,
+            파크골프투데이 등 공식 발표 자료에서 <b>대회명 · 일정 · 장소 · 접수정보 · 상금</b>만 확인해 정리했습니다.
+            각 대회를 누르시면 원문 링크를 보실 수 있습니다. 신청 전 주최측 공식 요강을 반드시 확인해주세요.
+          </div>
         </div>
       )}
     </section>
