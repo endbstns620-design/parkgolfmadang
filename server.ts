@@ -12,6 +12,9 @@ import { RESTAURANT_SEED } from "./server-lib/restaurantSeed";
 import { MAIN_BANNER_SEED } from "./server-lib/mainBannerSeed";
 import { INITIAL_TOURNAMENTS } from "./src/data/initialTournamentsData";
 import { COURSE_OVERRIDES_SEED } from "./server-lib/courseOverridesSeed";
+import { PARK_COURSES } from "./src/data/parkCoursesData";
+import { buildSlugMaps, coursePath, tournamentPath, restaurantPath, COURSE_PREFIX, TOURNAMENT_PREFIX, RESTAURANT_PREFIX } from "./src/utils/pageUrls";
+import { coursePage, tournamentPage, restaurantPage, injectSeo } from "./server-lib/seoPages";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
 
 dotenv.config();
@@ -1637,7 +1640,15 @@ async function startServer() {
 
 
   // Vite middleware for development vs static serve for production
-  if (process.env.NODE_ENV !== "production") {
+  // 배포된 서버인지 판단합니다.
+  // NODE_ENV가 설정되지 않은 곳(예: 일부 호스팅)에서도 빌드 결과(dist/index.html)가 있으면
+  // 배포 상태로 보고 정식 화면을 서비스합니다. 이걸 안 하면 구장별 주소·사이트맵이 켜지지 않습니다.
+  const distIndexPath = path.join(process.cwd(), "dist", "index.html");
+  const isProduction =
+    process.env.NODE_ENV === "production" ||
+    (process.env.NODE_ENV !== "development" && fs.existsSync(distIndexPath));
+
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -1645,9 +1656,108 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
+    const indexHtmlPath = path.join(distPath, "index.html");
+    const readIndexHtml = () => fs.readFileSync(indexHtmlPath, "utf-8");
+
+    // 구장 목록은 고정 자료라 서버 시작 때 한 번만 계산합니다.
+    const courseSlugs = buildSlugMaps(PARK_COURSES as any[]);
+    const currentTournaments = () =>
+      readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS as any[]);
+    const currentRestaurants = () =>
+      readJsonFile<any[]>("restaurants.json", RESTAURANT_SEED as any[]);
+
+    // ---- 사이트맵 자동 생성 (구장 552 + 대회 + 맛집) ----
+    // 정적 파일보다 먼저 처리해야 예전 sitemap.xml 파일이 대신 나가지 않습니다.
+    app.get("/sitemap.xml", (_req, res) => {
+      const base = "https://parkgolf-madang.co.kr";
+      const today = new Date().toISOString().slice(0, 10);
+      const urls: string[] = [
+        `<url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`
+      ];
+      courseSlugs.bySlug.forEach((_c, slug) => {
+        urls.push(`<url><loc>${base}${coursePath(slug)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`);
+      });
+      buildSlugMaps(currentTournaments().map(t => ({ ...t, name: t.title }))).bySlug.forEach((_t, slug) => {
+        urls.push(`<url><loc>${base}${tournamentPath(slug)}</loc><lastmod>${today}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`);
+      });
+      buildSlugMaps(currentRestaurants().map(r => ({ ...r, name: r.restaurantName, subRegion: r.region }))).bySlug.forEach((_r, slug) => {
+        urls.push(`<url><loc>${base}${restaurantPath(slug)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>`);
+      });
+      res
+        .type("application/xml")
+        .send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`);
+    });
+
+    // ---- 구장·대회·맛집마다 각자의 주소 ----
+    // 주소에 한글이 들어가면 Express의 경로 매칭이 못 잡아내서, 직접 해석해 처리합니다.
+    // 검색로봇은 내용이 채워진 HTML을 받고, 방문자 화면은 곧 평소 모습으로 바뀝니다.
+    app.use((req, res, next) => {
+      if (req.method !== "GET") return next();
+      let decoded: string;
+      try {
+        decoded = decodeURIComponent(req.path);
+      } catch {
+        return next();
+      }
+
+      if (decoded.startsWith(COURSE_PREFIX)) {
+        const slug = decoded.slice(COURSE_PREFIX.length);
+        const course = courseSlugs.bySlug.get(slug);
+        if (!course) return next();
+
+        // 내용이 얇은 구장도 쓸모 있는 페이지가 되도록, 같은 지역 구장과 근처 맛집을 연결해 줍니다.
+        // 같은 시·군의 구장을 먼저 채우고, 모자라면 같은 권역에서 보탭니다.
+        const others = (PARK_COURSES as any[]).filter(o => o.id !== course.id);
+        const sameCity = others.filter(o => o.subRegion === course.subRegion);
+        const sameArea = others.filter(o => o.subRegion !== course.subRegion && o.region === course.region);
+        const picked = [...sameCity, ...sameArea].slice(0, 8);
+        const allSameCity = picked.length > 0 && picked.every(o => o.subRegion === course.subRegion);
+        const nearbyCourses = picked.map(o => ({
+          name: o.name,
+          scale: o.courseScale,
+          path: coursePath(courseSlugs.slugById.get(o.id) || "")
+        }));
+
+        const restMaps = buildSlugMaps(
+          currentRestaurants().map(r => ({ ...r, name: r.restaurantName, subRegion: r.region }))
+        );
+        const nearbyRestaurants: { name: string; path: string; menu?: string }[] = [];
+        restMaps.bySlug.forEach((r: any, rslug) => {
+          if (r.courseName && String(r.courseName).includes(String(course.name).replace(/파크골프장.*$/, ""))) {
+            nearbyRestaurants.push({ name: r.restaurantName, menu: r.menu, path: restaurantPath(rslug) });
+          }
+        });
+
+        return res.send(
+          injectSeo(
+            readIndexHtml(),
+            coursePage(course, coursePath(slug), { nearbyCourses, nearbyRestaurants: nearbyRestaurants.slice(0, 5), allSameCity })
+          )
+        );
+      }
+
+      if (decoded.startsWith(TOURNAMENT_PREFIX)) {
+        const slug = decoded.slice(TOURNAMENT_PREFIX.length);
+        const tour = buildSlugMaps(currentTournaments().map(t => ({ ...t, name: t.title }))).bySlug.get(slug);
+        if (!tour) return next();
+        return res.send(injectSeo(readIndexHtml(), tournamentPage(tour, tournamentPath(slug))));
+      }
+
+      if (decoded.startsWith(RESTAURANT_PREFIX)) {
+        const slug = decoded.slice(RESTAURANT_PREFIX.length);
+        const rest = buildSlugMaps(
+          currentRestaurants().map(r => ({ ...r, name: r.restaurantName, subRegion: r.region }))
+        ).bySlug.get(slug);
+        if (!rest) return next();
+        return res.send(injectSeo(readIndexHtml(), restaurantPage(rest, restaurantPath(slug))));
+      }
+
+      return next();
+    });
+
     app.use(express.static(distPath));
     app.get("*", (_req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      res.sendFile(indexHtmlPath);
     });
   }
 

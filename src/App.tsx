@@ -4,6 +4,7 @@ import { ParkGolfProvider, useParkGolf } from './context/ParkGolfContext';
 import { SeniorAccessibilityBar } from './components/SeniorAccessibilityBar';
 import { HeaderNavbar } from './components/HeaderNavbar';
 import { MainHomeSection } from './components/MainHomeSection';
+import { DeepLinkOpener } from './components/DeepLinkOpener';
 import { ParkCoursesSection } from './components/ParkCoursesSection';
 import { TournamentSection } from './components/TournamentSection';
 import { ReviewsSection } from './components/ReviewsSection';
@@ -90,6 +91,8 @@ const ParkGolfApp: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-stone-50 text-slate-900 selection:bg-amber-300 selection:text-green-950 font-sans antialiased pb-16 md:pb-0">
+      {/* 검색으로 구장·대회 주소를 통해 들어온 분을 해당 화면으로 안내합니다 */}
+      <DeepLinkOpener />
       {/* Sticky Combined Header: Senior Accessibility & Navigation */}
       <div className="sticky top-0 z-50 w-full shadow-md">
         {/* 1. Senior Accessibility & Font Scale Bar */}
