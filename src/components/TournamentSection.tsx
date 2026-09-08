@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { Tournament, RegionCategory, TournamentCategory } from '../types';
+import { Tournament, RegionCategory } from '../types';
 import {
   Trophy,
   Calendar,
@@ -11,7 +11,7 @@ import {
   PlusCircle,
   Clock,
   Sparkles,
-  Award,
+  ClipboardCheck,
   ChevronRight,
   AlertCircle,
   Search,
@@ -31,19 +31,9 @@ const REGION_OPTIONS: RegionCategory[] = [
   '제주'
 ];
 
-const CATEGORY_OPTIONS: TournamentCategory[] = [
-  '전체',
-  '전국 메이저',
-  '지자체장기·시장기',
-  '시·도협회장기',
-  '시니어·실버',
-  '부부·혼성 페스티벌'
-];
-
 export const TournamentSection: React.FC = () => {
   const { tournaments, openModal, isAdmin } = useParkGolf();
   const [selectedRegion, setSelectedRegion] = useState<RegionCategory>('전체');
-  const [selectedCategory, setSelectedCategory] = useState<TournamentCategory>('전체');
   const [statusFilter, setStatusFilter] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -114,10 +104,6 @@ export const TournamentSection: React.FC = () => {
         if (t.region && t.region !== selectedRegion) return false;
         if (!t.region && !t.location.includes(selectedRegion.split('/')[0])) return false;
       }
-      // Category filter
-      if (selectedCategory !== '전체') {
-        if (t.category !== selectedCategory) return false;
-      }
       // Status filter
       if (statusFilter !== '전체' && t.status !== statusFilter) return false;
       // Search query
@@ -139,7 +125,7 @@ export const TournamentSection: React.FC = () => {
       if (ka.days !== kb.days) return ka.days - kb.days;
       return a.title.localeCompare(b.title, 'ko');
     });
-  }, [tournaments, selectedRegion, selectedCategory, statusFilter, searchQuery]);
+  }, [tournaments, selectedRegion, statusFilter, searchQuery]);
 
   return (
     <section id="section-tournaments" className="scroll-mt-28 py-8 sm:py-10 px-3 sm:px-6 max-w-7xl mx-auto bg-gradient-to-b from-amber-50/50 via-white to-stone-50/60 rounded-3xl my-8 border border-amber-200/80 shadow-sm">
@@ -156,14 +142,14 @@ export const TournamentSection: React.FC = () => {
               총 {tournaments.length}개 대회
             </span>
           </h2>
-          <p className="text-xs sm:text-sm md:text-base text-slate-600 mt-1 font-medium leading-relaxed">
-            전국 메이저 챔피언십, 도지사배, 시장기, 협회장기, 시니어·부부 페스티벌 일정 및 접수 요강
+          <p className="text-base sm:text-lg text-slate-600 mt-1.5 font-medium leading-relaxed">
+            전국에서 열리는 파크골프 대회일정 및 접수요강
           </p>
         </div>
 
-        {/* Action & Admin */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {isAdmin && (
+        {/* 관리자 전용 버튼 — 일반 이용자에게는 빈 여백이 생기지 않도록 아예 그리지 않습니다 */}
+        {isAdmin && (
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               id="admin-add-tournament-btn"
               onClick={() => openModal('admin')}
@@ -172,34 +158,11 @@ export const TournamentSection: React.FC = () => {
               <PlusCircle className="w-4 h-4" />
               <span>새 대회 등록 (관리자)</span>
             </button>
-          )}
-
-          {/* Quick Status Filter Pills */}
-          <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-amber-200 shadow-xs overflow-x-auto">
-            {[
-              { id: '전체', label: '전체 상태' },
-              { id: '접수중', label: '접수중' },
-              { id: '마감임박', label: '마감임박' },
-              { id: '접수예정', label: '접수예정' }
-            ].map(st => (
-              <button
-                key={st.id}
-                id={`tour-filter-${st.id}`}
-                onClick={() => setStatusFilter(st.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  statusFilter === st.id
-                    ? 'bg-amber-500 text-green-950 shadow-xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Filter Control Box (Region, Category & Search) */}
+      {/* 검색 · 개최 지역 · 접수 상태 */}
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-amber-200/90 shadow-sm space-y-4 mb-6">
         {/* Search Bar */}
         <div className="relative">
@@ -221,59 +184,68 @@ export const TournamentSection: React.FC = () => {
           )}
         </div>
 
-        {/* Region Tabs */}
-        <div>
-          <div className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-amber-700" />
-            <span>개최 지역 선택</span>
+        {/* 개최 지역 + 접수 상태 — 한 줄에 나란히 놓아 화면을 짧게 씁니다 */}
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-5">
+          {/* 개최 지역 */}
+          <div className="min-w-0">
+            <div className="text-base sm:text-lg font-black text-slate-700 mb-2.5 flex items-center gap-1.5">
+              <MapPin className="w-5 h-5 text-amber-700 shrink-0" />
+              <span>개최 지역 선택</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {REGION_OPTIONS.map(reg => (
+                <button
+                  key={reg}
+                  onClick={() => setSelectedRegion(reg)}
+                  className={`px-3.5 py-2 rounded-xl text-sm sm:text-base font-extrabold transition-all cursor-pointer ${
+                    selectedRegion === reg
+                      ? 'bg-emerald-800 text-white shadow-sm ring-1 ring-emerald-600'
+                      : 'bg-stone-100 text-slate-700 hover:bg-stone-200 border border-slate-200'
+                  }`}
+                >
+                  {reg}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {REGION_OPTIONS.map(reg => (
-              <button
-                key={reg}
-                onClick={() => setSelectedRegion(reg)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                  selectedRegion === reg
-                    ? 'bg-emerald-800 text-white shadow-sm ring-1 ring-emerald-600'
-                    : 'bg-stone-100 text-slate-700 hover:bg-stone-200 border border-slate-200'
-                }`}
-              >
-                {reg}
-              </button>
-            ))}
+
+          {/* 접수 상태 */}
+          <div className="lg:shrink-0">
+            <div className="text-base sm:text-lg font-black text-slate-700 mb-2.5 flex items-center gap-1.5">
+              <ClipboardCheck className="w-5 h-5 text-amber-700 shrink-0" />
+              <span>접수 상태</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: '전체', label: '전체 상태' },
+                { id: '접수중', label: '접수중' },
+                { id: '접수예정', label: '접수예정' },
+                { id: '접수마감', label: '접수마감' }
+              ].map(st => (
+                <button
+                  key={st.id}
+                  id={`tour-filter-${st.id}`}
+                  onClick={() => setStatusFilter(st.id)}
+                  className={`px-3.5 py-2 rounded-xl text-sm sm:text-base font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                    statusFilter === st.id
+                      ? 'bg-amber-500 text-green-950 font-black shadow-sm ring-1 ring-amber-400'
+                      : 'bg-stone-100 text-slate-700 hover:bg-stone-200 border border-slate-200'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Category Tabs */}
-        <div className="pt-2 border-t border-slate-100">
-          <div className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1">
-            <Award className="w-3.5 h-3.5 text-amber-700" />
-            <span>대회 유형 분류</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORY_OPTIONS.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-amber-500 text-green-950 font-black shadow-sm ring-1 ring-amber-400'
-                    : 'bg-amber-50/70 text-slate-700 hover:bg-amber-100/80 border border-amber-200/60'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* Real-time Notice Banner */}
-      <div className="mb-6 p-4 rounded-2xl bg-amber-100/70 border border-amber-300 flex items-start gap-3 shadow-xs">
-        <AlertCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
-        <div className="text-xs sm:text-sm leading-relaxed text-slate-700">
-          <span className="font-extrabold text-slate-900">전국 대회 안내 및 접수 주의사항 : </span>
-          대회 참가 신청 시 대한파크골프협회 공인 클럽·공인구 지참이 필수이며, 현장 규격 검사가 진행됩니다.{' '}
+      {/* 접수 주의사항 — 시니어분들이 읽기 편하도록 글씨를 크게 씁니다 */}
+      <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-amber-100/70 border border-amber-300 flex items-start gap-3 shadow-xs">
+        <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-amber-800 shrink-0 mt-0.5" />
+        <div className="text-base sm:text-lg leading-relaxed text-slate-800 font-medium">
+          <span className="font-black text-slate-900">접수 주의사항 : </span>
           <strong className="text-red-700 font-bold">
             선착순 접수 조기 마감 및 기상 이변에 따른 일정 변경이 발생할 수 있으므로, 반드시 주최측 공식 요강 및 유선 문의로 확인하시기 바랍니다.
           </strong>
@@ -290,12 +262,11 @@ export const TournamentSection: React.FC = () => {
             선택하신 조건에 맞는 대회가 없습니다.
           </h3>
           <p className="text-xs sm:text-sm text-slate-500">
-            지역 또는 대회 유형 필터를 변경하거나 검색어를 초기화해 보세요.
+            개최 지역이나 접수 상태를 바꾸시거나, 검색어를 지워보세요.
           </p>
           <button
             onClick={() => {
               setSelectedRegion('전체');
-              setSelectedCategory('전체');
               setStatusFilter('전체');
               setSearchQuery('');
             }}
