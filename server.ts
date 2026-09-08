@@ -43,6 +43,79 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Railway 같은 클라우드는 앞단에 중계 서버가 있어서, 이 설정이 없으면
+  // 모든 방문자가 같은 IP로 보입니다(→ 한 명이 막히면 전원이 막힘).
+  app.set("trust proxy", 1);
+
+  // ── 요청 제한 (같은 IP가 짧은 시간에 너무 많이 두드리는 것을 막습니다) ──
+  // 비밀번호 무차별 대입, 가짜 회원가입 대량 생성, 데이터 통째 긁어가기,
+  // 서버 다운(과부하)을 막는 기본 방어선입니다.
+  type RateBucket = { count: number; resetAt: number };
+  const rateBuckets = new Map<string, RateBucket>();
+
+  // 30분마다 만료된 기록을 비워 메모리가 쌓이지 않게 합니다.
+  const rateCleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, bucket] of rateBuckets) {
+      if (bucket.resetAt <= now) rateBuckets.delete(key);
+    }
+  }, 30 * 60 * 1000);
+  rateCleanupTimer.unref?.();
+
+  function clientKey(req: express.Request): string {
+    return req.ip || req.socket.remoteAddress || "unknown";
+  }
+
+  /**
+   * @param name    제한 구역 이름 (구역마다 따로 셉니다)
+   * @param limit   허용 횟수
+   * @param windowMs 기준 시간(밀리초)
+   * @param message 막혔을 때 이용자에게 보여줄 안내문
+   */
+  function rateLimit(name: string, limit: number, windowMs: number, message: string) {
+    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+      const key = `${name}:${clientKey(req)}`;
+      const now = Date.now();
+      const bucket = rateBuckets.get(key);
+
+      if (!bucket || bucket.resetAt <= now) {
+        rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
+        return next();
+      }
+
+      bucket.count += 1;
+      if (bucket.count > limit) {
+        const waitSec = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+        const waitMin = Math.ceil(waitSec / 60);
+        res.setHeader("Retry-After", String(waitSec));
+        console.warn(`[요청제한] ${name} 차단 — ${clientKey(req)} (${bucket.count}회)`);
+        return res.status(429).json({
+          success: false,
+          error: `${message} 약 ${waitMin}분 뒤에 다시 시도해주세요.`
+        });
+      }
+      return next();
+    };
+  }
+
+  // 로그인 성공 시에는 실패 기록을 지워, 정상 이용자가 불편을 겪지 않게 합니다.
+  function clearRateLimit(name: string, req: express.Request) {
+    rateBuckets.delete(`${name}:${clientKey(req)}`);
+  }
+
+  const limitAdminLogin = rateLimit("admin-login", 5, 15 * 60 * 1000,
+    "관리자 로그인 시도가 너무 많습니다.");
+  const limitLogin = rateLimit("login", 10, 15 * 60 * 1000,
+    "로그인 시도가 너무 많습니다.");
+  const limitRegister = rateLimit("register", 5, 24 * 60 * 60 * 1000,
+    "이 인터넷 주소에서 가입할 수 있는 횟수를 넘었습니다.");
+  const limitWrite = rateLimit("write", 10, 60 * 1000,
+    "글을 너무 빠르게 올리고 계십니다.");
+  const limitUpload = rateLimit("upload", 20, 10 * 60 * 1000,
+    "사진 올리기 횟수를 넘었습니다.");
+  const limitApi = rateLimit("api", 300, 60 * 1000,
+    "요청이 너무 많습니다.");
+
   // 1. Security & Anti-Scraping / Anti-Tampering Headers
   app.use((req, res, next) => {
     // Prevent MIME-sniffing
@@ -62,6 +135,9 @@ async function startServer() {
 
   // Limit body payload to protect from buffer overflows & DoS
   app.use(express.json({ limit: "500kb" }));
+
+  // 모든 /api 요청에 대한 전체 상한 — 데이터 통째 긁어가기와 과부하를 막습니다.
+  app.use("/api", limitApi);
 
   // 회원이 구장리뷰 · 맛집 · 동반자모집 글을 쓰면 받는 마당P (관리자 승인 후 지급)
   const ACTIVITY_POINT = 300;
@@ -289,7 +365,7 @@ async function startServer() {
     res.json({ success: true, reviews });
   });
 
-  app.post("/api/reviews", requireUser, (req: any, res) => {
+  app.post("/api/reviews", limitWrite, requireUser, (req: any, res) => {
     const body = req.body || {};
     const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
@@ -336,7 +412,7 @@ async function startServer() {
     res.json({ success: true, matches: publicMatches });
   });
 
-  app.post("/api/matches", requireUser, (req: any, res) => {
+  app.post("/api/matches", limitWrite, requireUser, (req: any, res) => {
     const body = req.body || {};
     const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
@@ -393,7 +469,7 @@ async function startServer() {
     res.json({ success: true, match: matches[idx] });
   });
 
-  app.post("/api/matches/:id/comments", requireUser, (req: any, res) => {
+  app.post("/api/matches/:id/comments", limitWrite, requireUser, (req: any, res) => {
     const body = req.body || {};
     const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
@@ -718,7 +794,7 @@ async function startServer() {
   // 올린 사진을 그대로 내려주는 정적 경로
   app.use("/product-images", express.static(productImagesDir));
 
-  app.post("/api/point-shop/upload-image", requireAdmin, (req, res) => {
+  app.post("/api/point-shop/upload-image", limitUpload, requireAdmin, (req, res) => {
     productImageUpload.single("image")(req, res, err => {
       if (err) {
         const tooBig = String(err.message || "").includes("File too large");
@@ -804,7 +880,7 @@ async function startServer() {
   });
 
   // 배너 사진 올리기 — 마당P 장터 사진과 같은 저장소를 씁니다.
-  app.post("/api/main-banners/upload-image", requireAdmin, (req, res) => {
+  app.post("/api/main-banners/upload-image", limitUpload, requireAdmin, (req, res) => {
     productImageUpload.single("image")(req, res, err => {
       if (err) {
         const tooBig = String(err.message || "").includes("File too large");
@@ -827,7 +903,7 @@ async function startServer() {
     res.json({ success: true, restaurants: publicList });
   });
 
-  app.post("/api/restaurants", requireUser, (req: any, res) => {
+  app.post("/api/restaurants", limitWrite, requireUser, (req: any, res) => {
     const body = req.body || {};
     const authorName = req.currentUser.nickname;
     const moderation = validatePostContent({
@@ -998,7 +1074,7 @@ async function startServer() {
     next();
   }
 
-  app.post("/api/admin/login", (req, res) => {
+  app.post("/api/admin/login", limitAdminLogin, (req, res) => {
     const { password } = req.body || {};
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
@@ -1007,6 +1083,7 @@ async function startServer() {
     if (password !== adminPassword) {
       return res.status(401).json({ success: false, error: "비밀번호가 올바르지 않습니다." });
     }
+    clearRateLimit("admin-login", req);
     const token = crypto.randomBytes(24).toString("hex");
     adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
     res.json({ success: true, token, expiresInMs: ADMIN_SESSION_TTL_MS });
@@ -1186,7 +1263,7 @@ async function startServer() {
     next();
   }
 
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", limitRegister, async (req, res) => {
     const { name, phone, password, nickname, preferredRegion, averageScore } = req.body || {};
     if (!name || !phone || !password || !nickname) {
       return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 비밀번호, 닉네임은 필수입니다." });
@@ -1231,7 +1308,7 @@ async function startServer() {
     res.status(201).json({ success: true, token, user: toPublicUser(newUser) });
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", limitLogin, async (req, res) => {
     const { phone, password } = req.body || {};
     if (!phone || !password) {
       return res.status(400).json({ success: false, error: "휴대폰번호와 비밀번호를 입력해주세요." });
@@ -1246,6 +1323,7 @@ async function startServer() {
     if (!ok) {
       return res.status(401).json({ success: false, error: "휴대폰번호 또는 비밀번호가 올바르지 않습니다." });
     }
+    clearRateLimit("login", req);
     const token = crypto.randomBytes(24).toString("hex");
     userSessions.set(token, { userId: user.id, expiresAt: Date.now() + USER_SESSION_TTL_MS });
     res.json({ success: true, token, user: toPublicUser(user) });
