@@ -16,7 +16,7 @@ export default defineConfig(() => {
           id: '/',
           name: '파크골프마당',
           short_name: '파크골프마당',
-          description: '전국 지자체 직영 파크골프장 정보, 실시간 전국 대회일정, 초보 파크골퍼 가이드, 동호회 매칭 포털',
+          description: '전국 파크골프장 552곳 정보와 2026년 전국 대회일정을 한눈에. 구장 리뷰, 동반자 모집, 구장 근처 맛집까지.',
           theme_color: '#166534',
           background_color: '#F8FAF8',
           display: 'standalone',

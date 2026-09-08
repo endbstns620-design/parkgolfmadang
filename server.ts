@@ -1651,9 +1651,32 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const httpServer = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  // ---- 서버 종료 처리 ----
+  // 배포할 때 Railway가 "그만 종료해라"(SIGTERM) 신호를 보내는데, 이걸 받아서 처리하지 않으면
+  // 기존 서버가 계속 살아있고 데이터 저장소(볼륨)를 붙잡고 있어서 새 서버가 뜨질 못합니다.
+  // 실제로 배포가 12분 넘게 멈춘 적이 있어 아래 처리를 넣었습니다.
+  let shuttingDown = false;
+  function shutdown(signal: string) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[종료] ${signal} 신호를 받아 서버를 정리합니다.`);
+    // 새 요청은 그만 받고, 처리 중이던 요청만 마무리한 뒤 종료합니다.
+    httpServer.close(() => {
+      console.log("[종료] 정상적으로 종료했습니다.");
+      process.exit(0);
+    });
+    // 처리 중인 요청이 오래 걸려도 10초 뒤에는 반드시 종료합니다.
+    setTimeout(() => {
+      console.log("[종료] 10초가 지나 강제 종료합니다.");
+      process.exit(0);
+    }, 10_000).unref();
+  }
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 
   // ---- 동반자 모집글 30일 자동 파기 ----
   // 개인정보처리방침 "모집 마감 후 최장 30일 이내 자동 파기" 조항을 실제로 지키기 위한 기능입니다.
