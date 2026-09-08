@@ -2,3 +2,7 @@ User-agent: *
 Allow: /
 
 Sitemap: https://parkgolf-madang.co.kr/sitemap.xml
+
+# 다음(Daum) 웹마스터도구 사이트 소유확인용 PIN 코드입니다.
+# webmaster.daum.net 에서 사이트를 추가하실 때 아래와 똑같은 코드를 입력하세요.
+#DaumWebMasterTool: pgmadang2026
