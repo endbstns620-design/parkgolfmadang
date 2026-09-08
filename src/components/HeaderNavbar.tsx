@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { HeaderTodayStrip } from './HeaderTodayStrip';
 import {
   MapPin,
   Trophy,
@@ -151,7 +152,7 @@ export const HeaderNavbar: React.FC = () => {
               setActiveTab('home');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0"
+            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group min-w-0"
           >
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-green-700 via-emerald-600 to-green-800 flex items-center justify-center text-white shadow group-hover:scale-105 transition-transform shrink-0">
               <span className="text-lg sm:text-xl">⛳</span>
@@ -161,7 +162,8 @@ export const HeaderNavbar: React.FC = () => {
                 <span className="text-base sm:text-xl font-black tracking-tight text-green-950 font-serif whitespace-nowrap">
                   파크골프마당
                 </span>
-                <span className="bg-emerald-700 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded shadow-xs shrink-0">
+                {/* 아주 좁은 화면에서는 날씨 칸과 겹치지 않도록 이 배지를 숨깁니다 */}
+                <span className="hidden min-[400px]:inline bg-emerald-700 text-white text-[10px] font-extrabold px-1.5 py-0.2 rounded shadow-xs shrink-0">
                   전국포털
                 </span>
               </div>
@@ -171,46 +173,9 @@ export const HeaderNavbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Quick Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {currentUser ? (
-              <button
-                id="header-user-menu-btn"
-                onClick={() => openModal('myPage')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
-              >
-                <UserCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                <span>{currentUser.nickname}님</span>
-                <span className="hidden sm:inline text-amber-600 font-extrabold">· {currentUser.points.toLocaleString()}P</span>
-              </button>
-            ) : (
-              <button
-                id="header-user-login-btn"
-                onClick={() => openModal('auth')}
-                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-bold text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-white hover:bg-slate-50 text-slate-700 border-slate-300"
-              >
-                <LogIn className="w-3.5 h-3.5 text-emerald-700" />
-                <span className="hidden sm:inline">로그인 / 회원가입</span>
-                <span className="inline sm:hidden">로그인</span>
-              </button>
-            )}
+          {/* 가운데: 오늘 날씨 + 다가오는 대회 D-day (넓은 화면에서만 보입니다) */}
+          <HeaderTodayStrip />
 
-            {/* 관리자 로그인 버튼은 삭제했습니다 — 로그인/회원가입 창 안의 "관리자로 로그인" 링크로
-                들어갑니다. 아래 버튼은 이미 관리자 모드일 때만 보이는 '관리자 화면 열기' 버튼입니다. */}
-            {isAdmin && (
-              <button
-                id="header-admin-panel-btn"
-                onClick={() => openModal('admin')}
-                className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl font-black text-xs sm:text-sm shadow transition-all cursor-pointer whitespace-nowrap border bg-amber-400 text-green-950 border-amber-300"
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">관리자 모드</span>
-                <span className="inline sm:hidden">관리</span>
-              </button>
-            )}
-
-            {/* Mobile Menu Toggle (Removed on mobile as requested, bottom nav is primary) */}
-          </div>
         </div>
 
         {/* 상단 카테고리 탭 — 시니어분들이 읽기 편하도록 글씨를 최대한 키웠습니다.

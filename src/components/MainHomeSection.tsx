@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { SocialChannelsSection } from './SocialChannelsSection';
+import { SponsorBannerSection } from './SponsorBannerSection';
 
 // 메인 배너 이미지 — 대표님이 직접 주신 실제 파크골프장 사진입니다.
 // 원본이 4032×3024로 넉넉해서, 큰 화면에서도 또렷하게 보이도록 2400px로 넣었습니다.
@@ -308,6 +309,9 @@ export const MainHomeSection: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {/* 후원사 배너 — 카테고리 카드를 본 뒤에 나오도록 아래에 둡니다 */}
+      <SponsorBannerSection />
 
       {/* 사진 크게 보기 */}
       {zoomImage && (

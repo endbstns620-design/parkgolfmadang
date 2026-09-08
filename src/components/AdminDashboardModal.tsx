@@ -49,6 +49,11 @@ export const AdminDashboardModal: React.FC = () => {
     addPointShopItem,
     deletePointShopItem,
     uploadPointShopImage,
+    mainBanners,
+    addMainBanner,
+    updateMainBanner,
+    deleteMainBanner,
+    uploadMainBannerImage,
     coupangProducts,
     addCoupangProduct,
     deleteCoupangProduct,
@@ -68,7 +73,7 @@ export const AdminDashboardModal: React.FC = () => {
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
-  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'members' | 'matches' | 'reviews' | 'pointapproval' | 'ads' | 'pointshop' | 'redemptions'>('courses');
+  const [activeTab, setActiveTab] = useState<'courses' | 'tournaments' | 'members' | 'matches' | 'reviews' | 'pointapproval' | 'ads' | 'banners' | 'pointshop' | 'redemptions'>('courses');
 
   // Edit / Form state for Course
   const [editingCourse, setEditingCourse] = useState<Partial<ParkCourse> | null>(null);
@@ -113,6 +118,106 @@ export const AdminDashboardModal: React.FC = () => {
   // 마당P 승인 탭
   const [pointRequests, setPointRequests] = useState<any[]>([]);
   const [isLoadingPointReqs, setIsLoadingPointReqs] = useState(false);
+  // ---- 메인 배너 관리 ----
+  const emptyBanner = {
+    sponsorName: '',
+    headlineTop: '',
+    headlineHighlight: '',
+    point1Name: '',
+    point1Effect: '',
+    point2Name: '',
+    point2Effect: '',
+    subText: '',
+    imageUrl: '',
+    linkUrl: '',
+    buttonText: '자세히 보기',
+    disclaimer: '',
+    startDate: '',
+    endDate: '',
+    priority: 1,
+    isActive: true
+  };
+  const [bannerForm, setBannerForm] = useState<any>(emptyBanner);
+  const [editingBannerId, setEditingBannerId] = useState<string | null>(null);
+  const [bannerUploading, setBannerUploading] = useState(false);
+
+  const bannerFieldsToForm = (b: any) => ({
+    sponsorName: b.sponsorName || '',
+    headlineTop: b.headlineTop || '',
+    headlineHighlight: b.headlineHighlight || '',
+    point1Name: b.points?.[0]?.name || '',
+    point1Effect: b.points?.[0]?.effect || '',
+    point2Name: b.points?.[1]?.name || '',
+    point2Effect: b.points?.[1]?.effect || '',
+    subText: b.subText || '',
+    imageUrl: b.imageUrl || '',
+    linkUrl: b.linkUrl || '',
+    buttonText: b.buttonText || '자세히 보기',
+    disclaimer: b.disclaimer || '',
+    startDate: b.startDate || '',
+    endDate: b.endDate || '',
+    priority: Number(b.priority) || 1,
+    isActive: b.isActive !== false
+  });
+
+  const formToBannerFields = (f: any) => {
+    const points: { name: string; effect: string }[] = [];
+    if (f.point1Name?.trim()) points.push({ name: f.point1Name.trim(), effect: (f.point1Effect || '').trim() });
+    if (f.point2Name?.trim()) points.push({ name: f.point2Name.trim(), effect: (f.point2Effect || '').trim() });
+    return {
+      sponsorName: f.sponsorName.trim(),
+      headlineTop: f.headlineTop.trim(),
+      headlineHighlight: f.headlineHighlight.trim(),
+      points,
+      subText: f.subText.trim(),
+      imageUrl: f.imageUrl.trim(),
+      linkUrl: f.linkUrl.trim(),
+      buttonText: (f.buttonText || '자세히 보기').trim(),
+      disclaimer: f.disclaimer.trim(),
+      startDate: f.startDate,
+      endDate: f.endDate,
+      priority: Number(f.priority) || 1,
+      isActive: !!f.isActive
+    };
+  };
+
+  const handleBannerImage = async (file?: File | null) => {
+    if (!file) return;
+    setBannerUploading(true);
+    const url = await uploadMainBannerImage(file);
+    setBannerUploading(false);
+    if (url) setBannerForm((prev: any) => ({ ...prev, imageUrl: url }));
+  };
+
+  const saveBanner = async () => {
+    if (!bannerForm.headlineTop.trim() && !bannerForm.headlineHighlight.trim()) {
+      alert('배너에 들어갈 큰 문구를 한 줄이라도 적어주세요.');
+      return;
+    }
+    if (!bannerForm.linkUrl.trim()) {
+      alert('배너를 눌렀을 때 이동할 주소를 적어주세요.');
+      return;
+    }
+    const fields = formToBannerFields(bannerForm);
+    const ok = editingBannerId
+      ? await updateMainBanner(editingBannerId, fields)
+      : await addMainBanner(fields);
+    if (ok) {
+      setBannerForm(emptyBanner);
+      setEditingBannerId(null);
+      alert(editingBannerId ? '배너를 수정했습니다.' : '배너를 등록했습니다.');
+    }
+  };
+
+  // 오늘 기준으로 이 배너가 메인화면에 실제로 보이는 상태인지 알려줍니다.
+  const bannerLiveState = (b: any): { text: string; cls: string } => {
+    if (b.isActive === false) return { text: '꺼둠', cls: 'bg-slate-200 text-slate-700' };
+    const today = new Date().toISOString().slice(0, 10);
+    if (b.startDate && today < b.startDate) return { text: '시작 전', cls: 'bg-blue-100 text-blue-800' };
+    if (b.endDate && today > b.endDate) return { text: '기간 종료', cls: 'bg-red-100 text-red-800' };
+    return { text: '노출 중', cls: 'bg-emerald-100 text-emerald-800' };
+  };
+
   const [pointReqFilter, setPointReqFilter] = useState<'대기' | '지급완료' | '거부'>('대기');
 
   // 회원관리 탭
@@ -261,6 +366,7 @@ export const AdminDashboardModal: React.FC = () => {
                   count: pointRequests.filter((r: any) => r.status === '대기').length
                 },
                 { id: 'ads', label: '📣 제휴광고', count: ads.length },
+                { id: 'banners', label: '🖼️ 메인 배너', count: mainBanners.length },
                 { id: 'pointshop', label: '🛍️ 마당P 장터', count: pointShopItems.length },
                 { id: 'redemptions', label: '🎁 교환신청', count: redemptions.filter((r: any) => r.status === '접수됨').length }
               ].map(tab => (
@@ -1054,6 +1160,291 @@ export const AdminDashboardModal: React.FC = () => {
                         ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* TAB: 메인화면 후원사 배너 관리 */}
+              {activeTab === 'banners' && (
+                <div className="space-y-6">
+                  <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 text-sm text-amber-950 font-semibold leading-relaxed">
+                    메인화면 아래쪽(카테고리 카드 밑)에 나오는 후원사 배너입니다.
+                    <br />
+                    여러 개를 등록하면 <b>순서 번호가 작은 것부터</b> 차례로 돌아가며 보입니다.
+                    광고 종료일이 지나면 <b>자동으로 내려갑니다.</b>
+                    <br />
+                    <b className="text-red-700">건강기능식품 광고는 식약처가 인정한 문구만 쓸 수 있습니다.</b> 업체가 준
+                    공식 광고물의 표현을 그대로 옮겨 적어주세요.
+                  </div>
+
+                  {/* 등록 · 수정 폼 */}
+                  <div className="bg-white p-5 rounded-3xl border-2 border-emerald-300 space-y-4">
+                    <h4 className="font-extrabold text-emerald-950 text-base">
+                      {editingBannerId ? '배너 수정하기' : '새 배너 등록하기'}
+                    </h4>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">배너 사진 *</label>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {bannerForm.imageUrl && (
+                          <img
+                            src={bannerForm.imageUrl}
+                            alt="배너 사진 미리보기"
+                            className="w-24 h-24 object-contain rounded-xl border-2 border-amber-300 bg-white"
+                          />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => handleBannerImage(e.target.files?.[0])}
+                          className="text-sm"
+                        />
+                        {bannerUploading && <span className="text-sm font-bold text-emerald-700">올리는 중…</span>}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">JPG · PNG · WEBP, 8MB 이하. 제품 사진을 권합니다.</p>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">업체 이름 (작은 글씨)</label>
+                        <input
+                          value={bannerForm.sponsorName}
+                          onChange={e => setBannerForm({ ...bannerForm, sponsorName: e.target.value })}
+                          placeholder="웰리타-Y · 파크골프마당 공식 후원"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">버튼 글씨</label>
+                        <input
+                          value={bannerForm.buttonText}
+                          onChange={e => setBannerForm({ ...bannerForm, buttonText: e.target.value })}
+                          placeholder="제품 보러가기"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">큰 문구 1줄 (흰색) *</label>
+                        <input
+                          value={bannerForm.headlineTop}
+                          onChange={e => setBannerForm({ ...bannerForm, headlineTop: e.target.value })}
+                          placeholder="간 건강과 스트레스,"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">큰 문구 2줄 (금색 강조)</label>
+                        <input
+                          value={bannerForm.headlineHighlight}
+                          onChange={e => setBannerForm({ ...bannerForm, headlineHighlight: e.target.value })}
+                          placeholder="둘 다 관리해야 합니다"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">핵심 1 · 이름</label>
+                        <input
+                          value={bannerForm.point1Name}
+                          onChange={e => setBannerForm({ ...bannerForm, point1Name: e.target.value })}
+                          placeholder="밀크씨슬"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">핵심 1 · 설명</label>
+                        <input
+                          value={bannerForm.point1Effect}
+                          onChange={e => setBannerForm({ ...bannerForm, point1Effect: e.target.value })}
+                          placeholder="간 건강에 도움"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">핵심 2 · 이름 (없으면 비워두세요)</label>
+                        <input
+                          value={bannerForm.point2Name}
+                          onChange={e => setBannerForm({ ...bannerForm, point2Name: e.target.value })}
+                          placeholder="테아닌"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">핵심 2 · 설명</label>
+                        <input
+                          value={bannerForm.point2Effect}
+                          onChange={e => setBannerForm({ ...bannerForm, point2Effect: e.target.value })}
+                          placeholder="스트레스로 인한 긴장 완화에 도움"
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">보조 한 줄</label>
+                      <input
+                        value={bannerForm.subText}
+                        onChange={e => setBannerForm({ ...bannerForm, subText: e.target.value })}
+                        placeholder="하루 2정 · 식약처 기능성 인정 원료"
+                        className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">누르면 이동할 주소 *</label>
+                      <input
+                        value={bannerForm.linkUrl}
+                        onChange={e => setBannerForm({ ...bannerForm, linkUrl: e.target.value })}
+                        placeholder="https://smartstore.naver.com/welita"
+                        className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-600 mb-1 block">
+                        하단 안내문 (건강기능식품 의무 문구 · 심의번호 등. 없으면 비워두세요)
+                      </label>
+                      <textarea
+                        value={bannerForm.disclaimer}
+                        onChange={e => setBannerForm({ ...bannerForm, disclaimer: e.target.value })}
+                        rows={2}
+                        placeholder="한국건강기능식품협회 광고심의필 · 심의번호 000000000 · 본 제품은 질병의 예방 및 치료를 위한 의약품이 아닙니다."
+                        className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-4 gap-3 items-end">
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">광고 시작일</label>
+                        <input
+                          type="date"
+                          value={bannerForm.startDate}
+                          onChange={e => setBannerForm({ ...bannerForm, startDate: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">광고 종료일</label>
+                        <input
+                          type="date"
+                          value={bannerForm.endDate}
+                          onChange={e => setBannerForm({ ...bannerForm, endDate: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-600 mb-1 block">순서 (작을수록 먼저)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={bannerForm.priority}
+                          onChange={e => setBannerForm({ ...bannerForm, priority: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border-2 border-slate-300 text-sm"
+                        />
+                      </div>
+                      <label className="flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={bannerForm.isActive}
+                          onChange={e => setBannerForm({ ...bannerForm, isActive: e.target.checked })}
+                          className="w-5 h-5"
+                        />
+                        <span className="text-sm font-bold text-slate-700">배너 켜기</span>
+                      </label>
+                    </div>
+
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={saveBanner}
+                        className="px-6 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-black text-base cursor-pointer"
+                      >
+                        {editingBannerId ? '수정 내용 저장' : '배너 등록하기'}
+                      </button>
+                      {editingBannerId && (
+                        <button
+                          onClick={() => {
+                            setEditingBannerId(null);
+                            setBannerForm(emptyBanner);
+                          }}
+                          className="px-6 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-black text-base cursor-pointer"
+                        >
+                          취소
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 등록된 배너 목록 */}
+                  <div className="space-y-3">
+                    <h4 className="font-extrabold text-slate-900 text-base">
+                      등록된 배너 ({mainBanners.length}개)
+                    </h4>
+                    {mainBanners.length === 0 && (
+                      <p className="text-sm text-slate-500 font-semibold">아직 등록된 배너가 없습니다.</p>
+                    )}
+                    {[...mainBanners]
+                      .sort((a, b) => (Number(a.priority) || 99) - (Number(b.priority) || 99))
+                      .map(b => {
+                        const st = bannerLiveState(b);
+                        const rate = b.views > 0 ? Math.round((b.clicks / b.views) * 1000) / 10 : 0;
+                        return (
+                          <div
+                            key={b.id}
+                            className="bg-white rounded-2xl border-2 border-slate-200 p-4 flex flex-col sm:flex-row gap-4"
+                          >
+                            {b.imageUrl && (
+                              <img
+                                src={b.imageUrl}
+                                alt={b.sponsorName}
+                                className="w-20 h-20 object-contain rounded-xl border border-slate-200 bg-white shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className={`px-2 py-0.5 rounded-md text-xs font-black ${st.cls}`}>{st.text}</span>
+                                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-bold">
+                                  순서 {b.priority}
+                                </span>
+                                <span className="text-xs font-bold text-slate-500">{b.sponsorName}</span>
+                              </div>
+                              <p className="font-extrabold text-slate-900 text-sm">
+                                {b.headlineTop} {b.headlineHighlight}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5 break-all">{b.linkUrl}</p>
+                              <p className="text-xs font-bold text-slate-600 mt-1">
+                                기간: {b.startDate || '제한없음'} ~ {b.endDate || '제한없음'}
+                              </p>
+                              <p className="text-xs font-black text-emerald-800 mt-1">
+                                노출 {(b.views || 0).toLocaleString()}회 · 클릭 {(b.clicks || 0).toLocaleString()}회
+                                {b.views > 0 && ` · 클릭률 ${rate}%`}
+                              </p>
+                            </div>
+                            <div className="flex sm:flex-col gap-2 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setEditingBannerId(b.id);
+                                  setBannerForm(bannerFieldsToForm(b));
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold cursor-pointer"
+                              >
+                                수정
+                              </button>
+                              <button
+                                onClick={() => updateMainBanner(b.id, { isActive: !b.isActive })}
+                                className="px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-sm font-bold cursor-pointer"
+                              >
+                                {b.isActive ? '끄기' : '켜기'}
+                              </button>
+                              <button
+                                onClick={() => deleteMainBanner(b.id)}
+                                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-bold cursor-pointer"
+                              >
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 

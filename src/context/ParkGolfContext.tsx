@@ -6,6 +6,7 @@ import {
   ReviewItem,
   MatchingPost,
   AdItem,
+  MainBanner,
   CoupangProduct,
   RestaurantPost,
   AppUser,
@@ -90,6 +91,12 @@ interface ParkGolfContextType {
   loginUser: (phone: string, password: string) => Promise<boolean>;
   logoutUser: () => void;
   pointShopItems: PointShopItem[];
+  mainBanners: MainBanner[];
+  addMainBanner: (banner: Partial<MainBanner>) => Promise<boolean>;
+  updateMainBanner: (id: string, patch: Partial<MainBanner>) => Promise<boolean>;
+  deleteMainBanner: (id: string) => Promise<void>;
+  uploadMainBannerImage: (file: File) => Promise<string | null>;
+  trackMainBanner: (id: string, kind: 'view' | 'click') => void;
   // 글을 쓰면 뜨는 "마당P 지급예정" 안내창 정보 (null이면 창을 닫은 상태)
   pointNotice: { amount: number; expectedPoints: number; pendingPoints: number } | null;
   closePointNotice: () => void;
@@ -253,6 +260,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   });
 
+  const [mainBanners, setMainBanners] = useState<MainBanner[]>([]);
   const [ads, setAds] = useState<AdItem[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.ADS);
@@ -271,7 +279,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     (async () => {
       try {
-        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes, pointShopRes, authStatsRes, monthlyDrawRes] = await Promise.all([
+        const [reviewsRes, matchesRes, adsRes, coupangRes, restaurantsRes, tournamentsRes, courseOverridesRes, guideVideosRes, pointShopRes, authStatsRes, monthlyDrawRes, mainBannersRes] = await Promise.all([
           fetch('/api/reviews'),
           fetch('/api/matches'),
           fetch('/api/ads'),
@@ -282,8 +290,13 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           fetch('/api/guide-videos'),
           fetch('/api/point-shop'),
           fetch('/api/auth/stats'),
-          fetch('/api/monthly-draw/info')
+          fetch('/api/monthly-draw/info'),
+          fetch('/api/main-banners')
         ]);
+        if (mainBannersRes.ok) {
+          const data = await mainBannersRes.json();
+          if (data.success) setMainBanners(data.banners);
+        }
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
           if (data.success) setReviews(data.reviews);
@@ -725,6 +738,94 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // 관리자 전용 — 마당P 장터에 새 상품 등록 / 삭제
+  // ---- 메인화면 후원사 배너 (관리자 전용) ----
+  const addMainBanner = async (banner: Partial<MainBanner>): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/main-banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify(banner)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '배너 등록에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      setMainBanners(prev => [...prev, data.banner]);
+      return true;
+    } catch (err) {
+      console.error('배너 등록 실패:', err);
+      alert('배너 등록 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const updateMainBanner = async (id: string, patch: Partial<MainBanner>): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/main-banners/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify(patch)
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '배너 수정에 실패했습니다.');
+        return false;
+      }
+      const data = await res.json();
+      setMainBanners(prev => prev.map(b => (b.id === id ? data.banner : b)));
+      return true;
+    } catch (err) {
+      console.error('배너 수정 실패:', err);
+      alert('배너 수정 중 오류가 발생했습니다.');
+      return false;
+    }
+  };
+
+  const deleteMainBanner = async (id: string): Promise<void> => {
+    if (!window.confirm('이 배너를 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+    try {
+      await fetch(`/api/main-banners/${id}`, { method: 'DELETE', headers: adminAuthHeaders() });
+      setMainBanners(prev => prev.filter(b => b.id !== id));
+    } catch (err) {
+      console.error('배너 삭제 실패:', err);
+    }
+  };
+
+  const uploadMainBannerImage = async (file: File): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch('/api/main-banners/upload-image', {
+        method: 'POST',
+        headers: adminAuthHeaders(),
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || '사진 올리기에 실패했습니다.');
+        return null;
+      }
+      const data = await res.json();
+      return data.imageUrl || null;
+    } catch (err) {
+      console.error('배너 사진 업로드 실패:', err);
+      alert('사진을 올리는 중 오류가 발생했습니다.');
+      return null;
+    }
+  };
+
+  // 노출·클릭 수 기록 — 실패해도 화면에는 영향이 없도록 조용히 넘어갑니다.
+  const trackMainBanner = (id: string, kind: 'view' | 'click') => {
+    fetch(`/api/main-banners/${id}/track`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind }),
+      keepalive: true
+    }).catch(() => {});
+  };
+
   const addPointShopItem = async (item: {
     name: string;
     category: string;
@@ -1445,6 +1546,12 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         fetchPointRequests,
         decidePointRequest,
         redeemPointShopItem,
+        mainBanners,
+        addMainBanner,
+        updateMainBanner,
+        deleteMainBanner,
+        uploadMainBannerImage,
+        trackMainBanner,
         addPointShopItem,
         deletePointShopItem,
         uploadPointShopImage,

@@ -1,12 +1,16 @@
 import React from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { VisitorCounterBadge } from './VisitorCounterBadge';
+import { LogIn, UserCircle2, UserCheck } from 'lucide-react';
 
 export const SeniorAccessibilityBar: React.FC = () => {
   const {
     fontSize,
     setFontSize,
-    setActiveTab
+    setActiveTab,
+    openModal,
+    currentUser,
+    isAdmin
   } = useParkGolf();
 
   return (
@@ -74,6 +78,40 @@ export const SeniorAccessibilityBar: React.FC = () => {
           >
             <span>📜 협회 공인 규정 · 제보</span>
           </button>
+
+          {/* 로그인 · 내 정보 — 아래 로고 줄에 있던 것을 이 자리로 옮겼습니다.
+              로고 줄은 '오늘의 파크골프' 띠가 넓게 쓰도록 비워둡니다. */}
+          {currentUser ? (
+            <button
+              id="header-user-menu-btn"
+              onClick={() => openModal('myPage')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-bold text-white bg-green-800 hover:bg-green-700 border border-green-500/60 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <UserCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+              <span>{currentUser.nickname}님</span>
+              <span className="text-amber-300 font-extrabold">· {currentUser.points.toLocaleString()}P</span>
+            </button>
+          ) : (
+            <button
+              id="header-user-login-btn"
+              onClick={() => openModal('auth')}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-bold text-white bg-green-800 hover:bg-green-700 border border-green-500/60 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <LogIn className="w-4 h-4 text-emerald-300 shrink-0" />
+              <span>로그인 / 회원가입</span>
+            </button>
+          )}
+
+          {isAdmin && (
+            <button
+              id="header-admin-panel-btn"
+              onClick={() => openModal('admin')}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs sm:text-sm font-black text-green-950 bg-amber-400 hover:bg-amber-300 border border-amber-300 transition-all cursor-pointer whitespace-nowrap"
+            >
+              <UserCheck className="w-4 h-4 shrink-0" />
+              <span>관리자 모드</span>
+            </button>
+          )}
         </div>
       </div>
     </aside>

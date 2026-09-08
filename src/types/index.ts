@@ -297,3 +297,29 @@ export interface AssociationItem {
   services: string[];
   isMainCertified?: boolean;
 }
+
+// 메인화면 후원사(배너) 광고 — 관리자가 직접 등록·수정합니다.
+export interface MainBannerPoint {
+  name: string;   // 예: 밀크씨슬
+  effect: string; // 예: 간 건강에 도움
+}
+
+export interface MainBanner {
+  id: string;
+  sponsorName: string;      // 예: 웰리타-Y · 파크골프마당 공식 후원
+  headlineTop: string;      // 큰 문구 첫 줄 (흰색)
+  headlineHighlight: string;// 큰 문구 둘째 줄 (금색 강조)
+  points: MainBannerPoint[];// 체크 표시로 보여줄 핵심 항목 (0~3개)
+  subText: string;          // 보조 한 줄
+  imageUrl: string;         // 제품 사진
+  linkUrl: string;          // 누르면 이동할 주소
+  buttonText: string;       // 버튼 글씨
+  disclaimer: string;       // 배너 하단 작은 안내문 (건강기능식품 의무 문구 등). 비우면 안 보입니다.
+  startDate: string;        // 광고 시작일 (YYYY-MM-DD). 비우면 제한 없음
+  endDate: string;          // 광고 종료일 (YYYY-MM-DD). 지나면 자동으로 내려갑니다
+  priority: number;         // 숫자가 작을수록 먼저 보입니다
+  isActive: boolean;        // 꺼두면 기간과 상관없이 안 보입니다
+  views: number;            // 노출 수 (자동 집계)
+  clicks: number;           // 클릭 수 (자동 집계)
+  createdAt: string;
+}

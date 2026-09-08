@@ -97,3 +97,9 @@ html.font-xlarge {
 }
 
 
+
+/* 상단 "오늘의 파크골프" 띠에서 대회가 바뀔 때 부드럽게 나타나게 합니다 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

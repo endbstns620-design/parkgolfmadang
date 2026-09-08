@@ -9,6 +9,7 @@ import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { readJsonFile, writeJsonFile } from "./server-lib/jsonStore";
 import { RESTAURANT_SEED } from "./server-lib/restaurantSeed";
+import { MAIN_BANNER_SEED } from "./server-lib/mainBannerSeed";
 import { INITIAL_TOURNAMENTS } from "./src/data/initialTournamentsData";
 import { COURSE_OVERRIDES_SEED } from "./server-lib/courseOverridesSeed";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
@@ -726,6 +727,90 @@ async function startServer() {
       if (!req.file) {
         return res.status(400).json({ success: false, error: "사진 파일이 없습니다." });
       }
+      res.status(201).json({ success: true, imageUrl: `/product-images/${req.file.filename}` });
+    });
+  });
+
+
+  // ---- 메인화면 후원사 배너 (관리자가 직접 관리) ----
+  const BANNER_FILE = "main-banners.json";
+
+  app.get("/api/main-banners", (_req, res) => {
+    const banners = readJsonFile<any[]>(BANNER_FILE, MAIN_BANNER_SEED as any[]);
+    res.json({ success: true, banners });
+  });
+
+  app.post("/api/main-banners", requireAdmin, (req, res) => {
+    const banners = readJsonFile<any[]>(BANNER_FILE, MAIN_BANNER_SEED as any[]);
+    const now = new Date();
+    const created = {
+      sponsorName: "",
+      headlineTop: "",
+      headlineHighlight: "",
+      points: [],
+      subText: "",
+      imageUrl: "",
+      linkUrl: "",
+      buttonText: "자세히 보기",
+      disclaimer: "",
+      startDate: "",
+      endDate: "",
+      priority: banners.length + 1,
+      isActive: true,
+      ...req.body,
+      id: `banner-${Date.now()}`,
+      views: 0,
+      clicks: 0,
+      createdAt: now.toISOString().slice(0, 10)
+    };
+    banners.push(created);
+    writeJsonFile(BANNER_FILE, banners);
+    res.status(201).json({ success: true, banner: created });
+  });
+
+  app.patch("/api/main-banners/:id", requireAdmin, (req, res) => {
+    const banners = readJsonFile<any[]>(BANNER_FILE, MAIN_BANNER_SEED as any[]);
+    const idx = banners.findIndex(b => b.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "배너를 찾을 수 없습니다." });
+    // 노출·클릭 수는 관리자 수정으로 덮어쓰이지 않게 지켜줍니다.
+    const { views, clicks, id, ...patch } = req.body || {};
+    banners[idx] = { ...banners[idx], ...patch };
+    writeJsonFile(BANNER_FILE, banners);
+    res.json({ success: true, banner: banners[idx] });
+  });
+
+  app.delete("/api/main-banners/:id", requireAdmin, (req, res) => {
+    const banners = readJsonFile<any[]>(BANNER_FILE, MAIN_BANNER_SEED as any[]);
+    writeJsonFile(BANNER_FILE, banners.filter(b => b.id !== req.params.id));
+    res.json({ success: true });
+  });
+
+  // 노출 수 · 클릭 수 집계 — 업체에 성과를 보여드릴 때 쓰는 자료입니다.
+  app.post("/api/main-banners/:id/track", (req, res) => {
+    const kind = String(req.body?.kind || "");
+    if (kind !== "view" && kind !== "click") {
+      return res.status(400).json({ success: false, error: "kind는 view 또는 click 이어야 합니다." });
+    }
+    const banners = readJsonFile<any[]>(BANNER_FILE, MAIN_BANNER_SEED as any[]);
+    const idx = banners.findIndex(b => b.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "배너를 찾을 수 없습니다." });
+    const key = kind === "view" ? "views" : "clicks";
+    banners[idx][key] = (Number(banners[idx][key]) || 0) + 1;
+    writeJsonFile(BANNER_FILE, banners);
+    res.json({ success: true });
+  });
+
+  // 배너 사진 올리기 — 마당P 장터 사진과 같은 저장소를 씁니다.
+  app.post("/api/main-banners/upload-image", requireAdmin, (req, res) => {
+    productImageUpload.single("image")(req, res, err => {
+      if (err) {
+        const tooBig = String(err.message || "").includes("File too large");
+        return res.status(400).json({
+          success: false,
+          error: tooBig ? "사진 용량이 너무 큽니다. 8MB 이하로 올려주세요." : err.message || "사진 올리기에 실패했습니다."
+        });
+      }
+      if (!req.file) return res.status(400).json({ success: false, error: "사진 파일이 없습니다." });
       res.status(201).json({ success: true, imageUrl: `/product-images/${req.file.filename}` });
     });
   });
