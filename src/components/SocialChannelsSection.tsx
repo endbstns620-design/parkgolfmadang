@@ -8,20 +8,35 @@ import { SOCIAL_CHANNELS } from '../data/socialChannels';
  * 시니어분들이 누르기 쉽도록 버튼은 카드 폭 전체를 쓰고 글씨를 크게 두었습니다.
  *
  * 맨 아래에는 '모바일로 바로가기' 버튼을 같은 간격으로 하나 더 둡니다.
- * 유튜브·밴드 바로가기와 말투를 맞춘 이름이며, 누르면 바로 설치창이 떠서
- * 휴대폰 홈화면에 아이콘이 만들어집니다.
+ * 누르면 휴대폰 홈화면에 아이콘이 만들어져, 다음부터는 주소를 치지 않고
+ * 아이콘만 눌러 들어오실 수 있습니다.
+ *
+ * 자동 설치창이 뜨지 않는 환경(아이폰 사파리, 카카오톡 안의 브라우저 등)에서도
+ * 버튼을 숨기지 않고, 그 환경에 맞는 방법을 대신 알려드립니다.
  */
+
+type Env = 'ios' | 'inapp' | 'android' | 'desktop';
+
+/** 어떤 환경에서 열었는지 판단합니다 (안내 문구가 달라집니다) */
+function detectEnv(): Env {
+  if (typeof navigator === 'undefined') return 'desktop';
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+  // 카카오톡·네이버·인스타 등 '앱 안의 브라우저'에서는 홈화면 추가가 아예 불가능합니다.
+  if (/KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(ua)) return 'inapp';
+  if (/android/i.test(ua)) return 'android';
+  return 'desktop';
+}
 
 const AddToHomeButton: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installed, setInstalled] = useState(false);
-  const [showIosSteps, setShowIosSteps] = useState(false);
-
-  // 아이폰·아이패드 사파리는 설치 신호(beforeinstallprompt)를 주지 않습니다.
-  const isIos =
-    typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const [showSteps, setShowSteps] = useState(false);
+  const [env, setEnv] = useState<Env>('desktop');
 
   useEffect(() => {
+    setEnv(detectEnv());
+
     // 이미 홈화면 앱으로 실행 중이면 버튼이 필요 없습니다.
     const standalone =
       window.matchMedia?.('(display-mode: standalone)')?.matches ||
@@ -46,19 +61,46 @@ const AddToHomeButton: React.FC = () => {
 
   const handleClick = async () => {
     if (deferredPrompt) {
-      // 여기서 휴대폰의 설치창이 바로 뜨고, 확인을 누르면 홈화면에 아이콘이 만들어집니다.
+      // 휴대폰 설치창이 바로 떠서, 확인을 누르면 홈화면에 아이콘이 만들어집니다.
       deferredPrompt.prompt();
       const result = await deferredPrompt.userChoice.catch(() => null);
       if (result?.outcome === 'accepted') setInstalled(true);
       setDeferredPrompt(null);
       return;
     }
-    setShowIosSteps(v => !v);
+    // 자동 설치가 안 되는 환경에서는 따라 하실 순서를 보여드립니다.
+    setShowSteps(v => !v);
   };
 
-  // 설치가 끝났거나, 설치도 안 되고 안내할 방법도 없는 브라우저에서는 숨깁니다.
   if (installed) return null;
-  if (!deferredPrompt && !isIos) return null;
+
+  // 자동 설치가 안 되는 환경에서도 버튼은 항상 보여드리고, 대신 방법을 알려드립니다.
+  const steps: Record<Env, React.ReactNode> = {
+    ios: (
+      <>
+        화면 <b className="text-slate-900">맨 아래 가운데 공유 버튼(↑)</b>을 누르시고,
+        목록을 내려서 <b className="text-slate-900">'홈 화면에 추가'</b> → <b className="text-slate-900">'추가'</b>를 누르세요.
+      </>
+    ),
+    inapp: (
+      <>
+        지금은 <b className="text-slate-900">카카오톡·네이버 앱 안</b>에서 보고 계셔서 추가가 안 됩니다.
+        오른쪽 위 <b className="text-slate-900">점 세 개(⋮)</b> → <b className="text-slate-900">'다른 브라우저로 열기'</b>로
+        크롬을 여신 뒤 이 버튼을 다시 눌러주세요.
+      </>
+    ),
+    android: (
+      <>
+        브라우저 오른쪽 위 <b className="text-slate-900">점 세 개(⋮)</b>를 누르시고,
+        <b className="text-slate-900">'홈 화면에 추가'</b> 또는 <b className="text-slate-900">'앱 설치'</b> → <b className="text-slate-900">'추가'</b>를 누르세요.
+      </>
+    ),
+    desktop: (
+      <>
+        휴대폰에서 이 사이트를 여신 뒤 이 버튼을 누르시면, 홈화면에 아이콘이 만들어집니다.
+      </>
+    )
+  };
 
   return (
     <div>
@@ -71,11 +113,9 @@ const AddToHomeButton: React.FC = () => {
         모바일로 바로가기
       </button>
 
-      {/* 아이폰은 사파리가 설치창을 띄워주지 않아, 따라 하실 순서만 짧게 보여드립니다 */}
-      {showIosSteps && (
+      {showSteps && (
         <p className="mt-2.5 text-[15px] text-slate-600 font-medium leading-relaxed text-center">
-          아래쪽 <b className="text-slate-900">공유 버튼</b>(↑) → <b className="text-slate-900">홈 화면에 추가</b> →{' '}
-          <b className="text-slate-900">추가</b> 를 누르시면 됩니다.
+          {steps[env]}
         </p>
       )}
     </div>
