@@ -1,0 +1,25 @@
+# 설치되는 것 — 깃허브에 올리지 않습니다 (npm install 하면 다시 생깁니다)
+node_modules/
+
+# 빌드 결과물 — 배포할 때 서버가 직접 만듭니다
+dist/
+dev-dist/
+*.tsbuildinfo
+
+# 실제 운영 데이터 (회원·리뷰·대회·방문자수 등) — 절대 올리면 안 됩니다
+data/
+
+# 업로드된 영상·상품사진 (data/ 안에 저장되므로 위에서 이미 제외됩니다)
+public/videos/
+
+# 비밀키
+.env
+.env.local
+.env.*.local
+
+# 잡파일
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+__pycache__/
