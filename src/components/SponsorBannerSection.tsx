@@ -87,18 +87,18 @@ const RailBanner: React.FC<{ side: 'left' | 'right' }> = ({ side }) => {
         target="_blank"
         rel="noopener noreferrer sponsored"
         onClick={() => trackMainBanner(banner.id, 'click')}
-        className="block rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow cursor-pointer bg-gradient-to-b from-green-950 via-green-800 to-green-700"
+        className="block rounded-2xl overflow-hidden bg-white border-2 border-emerald-200 shadow-lg hover:shadow-2xl hover:border-emerald-300 transition-all cursor-pointer"
       >
         <div className="px-3 pt-3 pb-2 text-center">
           <div className="flex items-center justify-center gap-1.5 mb-2">
             <span className="px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black">광고</span>
             {banner.sponsorName && (
-              <span className="text-amber-300 font-extrabold text-[12px] truncate">{banner.sponsorName}</span>
+              <span className="text-emerald-800 font-extrabold text-[12px] truncate">{banner.sponsorName}</span>
             )}
           </div>
 
           {banner.imageUrl && (
-            <div className="w-[132px] h-[132px] mx-auto mb-2.5 rounded-xl bg-white border-2 border-amber-300 overflow-hidden">
+            <div className="w-[132px] h-[132px] mx-auto mb-2.5 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden">
               <img
                 src={banner.imageUrl}
                 alt={banner.sponsorName || '후원사 제품 사진'}
@@ -108,12 +108,12 @@ const RailBanner: React.FC<{ side: 'left' | 'right' }> = ({ side }) => {
             </div>
           )}
 
-          <p className="text-[16px] font-black text-white leading-snug break-keep">
+          <p className="text-[16px] font-black text-slate-900 leading-snug break-keep">
             {banner.headlineTop}
             {banner.headlineHighlight && (
               <>
                 <br />
-                <span className="text-amber-300">{banner.headlineHighlight}</span>
+                <span className="text-amber-600">{banner.headlineHighlight}</span>
               </>
             )}
           </p>
@@ -123,29 +123,29 @@ const RailBanner: React.FC<{ side: 'left' | 'right' }> = ({ side }) => {
               {points.map(p => (
                 <span
                   key={p.name}
-                  className="flex items-center gap-1 rounded-lg bg-green-950/50 border border-emerald-500/40 px-2 py-1"
+                  className="flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-1"
                 >
-                  <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                  <span className="font-black text-white text-[12px] text-left leading-tight break-keep">{p.name}</span>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span className="font-black text-slate-800 text-[12px] text-left leading-tight break-keep">{p.name}</span>
                 </span>
               ))}
             </div>
           )}
 
           {banner.subText && (
-            <p className="mt-2 text-[12px] font-bold text-amber-100 leading-snug break-keep">{banner.subText}</p>
+            <p className="mt-2 text-[12px] font-bold text-slate-600 leading-snug break-keep">{banner.subText}</p>
           )}
         </div>
 
         <div className="px-3 pb-3">
-          <span className="w-full inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl bg-amber-400 text-green-950 font-black text-[14px] shadow-[0_3px_0_#d97706]">
+          <span className="w-full inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl bg-green-800 text-white font-black text-[14px] shadow-[0_3px_0_#14532d]">
             {banner.buttonText || '자세히 보기'}
             <ExternalLink className="w-4 h-4" />
           </span>
         </div>
 
         {banner.disclaimer && (
-          <p className="bg-green-950/60 px-2.5 py-1.5 text-[9px] font-medium text-green-200/90 leading-tight break-keep">
+          <p className="bg-slate-50 border-t border-slate-200 px-2.5 py-1.5 text-[9px] font-medium text-slate-500 leading-tight break-keep">
             {banner.disclaimer}
           </p>
         )}
@@ -183,11 +183,11 @@ export const SponsorCompactBanner: React.FC = () => {
         target="_blank"
         rel="noopener noreferrer sponsored"
         onClick={() => trackMainBanner(banner.id, 'click')}
-        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer bg-gradient-to-r from-green-950 via-green-800 to-green-700 p-3 sm:p-4"
+        className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-2xl overflow-hidden bg-white border-2 border-emerald-200 shadow-md hover:shadow-lg hover:border-emerald-300 transition-all cursor-pointer p-3 sm:p-4"
       >
         <div className="flex items-center gap-3 sm:contents">
         {banner.imageUrl && (
-          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl bg-white border-2 border-amber-300 overflow-hidden">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden">
             <img
               src={banner.imageUrl}
               alt={banner.sponsorName || '후원사 제품 사진'}
@@ -201,19 +201,19 @@ export const SponsorCompactBanner: React.FC = () => {
           <div className="flex items-center gap-1.5 mb-1">
             <span className="px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-black shrink-0">광고</span>
             {banner.sponsorName && (
-              <span className="text-amber-300 font-extrabold text-[12px] sm:text-[13px] truncate">
+              <span className="text-emerald-800 font-extrabold text-[12px] sm:text-[13px] truncate">
                 {banner.sponsorName}
               </span>
             )}
           </div>
 
-          <p className="text-[15px] sm:text-lg font-black text-white leading-snug break-keep">
+          <p className="text-[15px] sm:text-lg font-black text-slate-900 leading-snug break-keep">
             {banner.headlineTop}
-            {banner.headlineHighlight && <span className="text-amber-300"> {banner.headlineHighlight}</span>}
+            {banner.headlineHighlight && <span className="text-amber-600"> {banner.headlineHighlight}</span>}
           </p>
 
           {points.length > 0 && (
-            <p className="mt-1 text-[12px] sm:text-[13px] font-bold text-green-100 leading-snug break-keep">
+            <p className="mt-1 text-[12px] sm:text-[13px] font-bold text-slate-600 leading-snug break-keep">
               {points.map(p => p.name).join(' · ')}
               {banner.subText ? ` · ${banner.subText}` : ''}
             </p>
@@ -221,7 +221,7 @@ export const SponsorCompactBanner: React.FC = () => {
         </div>
         </div>
 
-        <span className="shrink-0 w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 sm:px-4 py-2.5 rounded-xl bg-amber-400 text-green-950 font-black text-[14px] sm:text-[15px] shadow-[0_3px_0_#d97706]">
+        <span className="shrink-0 w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 sm:px-4 py-2.5 rounded-xl bg-green-800 text-white font-black text-[14px] sm:text-[15px] shadow-[0_3px_0_#14532d]">
           {banner.buttonText || '보기'}
           <ExternalLink className="w-4 h-4" />
         </span>

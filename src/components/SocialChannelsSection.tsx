@@ -103,18 +103,32 @@ const AddToHomeButton: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="group bg-white rounded-3xl border-2 border-slate-200 hover:border-slate-300 p-5 shadow-sm hover:shadow-md transition-all flex flex-col">
+      {/* 유튜브·밴드 카드의 로고 줄과 높이를 맞춥니다 */}
+      <div className="h-10 sm:h-11 flex items-center mb-2.5">
+        <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-green-800 flex items-center justify-center">
+          <Smartphone className="w-6 h-6 text-white" />
+        </span>
+      </div>
+
+      <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight mb-1.5">
+        휴대폰에서도 쉽게 보세요
+      </p>
+      <p className="text-base text-slate-600 font-medium leading-relaxed mb-4">
+        홈화면에 추가하시면 주소를 치지 않고 아이콘만 눌러 바로 들어오실 수 있습니다
+      </p>
+
       <button
         type="button"
         onClick={handleClick}
-        className="w-full py-3.5 rounded-2xl bg-green-800 hover:bg-green-900 text-white font-black text-lg border-b-4 border-green-950 flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] cursor-pointer"
+        className="mt-auto w-full py-3.5 rounded-2xl bg-green-800 hover:bg-green-900 text-white font-black text-lg border-b-4 border-green-950 flex items-center justify-center gap-2 transition-transform group-hover:scale-[1.02] cursor-pointer"
       >
         <Smartphone className="w-5 h-5" />
         모바일로 바로가기
       </button>
 
       {showSteps && (
-        <p className="mt-2.5 text-[15px] text-slate-600 font-medium leading-relaxed text-center">
+        <p className="mt-2.5 text-[15px] text-slate-600 font-medium leading-relaxed">
           {steps[env]}
         </p>
       )}
@@ -124,9 +138,9 @@ const AddToHomeButton: React.FC = () => {
 
 export const SocialChannelsSection: React.FC = () => {
   return (
-    <div className="flex flex-col gap-4">
-      {/* 유튜브·밴드는 넓은 화면에서 좌우로, 좁은 화면에서 위아래로 놓습니다 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    /* 유튜브 · 밴드 · 모바일 바로가기 세 칸을 나란히 놓습니다.
+       좁은 화면에서는 위아래로 쌓입니다. */
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
       {SOCIAL_CHANNELS.map(ch => {
         const Icon = ch.icon;
         return (
@@ -162,9 +176,8 @@ export const SocialChannelsSection: React.FC = () => {
           </a>
         );
       })}
-      </div>
 
-      {/* 유튜브·밴드와 같은 간격으로 맨 아래에 놓습니다 */}
+      {/* 세 번째 칸 — 유튜브·밴드와 같은 틀입니다 */}
       <AddToHomeButton />
     </div>
   );
