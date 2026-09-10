@@ -18,6 +18,7 @@ import { PointMarketSection } from './components/PointMarketSection';
 import { Footer } from './components/Footer';
 import { SeniorFloatingNav } from './components/SeniorFloatingNav';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { SponsorRailBanners } from './components/SponsorBannerSection';
 import { initClientSecurityGuards } from './utils/security';
 
 // Modals
@@ -126,6 +127,9 @@ const ParkGolfApp: React.FC = () => {
 
       {/* 6. Mobile App Bottom Navigation Bar */}
       <MobileBottomNav />
+
+      {/* 7. 넓은 PC 화면에서만 — 본문 양옆 빈 공간에 붙는 후원사 광고 띠 */}
+      <SponsorRailBanners />
 
       {/* 7. Modals Layer */}
       <ParkDetailModal />

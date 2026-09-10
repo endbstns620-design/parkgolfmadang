@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { SocialChannelsSection } from './SocialChannelsSection';
-import { SponsorBannerSection } from './SponsorBannerSection';
+import { SponsorCompactBanner } from './SponsorBannerSection';
 
 // 메인 배너 이미지 — 대표님이 직접 주신 실제 파크골프장 사진입니다.
 // 원본이 4032×3024로 넉넉해서, 큰 화면에서도 또렷하게 보이도록 2400px로 넣었습니다.
@@ -224,11 +224,11 @@ export const MainHomeSection: React.FC = () => {
 
 
 
-      {/* 후원사 배너(왼쪽) + 유튜브·밴드(오른쪽, 위아래로) */}
+      {/* 유튜브·밴드 채널 + (좁은 화면에서만) 얇은 후원사 광고 띠 */}
       <section className="bg-slate-50 border-y border-slate-200 py-10 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-5 lg:gap-6 items-stretch">
-          <SponsorBannerSection />
+        <div className="max-w-5xl mx-auto space-y-5">
           <SocialChannelsSection />
+          <SponsorCompactBanner />
         </div>
       </section>
 

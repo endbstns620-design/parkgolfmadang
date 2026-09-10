@@ -124,7 +124,9 @@ const AddToHomeButton: React.FC = () => {
 
 export const SocialChannelsSection: React.FC = () => {
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
+      {/* 유튜브·밴드는 넓은 화면에서 좌우로, 좁은 화면에서 위아래로 놓습니다 */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {SOCIAL_CHANNELS.map(ch => {
         const Icon = ch.icon;
         return (
@@ -133,7 +135,7 @@ export const SocialChannelsSection: React.FC = () => {
             href={ch.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex-1 bg-white rounded-3xl border-2 border-slate-200 hover:border-slate-300 p-5 shadow-sm hover:shadow-md transition-all flex flex-col"
+            className="group bg-white rounded-3xl border-2 border-slate-200 hover:border-slate-300 p-5 shadow-sm hover:shadow-md transition-all flex flex-col"
           >
             {/* 공식 로고는 모양이 서로 달라서(유튜브는 가로로 긴 로고, 밴드는 정사각형 아이콘)
                 변형하지 않고 로고 줄을 따로 두어 높이만 맞춥니다. */}
@@ -160,6 +162,7 @@ export const SocialChannelsSection: React.FC = () => {
           </a>
         );
       })}
+      </div>
 
       {/* 유튜브·밴드와 같은 간격으로 맨 아래에 놓습니다 */}
       <AddToHomeButton />
