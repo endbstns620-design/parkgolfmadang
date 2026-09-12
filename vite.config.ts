@@ -51,6 +51,10 @@ export default defineConfig(() => {
           //  캐시 대상에 넣으면 하나라도 커지면 빌드 자체가 실패하는 문제가 생깁니다.)
           globIgnores: ['images/**', '**/*.png'],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          // /api/ 로 시작하는 주소는 서비스워커가 가로채지 않도록 합니다.
+          // 이걸 빼두면 주소창에 /api/... 를 직접 입력했을 때 서버로 가지 않고
+          // 저장해둔 첫 화면(index.html)이 그대로 떠버립니다. (카카오 연결이 막혔던 원인)
+          navigateFallbackDenylist: [/^\/api\//],
         },
         devOptions: {
           enabled: true,
