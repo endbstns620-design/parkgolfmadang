@@ -235,8 +235,9 @@ export const TournamentSection: React.FC = () => {
           </div>
           {kindFilter === '장애인' && (
             <p className="mt-2.5 text-sm sm:text-base font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5 leading-relaxed">
-              전국장애인파크골프대회입니다. 주최가 대한장애인골프협회 계열이라 접수 방법이 일반 대회와 다릅니다.
-              접수 기간과 참가비는 대회를 눌러 공식 요강에서 꼭 확인해 주세요.
+              장애인 파크골프대회입니다. 대한장애인골프협회 · 한국지체장애인협회 · 시·도 장애인체육회 등
+              주최 단체가 저마다 달라서 접수 방법도 대회마다 다릅니다. 시·도 대표 선수만 나가는 대회도 있습니다.
+              접수 기간과 참가 자격은 대회를 눌러 공식 요강에서 꼭 확인해 주세요.
             </p>
           )}
         </div>
