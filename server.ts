@@ -16,6 +16,7 @@ import { PARK_COURSES } from "./src/data/parkCoursesData";
 import { buildSlugMaps, coursePath, tournamentPath, restaurantPath, COURSE_PREFIX, TOURNAMENT_PREFIX, RESTAURANT_PREFIX } from "./src/utils/pageUrls";
 import { coursePage, tournamentPage, restaurantPage, injectSeo } from "./server-lib/seoPages";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
+import { notifyRedemption, kakaoAuthorizeUrl, kakaoExchangeCode, kakaoStatus, kakaoReady, sendKakaoMemo, startKakaoKeepAlive } from "./server-lib/kakaoNotify";
 
 dotenv.config();
 
@@ -373,6 +374,9 @@ async function startServer() {
     }
   }
   migrateStoredData();
+
+  // 카카오톡 알림 토큰이 끊기지 않도록 주기적으로 갱신합니다.
+  startKakaoKeepAlive();
 
   const { validatePostContent } = await import("./src/utils/contentModeration");
 
@@ -760,12 +764,74 @@ async function startServer() {
     redemptions.unshift(newRedemption);
     writeJsonFile("redemptions.json", redemptions);
 
+    // 사장님 카카오톡으로 바로 알려드립니다.
+    // (알림이 실패해도 교환신청은 그대로 접수됩니다 — 안에서 오류를 삼킵니다)
+    notifyRedemption(newRedemption, redemptions.filter(r => r.status === "접수됨").length);
+
     res.json({ success: true, remainingPoints: users[idx].points, redemption: newRedemption });
   });
 
   app.get("/api/redemptions", requireAdmin, (_req, res) => {
     const redemptions = readJsonFile<any[]>("redemptions.json", []);
     res.json({ success: true, redemptions });
+  });
+
+  // ---- 카카오톡 알림 연결 (처음 한 번만 씁니다) ----
+  // 브라우저에서 아래 주소를 열면 카카오 로그인 화면으로 넘어갑니다.
+  //   https://parkgolf-madang.co.kr/api/kakao/connect?key=관리자비밀번호
+  // 아래 주소는 카카오 개발자 사이트에 등록한 "Redirect URI" 와 글자 하나까지 똑같아야 합니다.
+  const kakaoRedirectUri = () => "https://parkgolf-madang.co.kr/api/kakao/callback";
+
+  const kakaoPage = (title: string, body: string) =>
+    `<!doctype html><html lang="ko"><head><meta charset="utf-8">` +
+    `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+    `<title>${title}</title></head>` +
+    `<body style="font-family:system-ui,'Malgun Gothic',sans-serif;max-width:560px;margin:0 auto;padding:40px 20px;font-size:20px;line-height:1.7;color:#1f2937">` +
+    body +
+    `<p style="margin-top:32px"><a href="https://parkgolf-madang.co.kr" style="color:#15803d">파크골프마당으로 돌아가기</a></p>` +
+    `</body></html>`;
+
+  const kakaoKeyOk = (req: any) =>
+    Boolean(process.env.ADMIN_PASSWORD) &&
+    String(req.query.key || "") === process.env.ADMIN_PASSWORD;
+
+  app.get("/api/kakao/connect", (req, res) => {
+    if (!kakaoKeyOk(req)) return res.status(403).send(kakaoPage("권한 없음", "<h1>주소 끝에 관리자 비밀번호를 붙여주세요.</h1><p>예: /api/kakao/connect?key=비밀번호</p>"));
+    if (!process.env.KAKAO_REST_API_KEY) {
+      return res.status(400).send(kakaoPage("설정 필요", "<h1>KAKAO_REST_API_KEY 가 아직 없습니다.</h1><p>Railway 환경변수에 카카오 REST API 키를 먼저 넣어주세요.</p>"));
+    }
+    res.redirect(kakaoAuthorizeUrl(kakaoRedirectUri()));
+  });
+
+  app.get("/api/kakao/callback", async (req, res) => {
+    const code = String(req.query.code || "");
+    if (!code) {
+      return res.status(400).send(kakaoPage("연결 실패", `<h1>로그인이 취소됐습니다.</h1><p>${String(req.query.error_description || "")}</p>`));
+    }
+    try {
+      await kakaoExchangeCode(code, kakaoRedirectUri());
+      await sendKakaoMemo("✅ 파크골프마당 카톡 알림이 연결됐습니다.\n\n이제 회원이 마당P 교환신청을 넣으면 바로 여기로 알려드립니다.");
+      res.send(kakaoPage("연결 완료", "<h1>카카오톡 알림이 연결됐습니다.</h1><p>확인 메시지를 '나와의 채팅'으로 보내드렸습니다. 카카오톡을 확인해보세요.</p><p>앞으로 회원이 마당P 교환신청을 넣으면 바로 알림이 갑니다.</p>"));
+    } catch (err: any) {
+      console.error("[카카오알림] 연결 실패:", err?.message || err);
+      res.status(500).send(kakaoPage("연결 실패", `<h1>연결에 실패했습니다.</h1><p style="font-size:15px;color:#6b7280">${String(err?.message || err)}</p>`));
+    }
+  });
+
+  app.get("/api/kakao/test", async (req, res) => {
+    if (!kakaoKeyOk(req)) return res.status(403).send(kakaoPage("권한 없음", "<h1>주소 끝에 관리자 비밀번호를 붙여주세요.</h1>"));
+    if (!kakaoReady()) return res.status(400).send(kakaoPage("연결 안 됨", "<h1>아직 카카오 연결이 안 되어 있습니다.</h1><p>/api/kakao/connect 부터 해주세요.</p>"));
+    try {
+      await sendKakaoMemo("🔔 파크골프마당 알림 시험 발송입니다.\n\n이 글이 보이면 정상입니다.");
+      res.send(kakaoPage("보냈습니다", "<h1>시험 알림을 보냈습니다.</h1><p>카카오톡 '나와의 채팅'을 확인해보세요.</p>"));
+    } catch (err: any) {
+      res.status(500).send(kakaoPage("전송 실패", `<h1>보내지 못했습니다.</h1><p style="font-size:15px;color:#6b7280">${String(err?.message || err)}</p>`));
+    }
+  });
+
+  app.get("/api/kakao/status", (req, res) => {
+    if (!kakaoKeyOk(req)) return res.status(403).json({ success: false });
+    res.json({ success: true, ready: kakaoReady(), ...kakaoStatus() });
   });
 
   // ---- 교환신청 알림용 (카톡 알림 예약작업이 씁니다) ----
