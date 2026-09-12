@@ -165,7 +165,7 @@ export const MainHomeSection: React.FC = () => {
                   </span>
 
                   <p className="text-white font-black text-xl sm:text-2xl leading-tight mb-2">
-                    신규 가입 시 경품 <span className="text-amber-300">자동응모!</span>
+                    가입만 하시면 경품 <span className="text-amber-300">자동응모!</span>
                   </p>
 
                   {/* 경품 제품 사진 — 가로형 한 장이라 어느 화면에서도 잘리지 않습니다 */}
@@ -189,7 +189,13 @@ export const MainHomeSection: React.FC = () => {
                   <p className="text-green-100 font-bold text-sm sm:text-base mt-1">
                     👆 사진 누르면 크게 · 현재{' '}
                     <span className="text-amber-300 font-black">{monthlyDrawInfo.eligibleCount}명</span> 응모 중
-                    {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 추첨 완료'}
+                    {monthlyDrawInfo.alreadyDrawnThisMonth && ' · 이번 달 추첨 완료'}
+                  </p>
+
+                  {/* 매달 자동으로 다시 응모된다는 점을 분명히 알려드립니다 */}
+                  <p className="text-green-100/90 font-bold text-sm sm:text-base mt-1 leading-relaxed">
+                    한 번 가입하시면 <span className="text-amber-200">매달 자동으로 다시 응모</span>됩니다.
+                    당첨되신 분은 다음 달부터 빠지니, 아직 못 받으신 분께 기회가 돌아갑니다.
                   </p>
 
                   {monthlyDrawInfo.recentWinners && monthlyDrawInfo.recentWinners.length > 0 && (

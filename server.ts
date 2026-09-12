@@ -1428,7 +1428,9 @@ async function startServer() {
     res.json({ success: true, totalUsers: users.length });
   });
 
-  // ---- 창립회원 오픈이벤트 (2번째 이벤트) — 매달 신규 창립회원 중 추첨 ----
+  // ---- 창립회원 오픈이벤트 (2번째 이벤트) — 매달 한 분씩 추첨 ----
+  // 응모 대상: 아직 한 번도 당첨되지 않은 회원 전체 (가입한 달과 무관)
+  // 한 번 당첨되면 이벤트가 끝날 때까지 다시 뽑히지 않습니다.
   interface MonthlyDrawWinner {
     id: string;
     month: string;
@@ -1455,8 +1457,11 @@ async function startServer() {
   app.get("/api/monthly-draw/info", (_req, res) => {
     const users = readJsonFile<AppUser[]>("users.json", []);
     const thisMonth = new Date().toISOString().slice(0, 7);
-    const eligibleCount = users.filter(u => u.createdAt.startsWith(thisMonth) && !isTestAccount(u)).length;
     const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
+    // 응모 대상 = 아직 한 번도 당첨되지 않은 회원 전체 (운영자 테스트 계정 제외).
+    // 가입한 달과 상관없이 계속 응모되고, 한 번 당첨되면 그 뒤로는 빠집니다.
+    const wonIds = new Set(winners.map(w => w.userId));
+    const eligibleCount = users.filter(u => !wonIds.has(u.id) && !isTestAccount(u)).length;
     const alreadyDrawnThisMonth = winners.some(w => w.month === thisMonth);
     const recentWinners = winners.slice().reverse().slice(0, 6).map(w => ({ month: w.month, nickname: w.nickname }));
     res.json({ success: true, prize: CURRENT_PRIZE, currentMonth: thisMonth, eligibleCount, alreadyDrawnThisMonth, recentWinners });
@@ -1475,11 +1480,10 @@ async function startServer() {
     }
     const users = readJsonFile<AppUser[]>("users.json", []);
     const alreadyWonIds = new Set(winners.map(w => w.userId));
-    const eligible = users.filter(
-      u => u.createdAt.startsWith(thisMonth) && !alreadyWonIds.has(u.id) && !isTestAccount(u)
-    );
+    // 가입한 달과 상관없이, 아직 당첨된 적 없는 회원 전체가 대상입니다.
+    const eligible = users.filter(u => !alreadyWonIds.has(u.id) && !isTestAccount(u));
     if (eligible.length === 0) {
-      return res.status(400).json({ success: false, error: "이번 달 추첨 대상(신규가입자)이 없습니다." });
+      return res.status(400).json({ success: false, error: "아직 당첨되지 않은 회원이 없습니다." });
     }
     const winner = eligible[Math.floor(Math.random() * eligible.length)];
     const newWinner: MonthlyDrawWinner = {
