@@ -322,37 +322,46 @@ export const ParkCoursesSection: React.FC = () => {
   return (
     <section id="section-courses" className="scroll-mt-28 py-8 px-4 sm:px-6 max-w-7xl mx-auto">
       {/* Section Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 pb-4 border-b border-green-200 gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-900 text-xs sm:text-sm font-extrabold mb-2 border border-green-300">
-            <span>⛳ 우리동네 파크골프장 맞춤 찾기 & 전국 구장 정보</span>
+      {/* 제목과 검색 결과 칸을 윗줄에 놓고, 긴 설명은 아랫줄 전체 폭을 쓰게 했습니다.
+          (예전처럼 설명을 검색 결과 칸 옆에 두면 '있습니다'가 혼자 다음 줄로 떨어졌습니다) */}
+      <div className="mb-6 pb-4 border-b border-green-200">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+          <div className="min-w-0">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-900 text-xs sm:text-sm font-extrabold mb-2 border border-green-300">
+              <span>⛳ 우리동네 파크골프장 맞춤 찾기 & 전국 구장 정보</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              전국 파크골프장 구장 찾기
+            </h2>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-            전국 파크골프장 구장 찾기
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-slate-600 mt-1 font-medium leading-relaxed">
-            시·도 및 시·군·구별 구장, 홀 수(9~72홀), 공인구장 여부까지 전국 {courses.length.toLocaleString()}곳 한눈에 검색 — 예약방식·잔디·주차 정보는 확인되는 대로 계속 채워가고 있습니다
-          </p>
+
+          {/* Action button & Total stats */}
+          <div className="flex items-center gap-2 flex-wrap md:shrink-0">
+            {isAdmin && (
+              <button
+                id="admin-add-course-btn"
+                onClick={() => openModal('admin')}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-bold text-sm shadow transition-all cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4 text-amber-300" />
+                <span>새 구장 등록</span>
+              </button>
+            )}
+            <div className="inline-flex items-baseline gap-1.5 whitespace-nowrap text-sm sm:text-base font-extrabold text-green-900 bg-green-50 px-4 py-2 rounded-2xl border border-green-200 shadow-xs">
+              <span>검색 결과</span>
+              <strong className="text-emerald-700 text-lg sm:text-xl">{sortedCourses.length}</strong>
+              <span className="text-slate-500 text-xs sm:text-sm font-semibold">/ 전체 {courses.length}개소</span>
+            </div>
+          </div>
         </div>
 
-        {/* Action button & Total stats */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {isAdmin && (
-            <button
-              id="admin-add-course-btn"
-              onClick={() => openModal('admin')}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-green-700 hover:bg-green-800 text-white font-bold text-sm shadow transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4 text-amber-300" />
-              <span>새 구장 등록</span>
-            </button>
-          )}
-          <div className="flex items-center gap-1.5 text-sm sm:text-base font-extrabold text-green-900 bg-green-50 px-4 py-2 rounded-2xl border border-green-200 shadow-xs">
-            <span>검색 결과 :</span>
-            <strong className="text-emerald-700 text-lg sm:text-xl">{sortedCourses.length}</strong>
-            <span className="text-slate-500 text-xs font-normal">/ 전체 {courses.length}개소</span>
-          </div>
-        </div>
+        {/* 한 문장이 너무 길어 '있습니다'만 다음 줄로 떨어지길래 두 문장으로 끊었습니다 */}
+        <p className="text-sm sm:text-base md:text-lg text-slate-600 mt-2.5 font-medium leading-relaxed text-pretty">
+          시·도, 시·군·구, 홀 수(9~72홀), 공인구장 여부로 전국 {courses.length.toLocaleString()}곳을 한눈에 찾아보세요.
+        </p>
+        <p className="text-xs sm:text-sm md:text-base text-slate-500 mt-1 font-medium leading-relaxed text-pretty">
+          예약방식·잔디·주차 정보는 확인되는 대로 계속 채워가고 있습니다.
+        </p>
       </div>
 
       {/* Public Data & Operation Policy Disclaimer Banner */}
