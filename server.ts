@@ -751,6 +751,35 @@ async function startServer() {
     res.json({ success: true, redemptions });
   });
 
+  // ---- 교환신청 알림용 (카톡 알림 예약작업이 씁니다) ----
+  // 최근 몇 시간 안에 들어온 교환신청이 있는지만 알려줍니다.
+  // 받는 분 성함·연락처·주소 같은 개인정보는 절대 내보내지 않습니다.
+  // 상품명·신청시각·처리상태만 나가므로 비밀번호 없이 열어둡니다.
+  // (자세한 내용은 관리자 화면에서만 보실 수 있습니다)
+  app.get("/api/redemptions/recent", (req, res) => {
+    const hours = Math.min(Math.max(Number(req.query.hours) || 4, 1), 72);
+    const since = Date.now() - hours * 60 * 60 * 1000;
+    const redemptions = readJsonFile<any[]>("redemptions.json", []);
+    const items = redemptions
+      .filter(r => {
+        const t = Date.parse(r?.createdAt || "");
+        return Number.isFinite(t) && t >= since;
+      })
+      .map(r => ({
+        itemName: r.itemName,
+        pointCost: r.pointCost,
+        createdAt: r.createdAt,
+        status: r.status
+      }));
+    res.json({
+      success: true,
+      hours,
+      count: items.length,
+      waitingTotal: redemptions.filter(r => r.status === "접수됨").length,
+      items
+    });
+  });
+
   app.patch("/api/redemptions/:id", requireAdmin, (req, res) => {
     const redemptions = readJsonFile<any[]>("redemptions.json", []);
     const idx = redemptions.findIndex(r => r.id === req.params.id);
