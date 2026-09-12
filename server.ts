@@ -297,6 +297,23 @@ async function startServer() {
         );
       }
 
+      // ── 운영자 테스트 계정 마당P 세팅 (딱 한 번만) ──
+      // 운영자가 마당P 교환 기능을 직접 시험해 볼 수 있도록, 테스트 계정 '홍대놀자'의
+      // 마당P를 999,000P로 한 번만 맞춰줍니다. 그 뒤에 쓴 만큼 줄어든 값은 다시 건드리지 않습니다.
+      // (계정이 아직 없으면 다음 서버 시작 때 다시 시도합니다)
+      const testState = readJsonFile<Record<string, boolean>>("test-account-state.json", {});
+      if (!testState.hongdaeNoljaPoints) {
+        const us = readJsonFile<any[]>("users.json", []);
+        const hi = us.findIndex(u => String(u?.nickname || "").trim() === "홍대놀자");
+        if (hi !== -1) {
+          us[hi].points = 999000;
+          writeJsonFile("users.json", us);
+          testState.hongdaeNoljaPoints = true;
+          writeJsonFile("test-account-state.json", testState);
+          console.log("[테스트계정] 홍대놀자 마당P를 999,000P로 설정했습니다.");
+        }
+      }
+
       // ── 맛집 정보 갱신 ──
       // 사전 조사한 맛집(RESTAURANT_SEED)이 늘어나거나 내용이 바뀌어도, 서버에 파일이
       // 한 번 저장되고 나면 반영되지 않던 문제가 있어 여기서 맞춰줍니다.
@@ -1390,6 +1407,20 @@ async function startServer() {
     res.json({ success: true, users: list, totalUsers: list.length });
   });
 
+  // 관리자가 회원의 마당P를 직접 고칩니다 (테스트·보정용).
+  app.patch("/api/admin/users/:id/points", requireAdmin, (req, res) => {
+    const points = Number(req.body?.points);
+    if (!Number.isFinite(points) || points < 0 || points > 100000000) {
+      return res.status(400).json({ success: false, error: "마당P는 0 이상의 숫자로 입력해주세요." });
+    }
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const idx = users.findIndex(u => u.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: "회원을 찾을 수 없습니다." });
+    users[idx].points = Math.round(points);
+    writeJsonFile("users.json", users);
+    res.json({ success: true, points: users[idx].points });
+  });
+
   // 실제 가입자 수 — "창립회원 OO/100명" 진행률바에 씁니다. 가짜 숫자를 넣지 않기 위해
   // 항상 실제 회원 수를 그대로 돌려줍니다.
   app.get("/api/auth/stats", (_req, res) => {
@@ -1408,6 +1439,12 @@ async function startServer() {
     shipped: boolean;
   }
 
+  // 운영자가 기능 시험용으로 직접 만든 계정입니다.
+  // 실제 회원이 아니므로 웰리타 랜덤추첨 이벤트 대상에서 제외합니다.
+  const TEST_ACCOUNT_NICKNAMES = ['홍대놀자', 'brucekj', '꽃줓년', '홍대자자'];
+  const isTestAccount = (u: any) =>
+    TEST_ACCOUNT_NICKNAMES.includes(String(u?.nickname || '').trim());
+
   const CURRENT_PRIZE = {
     name: '웰리타-Y 밀크씨슬 테아닌 간건강 긴장완화 영양제 180정 (3개월분)',
     brand: '웰리타스토어',
@@ -1418,7 +1455,7 @@ async function startServer() {
   app.get("/api/monthly-draw/info", (_req, res) => {
     const users = readJsonFile<AppUser[]>("users.json", []);
     const thisMonth = new Date().toISOString().slice(0, 7);
-    const eligibleCount = users.filter(u => u.createdAt.startsWith(thisMonth)).length;
+    const eligibleCount = users.filter(u => u.createdAt.startsWith(thisMonth) && !isTestAccount(u)).length;
     const winners = readJsonFile<MonthlyDrawWinner[]>("monthly-draw-winners.json", []);
     const alreadyDrawnThisMonth = winners.some(w => w.month === thisMonth);
     const recentWinners = winners.slice().reverse().slice(0, 6).map(w => ({ month: w.month, nickname: w.nickname }));
@@ -1438,7 +1475,9 @@ async function startServer() {
     }
     const users = readJsonFile<AppUser[]>("users.json", []);
     const alreadyWonIds = new Set(winners.map(w => w.userId));
-    const eligible = users.filter(u => u.createdAt.startsWith(thisMonth) && !alreadyWonIds.has(u.id));
+    const eligible = users.filter(
+      u => u.createdAt.startsWith(thisMonth) && !alreadyWonIds.has(u.id) && !isTestAccount(u)
+    );
     if (eligible.length === 0) {
       return res.status(400).json({ success: false, error: "이번 달 추첨 대상(신규가입자)이 없습니다." });
     }

@@ -134,6 +134,7 @@ interface ParkGolfContextType {
   fetchRedemptions: () => Promise<any[]>;
   updateRedemptionStatus: (id: string, status: string) => Promise<boolean>;
   fetchMembers: () => Promise<any[]>;
+  updateMemberPoints: (userId: string, points: number) => Promise<boolean>;
   loginAdmin: (password: string) => Promise<boolean>;
   logoutAdmin: () => void;
   resetToDefaultData: () => void;
@@ -509,6 +510,27 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   // Admin Auth
+  // 관리자 전용 — 회원의 마당P 직접 수정 (테스트·보정용)
+  const updateMemberPoints = async (userId: string, points: number): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/points`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ points })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        alert(data.error || '마당P를 바꾸지 못했습니다.');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('마당P 수정 실패:', err);
+      alert('마당P를 바꾸지 못했습니다.');
+      return false;
+    }
+  };
+
   // 관리자 전용 — 가입회원 목록 조회 (회원관리 탭)
   const fetchMembers = async (): Promise<any[]> => {
     try {
@@ -1519,6 +1541,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         fetchRedemptions,
         updateRedemptionStatus,
         fetchMembers,
+        updateMemberPoints,
         loginAdmin,
         logoutAdmin,
         resetToDefaultData,

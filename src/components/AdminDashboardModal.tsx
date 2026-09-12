@@ -59,6 +59,7 @@ export const AdminDashboardModal: React.FC = () => {
     deleteCoupangProduct,
     renameCoupangProduct,
     fetchMembers,
+    updateMemberPoints,
     matches,
     updateMatchStatus,
     deleteMatch,
@@ -222,6 +223,9 @@ export const AdminDashboardModal: React.FC = () => {
 
   // 회원관리 탭
   const [members, setMembers] = useState<any[]>([]);
+  // 마당P를 고치는 중인 회원 (테스트 계정 포인트 조정용)
+  const [editingPointsId, setEditingPointsId] = useState<string | null>(null);
+  const [editingPointsValue, setEditingPointsValue] = useState<string>('');
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
 
@@ -926,8 +930,49 @@ export const AdminDashboardModal: React.FC = () => {
                                 <td className="px-3 py-2.5 text-slate-700">{formatPhone(m.phone)}</td>
                                 <td className="px-3 py-2.5 text-slate-600">{m.preferredRegion || '-'}</td>
                                 <td className="px-3 py-2.5 text-slate-600">{m.averageScore || '-'}</td>
-                                <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700">
-                                  {Number(m.points || 0).toLocaleString()}P
+                                <td className="px-3 py-2.5 text-right font-extrabold text-emerald-700 whitespace-nowrap">
+                                  {editingPointsId === m.id ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <input
+                                        type="number"
+                                        value={editingPointsValue}
+                                        onChange={e => setEditingPointsValue(e.target.value)}
+                                        className="w-24 px-2 py-1 rounded-lg border border-emerald-300 text-right text-slate-900 font-bold"
+                                        autoFocus
+                                      />
+                                      <button
+                                        onClick={async () => {
+                                          const ok = await updateMemberPoints(m.id, Number(editingPointsValue));
+                                          if (ok) {
+                                            setEditingPointsId(null);
+                                            fetchMembers().then(setMembers);
+                                          }
+                                        }}
+                                        className="px-2 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold cursor-pointer"
+                                      >
+                                        저장
+                                      </button>
+                                      <button
+                                        onClick={() => setEditingPointsId(null)}
+                                        className="px-2 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold cursor-pointer"
+                                      >
+                                        취소
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {Number(m.points || 0).toLocaleString()}P
+                                      <button
+                                        onClick={() => {
+                                          setEditingPointsId(m.id);
+                                          setEditingPointsValue(String(m.points || 0));
+                                        }}
+                                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-600 text-[11px] font-bold cursor-pointer"
+                                      >
+                                        수정
+                                      </button>
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-3 py-2.5">
                                   <div className="flex flex-wrap gap-1">
