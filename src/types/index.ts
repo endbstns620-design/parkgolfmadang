@@ -118,6 +118,19 @@ export interface ParkCourse {
   distanceKm?: number; // 사용자 현재 위치와의 거리 (km)
 }
 
+// ── 사이트 공지사항 ──
+// 새 대회·새 구장처럼 "이번 주에 무엇이 바뀌었는지"를 방문자에게 알려주는 글입니다.
+// 월요일 자동작업이 src/data/siteNoticesData.ts 맨 앞에 한 건씩 추가합니다.
+export type SiteNoticeKind = '대회' | '구장' | '안내';
+
+export interface SiteNotice {
+  id: string;          // 'notice-2026-09-12' 처럼 날짜를 넣습니다
+  date: string;        // 'YYYY-MM-DD'
+  kind: SiteNoticeKind;
+  title: string;       // 한 줄 요약 — 메인 화면 띠에 그대로 나갑니다
+  lines: string[];     // 본문. 한 줄에 하나씩 넣습니다
+}
+
 export type TournamentStatus =
   | '접수중'
   | '접수예정'
@@ -164,6 +177,9 @@ export interface Tournament {
   posterUrl?: string;
   isFeatured?: boolean;
   isCertifiedHost?: boolean;
+  // 장애인 대회 여부. 보통은 대회명에 '장애인'이 들어가 자동으로 알아보므로
+  // 적지 않아도 됩니다. 이름만으로 구분이 안 되는 대회에만 직접 적어 주세요.
+  isPara?: boolean;
   views?: number;
 }
 

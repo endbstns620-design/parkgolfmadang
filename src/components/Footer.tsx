@@ -64,6 +64,16 @@ export const Footer: React.FC = () => {
           </div>
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 font-medium">
             <button
+              id="footer-link-notices"
+              onClick={() => {
+                setActiveTab('notices');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-slate-400 hover:text-amber-300 transition-colors underline-offset-4 hover:underline cursor-pointer"
+            >
+              공지사항
+            </button>
+            <button
               id="footer-link-terms"
               onClick={() => {
                 setActiveTab('associations');

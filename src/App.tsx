@@ -15,6 +15,7 @@ import { AssociationRulesGuideSection } from './components/AssociationRulesGuide
 import { NearbyRestaurantsSection } from './components/NearbyRestaurantsSection';
 import { CoupangShopSection } from './components/CoupangShopSection';
 import { PointMarketSection } from './components/PointMarketSection';
+import { NoticeSection } from './components/NoticeSection';
 import { Footer } from './components/Footer';
 import { SeniorFloatingNav } from './components/SeniorFloatingNav';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -72,6 +73,9 @@ const ParkGolfApp: React.FC = () => {
 
       case 'pointmarket':
         return <PointMarketSection />;
+
+      case 'notices':
+        return <NoticeSection />;
 
       case 'associations':
         return (

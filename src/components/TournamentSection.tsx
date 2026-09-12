@@ -31,10 +31,21 @@ const REGION_OPTIONS: RegionCategory[] = [
   '제주'
 ];
 
+// 장애인 대회인지 가려냅니다.
+// 전국장애인파크골프대회는 대회명에 반드시 '장애인'이 들어가고 주최도 장애인 단체라,
+// 따로 표시를 달지 않아도 알아볼 수 있습니다. 혹시 예외가 있으면 자료에 isPara: true 를
+// 적어 두면 그 값이 우선합니다.
+const isParaTournament = (t: { title?: string; organizer?: string; isPara?: boolean }) => {
+  if (typeof t.isPara === 'boolean') return t.isPara;
+  return /장애인/.test(`${t.title || ''} ${t.organizer || ''}`);
+};
+
 export const TournamentSection: React.FC = () => {
   const { tournaments, openModal, isAdmin } = useParkGolf();
   const [selectedRegion, setSelectedRegion] = useState<RegionCategory>('전체');
   const [statusFilter, setStatusFilter] = useState<string>('전체');
+  // 대회 구분 — '전체' · '일반' · '장애인'
+  const [kindFilter, setKindFilter] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // 일정 글자가 '2026-09-\n01'처럼 날짜 중간에서 잘리지 않도록
@@ -96,6 +107,12 @@ export const TournamentSection: React.FC = () => {
     }
   };
 
+  // 버튼에 건수를 같이 보여드립니다. 몇 건인지 미리 보이면 헛걸음이 줄어듭니다.
+  const kindCounts = useMemo(() => {
+    const para = tournaments.filter(isParaTournament).length;
+    return { 전체: tournaments.length, 일반: tournaments.length - para, 장애인: para };
+  }, [tournaments]);
+
   const filteredTournaments = useMemo(() => {
     // 정렬 기준: 진행중인 대회 → 날짜가 가까운 대회 → 끝난 대회(최근 순)
     const filtered = tournaments.filter(t => {
@@ -106,6 +123,9 @@ export const TournamentSection: React.FC = () => {
       }
       // Status filter
       if (statusFilter !== '전체' && t.status !== statusFilter) return false;
+      // 대회 구분 (일반 / 장애인)
+      if (kindFilter === '장애인' && !isParaTournament(t)) return false;
+      if (kindFilter === '일반' && isParaTournament(t)) return false;
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -125,7 +145,7 @@ export const TournamentSection: React.FC = () => {
       if (ka.days !== kb.days) return ka.days - kb.days;
       return a.title.localeCompare(b.title, 'ko');
     });
-  }, [tournaments, selectedRegion, statusFilter, searchQuery]);
+  }, [tournaments, selectedRegion, statusFilter, kindFilter, searchQuery]);
 
   return (
     <section id="section-tournaments" className="scroll-mt-28 py-8 sm:py-10 px-3 sm:px-6 max-w-7xl mx-auto bg-gradient-to-b from-amber-50/50 via-white to-stone-50/60 rounded-3xl my-8 border border-amber-200/80 shadow-sm">
@@ -181,6 +201,43 @@ export const TournamentSection: React.FC = () => {
             >
               초기화
             </button>
+          )}
+        </div>
+
+        {/* 대회 구분 — 장애인 대회를 검색어 없이 버튼 한 번으로 찾으실 수 있게 합니다 */}
+        <div>
+          <div className="text-base sm:text-lg font-black text-slate-700 mb-2.5 flex items-center gap-1.5">
+            <Users className="w-5 h-5 text-amber-700 shrink-0" />
+            <span>대회 구분</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: '전체', label: '전체 대회' },
+              { id: '일반', label: '일반 대회' },
+              { id: '장애인', label: '장애인 대회' }
+            ].map(k => (
+              <button
+                key={k.id}
+                id={`tour-kind-${k.id}`}
+                onClick={() => setKindFilter(k.id)}
+                className={`px-3.5 py-2 rounded-xl text-sm sm:text-base font-extrabold transition-all cursor-pointer whitespace-nowrap ${
+                  kindFilter === k.id
+                    ? 'bg-emerald-800 text-white shadow-sm ring-1 ring-emerald-600'
+                    : 'bg-stone-100 text-slate-700 hover:bg-stone-200 border border-slate-200'
+                }`}
+              >
+                {k.label}
+                <span className={`ml-1.5 text-xs sm:text-sm font-bold ${kindFilter === k.id ? 'text-emerald-100' : 'text-slate-500'}`}>
+                  {kindCounts[k.id as '전체' | '일반' | '장애인']}
+                </span>
+              </button>
+            ))}
+          </div>
+          {kindFilter === '장애인' && (
+            <p className="mt-2.5 text-sm sm:text-base font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-2.5 leading-relaxed">
+              전국장애인파크골프대회입니다. 주최가 대한장애인골프협회 계열이라 접수 방법이 일반 대회와 다릅니다.
+              접수 기간과 참가비는 대회를 눌러 공식 요강에서 꼭 확인해 주세요.
+            </p>
           )}
         </div>
 
@@ -262,7 +319,7 @@ export const TournamentSection: React.FC = () => {
             선택하신 조건에 맞는 대회가 없습니다.
           </h3>
           <p className="text-xs sm:text-sm text-slate-500">
-            개최 지역이나 접수 상태를 바꾸시거나, 검색어를 지워보세요.
+            개최 지역·대회 구분·접수 상태를 바꾸시거나, 검색어를 지워보세요.
           </p>
           <button
             onClick={() => {

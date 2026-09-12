@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { SocialChannelsSection } from './SocialChannelsSection';
 import { SponsorCompactBanner } from './SponsorBannerSection';
+import { NoticeStrip } from './NoticeStrip';
 
 // 메인 배너 이미지 — 대표님이 직접 주신 실제 파크골프장 사진입니다.
 // 원본이 4032×3024로 넉넉해서, 큰 화면에서도 또렷하게 보이도록 2400px로 넣었습니다.
@@ -32,6 +33,9 @@ export const MainHomeSection: React.FC = () => {
 
   return (
     <div className="bg-white">
+      {/* 이번 주에 새로 올라온 소식 — 한 줄 띠 */}
+      <NoticeStrip />
+
       {/* Hero Banner — 사진을 배경으로 깔고 글은 흐름대로 쌓습니다.
           (예전처럼 사진 위에 겹쳐두면 "글씨 아주 크게"를 고르셨을 때 글이 잘립니다) */}
       <section
