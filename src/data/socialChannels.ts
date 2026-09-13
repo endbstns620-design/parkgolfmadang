@@ -1,4 +1,4 @@
-import { Youtube, MessagesSquare, LucideIcon } from 'lucide-react';
+import { Youtube, NotebookPen, LucideIcon } from 'lucide-react';
 
 /**
  * 파크골프마당이 함께 운영하는 채널입니다.
@@ -37,15 +37,15 @@ export const SOCIAL_CHANNELS: SocialChannel[] = [
     colorDark: '#CC0000'
   },
   {
-    id: 'band',
-    name: '네이버 밴드',
-    headline: '동호인들과 이야기 나누는 곳',
-    detail: '동호인 간 소통, 최신 대회소식 등을 빠르게 만나보세요',
-    url: 'https://band.us/n/afa6bcjfL7zeY',
-    icon: MessagesSquare,
-    logoImage: '/images/logo-band.png', // 네이버 밴드 공식 앱 아이콘
-    logoWide: false,
-    color: '#00C73C',
-    colorDark: '#00A833'
+    id: 'blog',
+    name: '네이버 블로그',
+    headline: '구장 정보와 파크골프 이야기',
+    detail: '지역별 구장 예약방법 · 요금 · 대회소식을 글로 정리해 올립니다',
+    url: 'https://blog.naver.com/healthy_5060',
+    icon: NotebookPen,
+    logoImage: '/images/logo-blog.png', // 네이버 블로그 공식 로고
+    logoWide: true,
+    color: '#03C75A',
+    colorDark: '#02A64B'
   }
 ];

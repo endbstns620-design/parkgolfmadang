@@ -3,7 +3,7 @@ import { ExternalLink, Smartphone } from 'lucide-react';
 import { SOCIAL_CHANNELS } from '../data/socialChannels';
 
 /**
- * 파크골프마당이 운영하는 유튜브·네이버 밴드 안내입니다.
+ * 파크골프마당이 운영하는 유튜브·네이버 블로그 안내입니다.
  * 후원사 배너 오른쪽에 세로로 쌓아 넣기 때문에, 카드 하나하나를 위아래로 배치합니다.
  * 시니어분들이 누르기 쉽도록 버튼은 카드 폭 전체를 쓰고 글씨를 크게 두었습니다.
  *
@@ -104,7 +104,7 @@ const AddToHomeButton: React.FC = () => {
 
   return (
     <div className="group bg-white rounded-3xl border-2 border-slate-200 hover:border-slate-300 p-5 shadow-sm hover:shadow-md transition-all flex flex-col">
-      {/* 유튜브·밴드 카드의 로고 줄과 높이를 맞춥니다 */}
+      {/* 유튜브·블로그 카드의 로고 줄과 높이를 맞춥니다 */}
       <div className="h-10 sm:h-11 flex items-center mb-2.5">
         <span className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-green-800 flex items-center justify-center">
           <Smartphone className="w-6 h-6 text-white" />
@@ -138,7 +138,7 @@ const AddToHomeButton: React.FC = () => {
 
 export const SocialChannelsSection: React.FC = () => {
   return (
-    /* 유튜브 · 밴드 · 모바일 바로가기 세 칸을 나란히 놓습니다.
+    /* 유튜브 · 네이버 블로그 · 모바일 바로가기 세 칸을 나란히 놓습니다.
        좁은 화면에서는 위아래로 쌓입니다. */
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
       {SOCIAL_CHANNELS.map(ch => {
@@ -151,14 +151,17 @@ export const SocialChannelsSection: React.FC = () => {
             rel="noopener noreferrer"
             className="group bg-white rounded-3xl border-2 border-slate-200 hover:border-slate-300 p-5 shadow-sm hover:shadow-md transition-all flex flex-col"
           >
-            {/* 공식 로고는 모양이 서로 달라서(유튜브는 가로로 긴 로고, 밴드는 정사각형 아이콘)
+            {/* 공식 로고는 모양이 서로 달라서(유튜브는 가로로 긴 로고, 블로그는 정사각형 아이콘)
                 변형하지 않고 로고 줄을 따로 두어 높이만 맞춥니다. */}
             <div className="h-10 sm:h-11 flex items-center mb-2.5">
               {ch.logoImage ? (
                 <img src={ch.logoImage} alt={`${ch.name} 로고`} className="h-full w-auto object-contain" />
               ) : (
-                <span className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center">
-                  <Icon className="w-6 h-6" style={{ color: ch.color }} />
+                <span
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: ch.color }}
+                >
+                  <Icon className="w-6 h-6 text-white" />
                 </span>
               )}
             </div>
@@ -177,7 +180,7 @@ export const SocialChannelsSection: React.FC = () => {
         );
       })}
 
-      {/* 세 번째 칸 — 유튜브·밴드와 같은 틀입니다 */}
+      {/* 세 번째 칸 — 유튜브·블로그와 같은 틀입니다 */}
       <AddToHomeButton />
     </div>
   );

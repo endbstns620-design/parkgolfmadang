@@ -234,7 +234,7 @@ export const MainHomeSection: React.FC = () => {
 
 
 
-      {/* 유튜브·밴드 채널 + (좁은 화면에서만) 얇은 후원사 광고 띠 */}
+      {/* 유튜브·블로그 채널 + (좁은 화면에서만) 얇은 후원사 광고 띠 */}
       <section className="bg-slate-50 border-y border-slate-200 py-10 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-5">
           <SocialChannelsSection />
