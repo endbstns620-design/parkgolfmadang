@@ -101,6 +101,18 @@ export const ParkCoursesSection: React.FC = () => {
   const [rentalOnly, setRentalOnly] = useState<boolean>(false);
   const [sortOption, setSortOption] = useState<SortOption>('recommended');
 
+  // 실제로 후기가 달린 구장이 하나라도 있는지 봅니다.
+  // 하나도 없으면 '평점순 · 후기순' 버튼을 아예 내보내지 않습니다 —
+  // 눌러도 순서가 안 바뀌는 버튼은 사이트 전체를 믿을 수 없게 만듭니다.
+  const hasAnyReviews = useMemo(() => courses.some(c => (c.reviewCount || 0) > 0), [courses]);
+
+  // 후기가 없는데 평점순·후기순이 골라져 있으면 추천순으로 되돌립니다.
+  useEffect(() => {
+    if (!hasAnyReviews && (sortOption === 'ratingDesc' || sortOption === 'reviewCount')) {
+      setSortOption('recommended');
+    }
+  }, [hasAnyReviews, sortOption]);
+
   // Extract distinct sub-regions (districts) based on current region
   const availableSubRegions = useMemo(() => {
     const regionCourses = selectedRegion === '전체' 
@@ -288,7 +300,9 @@ export const ParkCoursesSection: React.FC = () => {
           if (!a.isPopular && b.isPopular) return 1;
           if (a.isAssociationCertified && !b.isAssociationCertified) return -1;
           if (!a.isAssociationCertified && b.isAssociationCertified) return 1;
-          return b.rating - a.rating;
+          // 예전에는 여기서 평점으로 한 번 더 갈랐는데, 아직 모든 구장 평점이
+          // 같은 기본값이라 아무 의미가 없었습니다. 홀 수가 많은 순으로 바꿨습니다.
+          return b.holes - a.holes;
         });
     }
   }, [coursesWithCoordsAndDistance, sortOption]);
@@ -642,8 +656,13 @@ export const ParkCoursesSection: React.FC = () => {
                 {[
                   { label: '추천순', value: 'recommended' },
                   { label: '홀수 많은순', value: 'holesDesc' },
-                  { label: '평점순', value: 'ratingDesc' },
-                  { label: '후기순', value: 'reviewCount' },
+                  // 평점순·후기순은 실제 후기가 쌓인 뒤에 나타납니다
+                  ...(hasAnyReviews
+                    ? [
+                        { label: '평점순', value: 'ratingDesc' },
+                        { label: '후기순', value: 'reviewCount' }
+                      ]
+                    : []),
                   { label: '가나다순', value: 'nameAsc' }
                 ].map(s => (
                   <button

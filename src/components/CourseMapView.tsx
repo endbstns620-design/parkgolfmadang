@@ -375,13 +375,20 @@ export const CourseMapView: React.FC<CourseMapViewProps> = ({
                   {selectedCourse.name}
                 </h4>
                 <div className="flex items-center gap-2 text-xs text-slate-600 mb-3">
-                  <div className="flex items-center text-amber-500 font-bold">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400 mr-1" />
-                    <span>{selectedCourse.rating.toFixed(1)}</span>
-                  </div>
-                  <span>•</span>
-                  <span>리뷰 {selectedCourse.reviewCount}개</span>
-                  <span>•</span>
+                  {/* 평점과 후기 수는 실제로 후기가 달린 구장에만 보여줍니다.
+                      후기가 0건인데 별점이 떠 있으면, 그 숫자 하나 때문에
+                      이 사이트의 다른 정보까지 지어낸 것처럼 보이게 됩니다. */}
+                  {(selectedCourse.reviewCount || 0) > 0 && (
+                    <>
+                      <div className="flex items-center text-amber-500 font-bold">
+                        <Star className="w-4 h-4 fill-amber-400 text-amber-400 mr-1" />
+                        <span>{selectedCourse.rating.toFixed(1)}</span>
+                      </div>
+                      <span>•</span>
+                      <span>리뷰 {selectedCourse.reviewCount}개</span>
+                      <span>•</span>
+                    </>
+                  )}
                   <span className="text-emerald-700 font-bold">{selectedCourse.reservationType}</span>
                 </div>
 

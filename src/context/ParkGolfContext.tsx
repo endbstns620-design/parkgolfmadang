@@ -1072,7 +1072,9 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const newCourse: ParkCourse = {
       ...courseData,
       id: `course-${Date.now()}`,
-      rating: 5.0,
+      // 새 구장은 후기가 0건이므로 평점도 0으로 시작합니다.
+      // (첫 후기가 달리는 순간 그 후기 점수가 그대로 평점이 됩니다)
+      rating: 0,
       reviewCount: 0
     };
     setCourses(prev => [newCourse, ...prev]);
@@ -1178,7 +1180,9 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       prev.map(c => {
         if (c.id === reviewData.courseId) {
           const currentCount = c.reviewCount || 0;
-          const currentRating = c.rating || 5;
+          // 기본값 5를 쓰던 자리입니다. 후기가 0건일 때 없는 점수를 끌어다 쓰지 않도록 0으로 둡니다.
+          // (후기가 0건이면 아래 계산은 '이번 후기 점수 그대로'가 됩니다)
+          const currentRating = c.rating || 0;
           const newAvg = ((currentRating * currentCount) + reviewData.rating) / (currentCount + 1);
           return {
             ...c,
