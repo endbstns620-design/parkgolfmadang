@@ -24,7 +24,17 @@ export const ReviewsSection: React.FC = () => {
   const totalReviews = reviews.length;
   const avgRating = totalReviews > 0
     ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / totalReviews).toFixed(1)
-    : '5.0';
+    : null;
+
+  // 잔디·주차·시설 점수는 실제 후기에서 평균을 냅니다.
+  // 예전에는 화면에 '5.0점'이라고 글자로 박혀 있어서, 후기가 0건인데도 만점이 떠 있었습니다.
+  const avgOf = (pick: (r: typeof reviews[number]) => number | undefined) => {
+    const nums = reviews.map(pick).filter((n): n is number => typeof n === 'number' && n > 0);
+    return nums.length > 0 ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1) : null;
+  };
+  const avgGrass = avgOf(r => r.grassScore ?? r.rating);
+  const avgParking = avgOf(r => r.parkingScore ?? r.rating);
+  const avgFacility = avgOf(r => r.facilityScore ?? r.rating);
 
   const filteredReviews = useMemo(() => {
     return reviews.filter(rev => {
@@ -69,42 +79,46 @@ export const ReviewsSection: React.FC = () => {
         </button>
       </div>
 
-      {/* Top Rating Summary Bar */}
-      <div className="bg-gradient-to-r from-amber-50 via-emerald-50/50 to-amber-50 rounded-2xl p-5 sm:p-6 border border-amber-200/90 mb-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4 text-center sm:text-left">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-400 text-green-950 flex flex-col items-center justify-center font-extrabold shadow-sm shrink-0">
-            <span className="text-2xl sm:text-3xl font-black">{totalReviews > 0 ? avgRating : '-'}</span>
-            <span className="text-[11px] font-bold">5.0 만점</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-1 text-amber-500 text-lg sm:text-xl mb-0.5 justify-center sm:justify-start">
-              {'★'.repeat(5)}
+      {/* 후기 요약 띠 — 후기가 한 건이라도 있을 때만 나옵니다.
+          후기 0건인데 별 다섯 개와 '5.0점'이 떠 있으면, 그 숫자 하나 때문에
+          이 게시판의 다른 후기까지 지어낸 것처럼 보입니다. */}
+      {totalReviews > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 via-emerald-50/50 to-amber-50 rounded-2xl p-5 sm:p-6 border border-amber-200/90 mb-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-center sm:text-left">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-400 text-green-950 flex flex-col items-center justify-center font-extrabold shadow-sm shrink-0">
+              <span className="text-2xl sm:text-3xl font-black">{avgRating}</span>
+              <span className="text-[11px] font-bold">5.0 만점</span>
             </div>
-            <h3 className="text-base sm:text-lg font-black text-slate-900">
-              {totalReviews > 0 ? `전국 ${totalReviews}명의 동호인 솔직 방문 평가` : '동호인 구장 평가 참여 대기'}
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-600 font-medium">
-              직접 라운딩하고 잔디를 밟아본 시니어 동호인들의 100% 솔직한 후기 목록입니다.
-            </p>
+            <div>
+              <div className="flex items-center gap-1 text-amber-500 text-lg sm:text-xl mb-0.5 justify-center sm:justify-start">
+                {'★'.repeat(Math.round(Number(avgRating)))}
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900">
+                전국 {totalReviews}명의 동호인 솔직 방문 평가
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium">
+                직접 라운딩하고 잔디를 밟아본 시니어 동호인들의 100% 솔직한 후기 목록입니다.
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Criteria Evaluation Badges */}
-        <div className="grid grid-cols-3 gap-2 w-full sm:w-auto text-center shrink-0">
-          <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200/60 shadow-2xs">
-            <span className="text-[11px] text-slate-500 font-bold block">잔디 상태</span>
-            <strong className="text-sm sm:text-base font-black text-emerald-800">5.0점</strong>
-          </div>
-          <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200/60 shadow-2xs">
-            <span className="text-[11px] text-slate-500 font-bold block">주차 편의</span>
-            <strong className="text-sm sm:text-base font-black text-emerald-800">5.0점</strong>
-          </div>
-          <div className="bg-white/90 p-2.5 rounded-xl border border-amber-200/60 shadow-2xs">
-            <span className="text-[11px] text-slate-500 font-bold block">부대 시설</span>
-            <strong className="text-sm sm:text-base font-black text-emerald-800">5.0점</strong>
+          {/* 항목별 평균 — 실제 후기에서 계산한 값입니다 */}
+          <div className="grid grid-cols-3 gap-2 w-full sm:w-auto text-center shrink-0">
+            {[
+              { label: '잔디 상태', value: avgGrass },
+              { label: '주차 편의', value: avgParking },
+              { label: '부대 시설', value: avgFacility }
+            ].map(item => (
+              <div key={item.label} className="bg-white/90 p-2.5 rounded-xl border border-amber-200/60 shadow-2xs">
+                <span className="text-[11px] text-slate-500 font-bold block">{item.label}</span>
+                <strong className="text-sm sm:text-base font-black text-emerald-800">
+                  {item.value ? `${item.value}점` : '–'}
+                </strong>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Board Search and Rating Filter Sub-Bar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">

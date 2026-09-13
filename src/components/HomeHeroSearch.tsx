@@ -50,7 +50,10 @@ export const HomeHeroSearch: React.FC = () => {
 
   return (
     <section className="bg-gradient-to-b from-[#166534] to-[#14532D]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-9 sm:py-14 flex flex-col items-center gap-6 sm:gap-8">
+      {/* 지역 버튼 6개가 넓은 화면에서 한 줄에 들어가도록 폭을 6xl로 넓혔습니다.
+          5xl(1024px)에서는 마지막 '제주'만 다음 줄로 넘어가 보기 안 좋았습니다.
+          검색 상자는 아래에서 따로 5xl로 묶어 예전 크기를 그대로 지킵니다. */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-9 sm:py-14 flex flex-col items-center gap-6 sm:gap-8">
         {/* 제목 — 운영자가 하고 싶은 말 대신, 찾아오신 분이 듣고 싶은 말 */}
         <div className="flex flex-col items-center gap-2 sm:gap-3 text-center">
           <h1 className="text-[28px] sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.28] text-white">
@@ -65,7 +68,7 @@ export const HomeHeroSearch: React.FC = () => {
 
         {/* 검색 상자 — 어르신들이 누르기 쉽도록 한 칸 높이를 60px 넘게 잡았습니다 */}
         <form
-          className="w-full bg-white rounded-2xl p-3 sm:p-3.5 shadow-2xl flex flex-col sm:flex-row gap-2.5 sm:gap-3"
+          className="w-full max-w-5xl bg-white rounded-2xl p-3 sm:p-3.5 shadow-2xl flex flex-col sm:flex-row gap-2.5 sm:gap-3"
           onSubmit={e => {
             e.preventDefault();
             goToCourses(region, keyword);
@@ -125,7 +128,7 @@ export const HomeHeroSearch: React.FC = () => {
                 key={r.value}
                 type="button"
                 onClick={() => goToCourses(r.value, '')}
-                className="px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-base sm:text-lg font-bold transition-colors cursor-pointer"
+                className="px-3.5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-base sm:text-lg font-bold whitespace-nowrap transition-colors cursor-pointer"
               >
                 {r.label} <span className="text-amber-300 font-black">{r.count}</span>
               </button>
