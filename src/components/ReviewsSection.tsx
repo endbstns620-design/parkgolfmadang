@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { EmptyBoardGuide } from './EmptyBoardGuide';
 import { ReviewItem } from '../types';
 import {
   Star,
@@ -9,7 +10,6 @@ import {
   MapPin,
   Search,
   ChevronRight,
-  MessageSquare,
   User,
   Clock,
   Filter
@@ -156,24 +156,19 @@ export const ReviewsSection: React.FC = () => {
 
       {/* Bulletin Board Style List */}
       {filteredReviews.length === 0 ? (
-        <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border border-slate-200 shadow-sm flex flex-col items-center justify-center">
-          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 mb-4 shadow-xs">
-            <MessageSquare className="w-8 h-8 text-amber-600" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-2">
-            등록된 구장 방문 후기가 없습니다
-          </h3>
-          <p className="text-sm sm:text-base text-slate-600 max-w-lg mb-6 leading-relaxed">
-            다녀오신 파크골프장의 잔디 상태, 주차 편의, 부대시설 등 생생한 라운딩 경험을 첫 번째로 공유해 보세요!
-          </p>
-          <button
-            onClick={() => openModal('newReview')}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-green-950 font-black text-base shadow-md transition-all cursor-pointer"
-          >
-            <MessageSquarePlus className="w-5 h-5" />
-            <span>+ 첫 번째 구장 방문 후기 작성하기</span>
-          </button>
-        </div>
+        <EmptyBoardGuide
+          tone="amber"
+          boardName="구장 방문 후기"
+          description="다녀오신 구장의 잔디 상태, 주차, 화장실 같은 건 가본 사람만 압니다. 짧게 두세 줄이면 충분합니다."
+          ctaLabel="구장 후기 쓰기"
+          onWrite={() => openModal('newReview')}
+          exampleLines={[
+            '천안 성성호수파크골프장 · 지난주 토요일 오전',
+            '잔디는 짧게 깎여 있어 굴러가는 게 좋았습니다.',
+            '주차장은 넉넉했고 9시쯤 가니 대기 없이 바로 쳤습니다.',
+            '화장실이 입구 쪽 한 곳뿐이라 조금 멀었습니다.'
+          ]}
+        />
       ) : (
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-200">
           {/* Board Header on larger screens */}

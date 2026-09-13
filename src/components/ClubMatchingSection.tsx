@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { EmptyBoardGuide } from './EmptyBoardGuide';
 import { MatchingPost } from '../types';
 import {
   Users,
@@ -118,17 +119,18 @@ export const ClubMatchingSection: React.FC = () => {
 
       {/* Matching Posts List */}
       {filteredMatches.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm">
-          <Users className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-          <h3 className="text-xl font-bold text-slate-800 mb-1">등록된 동반자 모집글이 없습니다</h3>
-          <p className="text-slate-500 mb-4 font-medium">가장 먼저 새로운 라운딩 동반자를 모집해 보세요!</p>
-          <button
-            onClick={() => openModal('newMatch')}
-            className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm shadow cursor-pointer transition-colors"
-          >
-            + 첫 번째 모집글 쓰기
-          </button>
-        </div>
+        <EmptyBoardGuide
+          tone="rose"
+          boardName="동반자 모집"
+          description="언제, 어느 구장에, 몇 분이 더 필요한지만 적으시면 됩니다. 연락은 댓글로 받으시면 됩니다."
+          ctaLabel="동반자 모집글 쓰기"
+          onWrite={() => openModal('newMatch')}
+          exampleLines={[
+            '9월 20일(토) 오전 9시 · 천안 성성호수파크골프장',
+            '두 분 더 모십니다. 초보분도 편하게 오세요.',
+            '한 바퀴 돌고 점심 먹고 헤어질 예정입니다.'
+          ]}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredMatches.map(match => {
