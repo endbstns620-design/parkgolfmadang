@@ -6,7 +6,8 @@ import { RegionCategory } from '../types';
 // 구장 목록 화면과 똑같은 권역 구분을 씁니다.
 // (여기서 고른 지역이 그대로 '전국 구장' 화면의 필터로 넘어갑니다)
 const REGION_OPTIONS: { label: string; value: RegionCategory }[] = [
-  { label: '지역을 골라주세요', value: '전체' },
+  // 글씨 '아주 크게'에서도 칸 밖으로 넘치지 않도록 짧게 씁니다.
+  { label: '지역 선택', value: '전체' },
   { label: '서울/경기/인천', value: '서울/경기/인천' },
   { label: '강원', value: '강원' },
   { label: '충청/대전/세종', value: '충청/대전/세종' },
@@ -69,7 +70,7 @@ export const HomeHeroSearch: React.FC = () => {
             goToCourses(region, keyword);
           }}
         >
-          <div className="relative sm:w-[230px] shrink-0">
+          <div className="relative sm:w-[250px] shrink-0">
             <label htmlFor="home-hero-region" className="sr-only">
               지역 선택
             </label>
