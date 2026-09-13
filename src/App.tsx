@@ -19,7 +19,6 @@ import { NoticeSection } from './components/NoticeSection';
 import { Footer } from './components/Footer';
 import { SeniorFloatingNav } from './components/SeniorFloatingNav';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { SponsorRailBanners } from './components/SponsorBannerSection';
 import { initClientSecurityGuards } from './utils/security';
 
 // Modals
@@ -132,8 +131,10 @@ const ParkGolfApp: React.FC = () => {
       {/* 6. Mobile App Bottom Navigation Bar */}
       <MobileBottomNav />
 
-      {/* 7. 넓은 PC 화면에서만 — 본문 양옆 빈 공간에 붙는 후원사 광고 띠 */}
-      <SponsorRailBanners />
+      {/* 양옆에 고정으로 붙던 후원사 광고 띠는 뺐습니다.
+          같은 광고가 한 화면에 세 번 나오던 문제를 없애고,
+          광고는 구장 목록·구장 상세 안(InlineAdBanner)에서만 보여줍니다 —
+          "채 하나 사야겠다" 하는 맥락에서 나오는 쪽이 훨씬 잘 눌립니다. */}
 
       {/* 7. Modals Layer */}
       <ParkDetailModal />

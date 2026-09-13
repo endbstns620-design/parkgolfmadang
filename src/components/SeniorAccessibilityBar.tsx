@@ -1,6 +1,5 @@
 import React from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
-import { VisitorCounterBadge } from './VisitorCounterBadge';
 import { LogIn, UserCircle2, UserCheck } from 'lucide-react';
 
 export const SeniorAccessibilityBar: React.FC = () => {
@@ -59,9 +58,10 @@ export const SeniorAccessibilityBar: React.FC = () => {
               아주 크게
             </button>
           </div>
-          <div className="ml-1">
-            <VisitorCounterBadge />
-          </div>
+          {/* 실시간 방문자 수(오늘 46명 / 누적 280명)는 뺐습니다.
+              운영자에게 필요한 숫자지 찾아오신 분께 필요한 숫자가 아니고,
+              작은 숫자는 오히려 "작은 사이트구나"로 읽힙니다.
+              필요하시면 관리자 화면에서 그대로 보실 수 있습니다. */}
         </div>
 
         {/* Center/Right: Quick Actions */}
