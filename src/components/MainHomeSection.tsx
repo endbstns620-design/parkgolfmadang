@@ -16,7 +16,7 @@ const WELITA_PRODUCT_IMAGE_URL = '/images/welita-y-hero.jpg';
 // 마당P가 쌓여서 상품으로 바뀌는 흐름 (1번째 오픈이벤트 아래에 표시)
 const POINT_STEPS = [
   { no: 1, emoji: '✍️', title: '글 쓰기', short: '리뷰 · 맛집 · 동반자' },
-  { no: 2, emoji: '🪙', title: '마당P 적립', short: '글 하나에 +300P' },
+  { no: 2, emoji: '💰', title: '마당P 적립', short: '글 하나에 +300P' },
   { no: 3, emoji: '🎁', title: '상품 교환', short: '마당P 장터에서' }
 ];
 
@@ -120,21 +120,21 @@ export const MainHomeSection: React.FC = () => {
                 </p>
 
                 {/* 마당P가 어떻게 쌓이고 어디에 쓰이는지 — 3단계로 짧게 */}
-                <div className="flex-1 flex flex-col justify-center bg-emerald-950/50 rounded-2xl px-3 py-2 border border-amber-300/30">
+                <div className="flex-1 flex flex-col justify-center bg-emerald-950/50 rounded-2xl px-3 py-2 sm:py-6 border border-amber-300/30">
                   <div className="flex flex-col min-[400px]:flex-row items-stretch min-[400px]:items-start justify-between gap-1.5 min-[400px]:gap-1">
                     {POINT_STEPS.map((step, i) => (
                       <React.Fragment key={step.no}>
                         <div className="flex-1 text-center min-w-0">
-                          <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-xl bg-white/15 border border-white/25 flex items-center justify-center text-2xl sm:text-3xl mb-1.5">
+                          <div className="w-12 h-12 sm:w-20 sm:h-20 mx-auto rounded-xl sm:rounded-2xl bg-white/15 border border-white/25 flex items-center justify-center text-2xl sm:text-4xl mb-1.5 sm:mb-2.5">
                             {step.emoji}
                           </div>
-                          <p className="text-white font-black text-base sm:text-lg leading-tight">{step.title}</p>
-                          <p className="text-amber-200 font-bold text-sm sm:text-base leading-snug mt-0.5 break-keep">
+                          <p className="text-white font-black text-base sm:text-xl leading-tight">{step.title}</p>
+                          <p className="text-amber-200 font-bold text-sm sm:text-lg leading-snug mt-0.5 sm:mt-1 break-keep">
                             {step.short}
                           </p>
                         </div>
                         {i < POINT_STEPS.length - 1 && (
-                          <div className="text-center min-[400px]:pt-5 text-amber-300 text-2xl font-black shrink-0">
+                          <div className="text-center min-[400px]:pt-5 sm:min-[400px]:pt-9 text-amber-300 text-2xl sm:text-3xl font-black shrink-0">
                             <span className="min-[400px]:hidden">↓</span>
                             <span className="hidden min-[400px]:inline">→</span>
                           </div>
