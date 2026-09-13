@@ -57,8 +57,9 @@ export const HomeHeroSearch: React.FC = () => {
             전국 <span className="text-amber-300">{courses.length.toLocaleString()}곳</span> 파크골프장을
             <br className="sm:hidden" /> 한 곳에서
           </h1>
+          {/* 글씨 '아주 크게'에서 세 줄로 늘어나 첫 화면을 다 먹지 않도록 짧게 씁니다 */}
           <p className="text-base sm:text-lg md:text-xl text-green-100 font-bold leading-relaxed">
-            지역만 고르면 가까운 구장과 이용요금이 바로 나옵니다
+            지역만 고르면 바로 나옵니다
           </p>
         </div>
 
