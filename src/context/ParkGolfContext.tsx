@@ -25,6 +25,11 @@ import {
 import { cleanExpiredMatches } from '../utils/matchAutoCleaner';
 import { validatePostContent } from '../utils/contentModeration';
 
+// 이 기기에서 최근에 열어본 구장을 기억해 두는 자리입니다.
+// 구장 번호만 이 브라우저에 남고, 서버로 보내거나 다른 사람과 공유되지 않습니다.
+const RECENT_COURSES_KEY = 'pgm-recent-courses';
+const RECENT_COURSES_MAX = 6;
+
 interface ModalState {
   type:
     | 'courseDetail'
@@ -71,6 +76,10 @@ interface ParkGolfContextType {
   activeModal: ModalState | null;
   openModal: (type: ModalState['type'], data?: any) => void;
   closeModal: () => void;
+
+  // 이 기기에서 최근에 열어본 구장 번호 (최신 순). 첫 화면에 "최근에 보신 구장"으로 보여줍니다.
+  // 이 기기 안에만 저장되고 서버로 보내지 않습니다.
+  recentCourseIds: string[];
 
   // TTS Voice
   isSpeaking: boolean;
@@ -360,6 +369,19 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [filterParkingOnly, setFilterParkingOnly] = useState<boolean>(false);
 
   const [activeModal, setActiveModal] = useState<ModalState | null>(null);
+
+  // 최근에 열어본 구장 — 이 기기(브라우저)에만 남습니다.
+  const [recentCourseIds, setRecentCourseIds] = useState<string[]>(() => {
+    try {
+      const saved = window.localStorage.getItem(RECENT_COURSES_KEY);
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (Array.isArray(parsed)) return parsed.filter(v => typeof v === 'string').slice(0, RECENT_COURSES_MAX);
+    } catch {
+      /* 저장이 막혀 있어도 사이트는 그대로 동작해야 하므로 조용히 넘어갑니다 */
+    }
+    return [];
+  });
+
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [pointShopItems, setPointShopItems] = useState<PointShopItem[]>([]);
@@ -472,6 +494,21 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Modal helpers
   const openModal = (type: ModalState['type'], data?: any) => {
     setActiveModal({ type, data });
+
+    // 구장 상세를 여시면 그 구장을 '최근에 보신 구장'에 기록해 둡니다.
+    // (목록에서 열든, 지도에서 열든, 검색 주소로 바로 들어오시든 전부 여기를 지나갑니다)
+    if (type === 'courseDetail' && data && typeof data.id === 'string') {
+      const courseId: string = data.id;
+      setRecentCourseIds(prev => {
+        const next = [courseId, ...prev.filter(id => id !== courseId)].slice(0, RECENT_COURSES_MAX);
+        try {
+          window.localStorage.setItem(RECENT_COURSES_KEY, JSON.stringify(next));
+        } catch {
+          /* 저장이 막혀 있으면 이번 방문 동안만 기억합니다 */
+        }
+        return next;
+      });
+    }
   };
 
   const closeModal = () => {
@@ -1510,6 +1547,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         activeModal,
         openModal,
         closeModal,
+        recentCourseIds,
         isSpeaking,
         speakText,
         stopSpeaking,
