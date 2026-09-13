@@ -97,12 +97,15 @@ const ParkGolfApp: React.FC = () => {
     <div className="min-h-screen w-full flex flex-col bg-stone-50 text-slate-900 selection:bg-amber-300 selection:text-green-950 font-sans antialiased pb-20 md:pb-0">
       {/* 검색으로 구장·대회 주소를 통해 들어온 분을 해당 화면으로 안내합니다 */}
       <DeepLinkOpener />
-      {/* Sticky Combined Header: Senior Accessibility & Navigation */}
-      <div className="sticky top-0 z-50 w-full shadow-md">
-        {/* 1. Senior Accessibility & Font Scale Bar */}
-        <SeniorAccessibilityBar />
+      {/* 1. 글씨 크기 · 협회 규정 · 로그인 줄 — 화면 위에 고정하지 않습니다.
+          한 번 누르면 끝나는 것들이라 계속 따라다닐 이유가 없는데,
+          '아주 크게'에서는 이 줄만으로 화면의 4분의 1을 차지해
+          정작 글씨를 키우신 분이 가장 좁은 화면을 보게 됩니다.
+          이제 아래로 내리면 위로 사라지고, 맨 위로 올리면 다시 나옵니다. */}
+      <SeniorAccessibilityBar />
 
-        {/* 2. Top Navigation Bar (Single-Row Categories) */}
+      {/* 2. 로고 · 카테고리 줄만 고정 — 지금 어느 사이트인지, 어디로 갈 수 있는지는 항상 보여야 합니다 */}
+      <div className="sticky top-0 z-50 w-full shadow-md">
         <HeaderNavbar />
       </div>
 
