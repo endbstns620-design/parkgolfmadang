@@ -27,7 +27,7 @@ export const SOCIAL_CHANNELS: SocialChannel[] = [
     id: 'youtube',
     name: '유튜브',
     headline: '영상으로 보는 파크골프',
-    detail: '스윙 자세 · 구장 둘러보기 · 대회 현장을 영상으로 보실 수 있습니다',
+    detail: '파크골프와 관련된 유익한 영상을 보실 수 있습니다',
     // 한글 채널 주소는 브라우저가 헷갈리지 않도록 변환한 주소를 씁니다.
     url: 'https://www.youtube.com/@%ED%8C%8C%ED%81%AC%EA%B3%A8%ED%94%84%EB%A7%88%EB%8B%B9',
     icon: Youtube,

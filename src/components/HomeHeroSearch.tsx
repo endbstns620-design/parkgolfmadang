@@ -49,19 +49,40 @@ export const HomeHeroSearch: React.FC = () => {
   };
 
   return (
-    <section className="bg-gradient-to-b from-[#166534] to-[#14532D]">
+    <section className="relative isolate overflow-hidden bg-[#14532D]">
+      {/* 배경 사진 — 카카오톡 공유 썸네일과 같은 사진입니다.
+          휴대폰에는 세로로 자른 가벼운 사진(97KB), PC에는 가로형(169KB)을 내려줍니다.
+          사진이 늦게 떠도 글씨가 사라지지 않도록 뒤에 진한 초록색을 깔아둡니다. */}
+      <img
+        src="/images/hero-bg.jpg"
+        srcSet="/images/hero-bg-mobile.jpg 900w, /images/hero-bg.jpg 1800w"
+        sizes="100vw"
+        alt=""
+        aria-hidden="true"
+        fetchPriority="high"
+        decoding="async"
+        className="absolute inset-0 -z-10 w-full h-full object-cover"
+      />
+      {/* 사진 위에 덮는 초록 막 — 글씨가 어떤 사진 위에서도 읽히게 합니다.
+          아래로 갈수록 진해져서, 지역 버튼 줄까지 또렷하게 보입니다. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0B3D22]/80 via-[#0B3D22]/85 to-[#0B3D22]/94"
+      />
+
       {/* 지역 버튼 6개가 넓은 화면에서 한 줄에 들어가도록 폭을 6xl로 넓혔습니다.
           5xl(1024px)에서는 마지막 '제주'만 다음 줄로 넘어가 보기 안 좋았습니다.
           검색 상자는 아래에서 따로 5xl로 묶어 예전 크기를 그대로 지킵니다. */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-9 sm:py-14 flex flex-col items-center gap-6 sm:gap-8">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-9 sm:py-14 flex flex-col items-center gap-6 sm:gap-8">
         {/* 제목 — 운영자가 하고 싶은 말 대신, 찾아오신 분이 듣고 싶은 말 */}
         <div className="flex flex-col items-center gap-2 sm:gap-3 text-center">
-          <h1 className="text-[28px] sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.28] text-white">
+          {/* 사진 위에 올라가는 글씨라 옅은 그림자를 넣어 또렷하게 만듭니다 */}
+          <h1 className="text-[28px] sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.28] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]">
             전국 <span className="text-amber-300">{courses.length.toLocaleString()}곳</span> 파크골프장을
             <br className="sm:hidden" /> 한 곳에서
           </h1>
           {/* 글씨 '아주 크게'에서 세 줄로 늘어나 첫 화면을 다 먹지 않도록 짧게 씁니다 */}
-          <p className="text-base sm:text-lg md:text-xl text-green-100 font-bold leading-relaxed">
+          <p className="text-base sm:text-lg md:text-xl text-green-50 font-bold leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]">
             지역만 고르면 바로 나옵니다
           </p>
         </div>
@@ -119,7 +140,7 @@ export const HomeHeroSearch: React.FC = () => {
         {/* 권역 바로가기 — 누르면 그 지역 구장 목록으로 바로 넘어갑니다 */}
         {regionCounts.length > 0 && (
           <div className="w-full flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-            <span className="inline-flex items-center gap-1.5 text-sm sm:text-base font-bold text-green-200">
+            <span className="inline-flex items-center gap-1.5 text-sm sm:text-base font-bold text-green-100 [text-shadow:0_1px_6px_rgba(0,0,0,0.5)]">
               <MapPin className="w-4 h-4" />
               지역별로 보기
             </span>
@@ -128,7 +149,7 @@ export const HomeHeroSearch: React.FC = () => {
                 key={r.value}
                 type="button"
                 onClick={() => goToCourses(r.value, '')}
-                className="px-3.5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white text-base sm:text-lg font-bold whitespace-nowrap transition-colors cursor-pointer"
+                className="px-3.5 py-2.5 rounded-full bg-black/25 hover:bg-black/40 backdrop-blur-[2px] border border-white/35 text-white text-base sm:text-lg font-bold whitespace-nowrap transition-colors cursor-pointer"
               >
                 {r.label} <span className="text-amber-300 font-black">{r.count}</span>
               </button>
