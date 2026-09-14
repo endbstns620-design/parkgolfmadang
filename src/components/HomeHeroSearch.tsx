@@ -63,11 +63,13 @@ export const HomeHeroSearch: React.FC = () => {
         decoding="async"
         className="absolute inset-0 -z-10 w-full h-full object-cover"
       />
-      {/* 사진 위에 덮는 초록 막 — 글씨가 어떤 사진 위에서도 읽히게 합니다.
-          아래로 갈수록 진해져서, 지역 버튼 줄까지 또렷하게 보입니다. */}
+      {/* 사진 위에 덮는 초록 막.
+          처음에는 80~94%로 덮었는데, 그러면 사진이 거의 안 보여서 넣은 의미가 없었습니다.
+          지금은 위쪽(하늘)을 많이 열어두고 아래로 갈수록 진하게 덮습니다 —
+          위는 사진이 보이고, 지역 버튼이 놓인 아래쪽은 글씨가 또렷합니다. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0B3D22]/80 via-[#0B3D22]/85 to-[#0B3D22]/94"
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0B3D22]/55 via-[#0B3D22]/68 to-[#0B3D22]/86"
       />
 
       {/* 지역 버튼 6개가 넓은 화면에서 한 줄에 들어가도록 폭을 6xl로 넓혔습니다.
@@ -76,13 +78,14 @@ export const HomeHeroSearch: React.FC = () => {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-9 sm:py-14 flex flex-col items-center gap-6 sm:gap-8">
         {/* 제목 — 운영자가 하고 싶은 말 대신, 찾아오신 분이 듣고 싶은 말 */}
         <div className="flex flex-col items-center gap-2 sm:gap-3 text-center">
-          {/* 사진 위에 올라가는 글씨라 옅은 그림자를 넣어 또렷하게 만듭니다 */}
-          <h1 className="text-[28px] sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.28] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.45)]">
+          {/* 사진이 더 잘 보이게 막을 걷어낸 만큼, 글씨 그림자는 진하게 넣습니다.
+              밝은 하늘 위에 흰 글씨가 올라가도 또렷하게 읽히도록 하기 위함입니다. */}
+          <h1 className="text-[28px] sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.28] text-white [text-shadow:0_2px_4px_rgba(0,0,0,0.55),0_4px_18px_rgba(0,0,0,0.5)]">
             전국 <span className="text-amber-300">{courses.length.toLocaleString()}곳</span> 파크골프장을
             <br className="sm:hidden" /> 한 곳에서
           </h1>
           {/* 글씨 '아주 크게'에서 세 줄로 늘어나 첫 화면을 다 먹지 않도록 짧게 씁니다 */}
-          <p className="text-base sm:text-lg md:text-xl text-green-50 font-bold leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]">
+          <p className="text-base sm:text-lg md:text-xl text-green-50 font-bold leading-relaxed [text-shadow:0_1px_3px_rgba(0,0,0,0.6),0_2px_10px_rgba(0,0,0,0.5)]">
             지역만 고르면 바로 나옵니다
           </p>
         </div>
@@ -149,7 +152,7 @@ export const HomeHeroSearch: React.FC = () => {
                 key={r.value}
                 type="button"
                 onClick={() => goToCourses(r.value, '')}
-                className="px-3.5 py-2.5 rounded-full bg-black/25 hover:bg-black/40 backdrop-blur-[2px] border border-white/35 text-white text-base sm:text-lg font-bold whitespace-nowrap transition-colors cursor-pointer"
+                className="px-3.5 py-2.5 rounded-full bg-black/35 hover:bg-black/50 backdrop-blur-[3px] border border-white/40 text-white text-base sm:text-lg font-bold whitespace-nowrap transition-colors cursor-pointer"
               >
                 {r.label} <span className="text-amber-300 font-black">{r.count}</span>
               </button>
