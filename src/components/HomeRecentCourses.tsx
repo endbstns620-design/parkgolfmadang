@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { ParkCourse } from '../types';
 import { MapPin, ChevronRight, Clock } from 'lucide-react';
-import { buildCourseHref, handleCourseLinkClick } from '../utils/courseUrl';
+import { buildCourseHrefMap, handleCourseLinkClick } from '../utils/courseUrl';
 
 /**
  * 첫 화면 — "최근에 보신 구장".
@@ -59,6 +59,9 @@ export const HomeRecentCourses: React.FC = () => {
       .slice(0, 3);
   }, [courses, recentCourseIds]);
 
+  // 구장별 주소표 (서버와 같은 규칙). 전체 목록으로 만들어야 이름 중복이 구분됩니다.
+  const courseHrefs = useMemo(() => buildCourseHrefMap(courses as any[]), [courses]);
+
   const goToAllCourses = () => {
     setActiveTab('courses');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -105,7 +108,7 @@ export const HomeRecentCourses: React.FC = () => {
           {recent.map(course => (
             <a
               key={course.id}
-              href={buildCourseHref(course.name)}
+              href={courseHrefs.get(course.id)}
               onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
               className="block text-left rounded-2xl border-2 border-slate-200 hover:border-green-600 bg-white p-4 sm:p-5 shadow-sm hover:shadow-md transition-all cursor-pointer"
             >

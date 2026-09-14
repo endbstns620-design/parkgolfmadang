@@ -10,7 +10,7 @@ import {
   getRentalFeeInfo,
   checkIsFreeCourse
 } from '../utils/courseDetailsHelper';
-import { buildCourseHref } from '../utils/courseUrl';
+import { buildCourseHrefMap } from '../utils/courseUrl';
 import {
   X,
   MapPin,
@@ -44,7 +44,7 @@ import {
 type DetailTab = 'overview' | 'courseHoles' | 'fees' | 'reservation' | 'facilities' | 'reviews';
 
 export const ParkDetailModal: React.FC = () => {
-  const { activeModal, closeModal, reviews, openModal, ads } = useParkGolf();
+  const { activeModal, closeModal, reviews, openModal, ads, courses } = useParkGolf();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [copied, setCopied] = useState(false);
 
@@ -74,7 +74,7 @@ export const ParkDetailModal: React.FC = () => {
       navigator.share({
         title: `${course.name} - 파크골프마당`,
         text: `[파크골프마당] ${course.name} (${course.holes}홀) - ${course.address}`,
-        url: `${window.location.origin}${buildCourseHref(course.name)}`
+        url: `${window.location.origin}${buildCourseHrefMap(courses as any[]).get(course.id) || ''}`
       }).catch(() => {});
     } else {
       handleCopyAddress();

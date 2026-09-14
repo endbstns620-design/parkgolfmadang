@@ -16,7 +16,7 @@ import {
   calculateHaversineDistance,
   formatDistance
 } from '../utils/geoCoordinatesHelper';
-import { buildCourseHref, handleCourseLinkClick } from '../utils/courseUrl';
+import { buildCourseHrefMap, handleCourseLinkClick } from '../utils/courseUrl';
 import {
   MapPin,
   Car,
@@ -106,6 +106,10 @@ export const ParkCoursesSection: React.FC = () => {
   // 하나도 없으면 '평점순 · 후기순' 버튼을 아예 내보내지 않습니다 —
   // 눌러도 순서가 안 바뀌는 버튼은 사이트 전체를 믿을 수 없게 만듭니다.
   const hasAnyReviews = useMemo(() => courses.some(c => (c.reviewCount || 0) > 0), [courses]);
+
+  // 구장별 주소표. 서버와 같은 규칙(pageUrls)으로 만들어야 이름이 겹치는
+  // 구장도 각자 다른 주소를 갖습니다. 반드시 '전체 목록'을 넣습니다.
+  const courseHrefs = useMemo(() => buildCourseHrefMap(courses as any[]), [courses]);
 
   // 후기가 없는데 평점순·후기순이 골라져 있으면 추천순으로 되돌립니다.
   useEffect(() => {
@@ -775,7 +779,7 @@ export const ParkCoursesSection: React.FC = () => {
                             </span>
                           </div>
                           <a
-                            href={buildCourseHref(course.name)}
+                            href={courseHrefs.get(course.id)}
                             onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
                             className="block"
                           >
@@ -810,7 +814,7 @@ export const ParkCoursesSection: React.FC = () => {
                             <span>전화문의</span>
                           </a>
                           <a
-                            href={buildCourseHref(course.name)}
+                            href={courseHrefs.get(course.id)}
                             onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
                             className="py-2.5 px-3 rounded-xl bg-slate-900 active:bg-black text-white font-extrabold text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                           >
@@ -875,7 +879,7 @@ export const ParkCoursesSection: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <a
-                              href={buildCourseHref(course.name)}
+                              href={courseHrefs.get(course.id)}
                               onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
                               className="block"
                             >
@@ -945,7 +949,7 @@ export const ParkCoursesSection: React.FC = () => {
                         </div>
 
                         <a
-                          href={buildCourseHref(course.name)}
+                          href={courseHrefs.get(course.id)}
                           onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
                           className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-black text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
                         >

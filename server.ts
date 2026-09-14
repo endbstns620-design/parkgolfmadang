@@ -596,6 +596,17 @@ async function startServer() {
     return merged;
   }
 
+  // 관리자가 구장 이름이나 지역을 고치면, 그 구장의 주소(slug)도 함께 달라집니다.
+  // 화면은 보정값을 덧씌운 이름을 쓰는데 서버가 원본 이름으로 주소를 만들면 서로 어긋나
+  // 404가 납니다. 보정값이 바뀔 때마다 이 번호를 올려서 주소표를 다시 만들게 합니다.
+  let overridesVersion = 0;
+
+  // 원본 구장 자료 위에 보정값을 덧씌운, '실제로 방문자에게 보이는' 구장 목록입니다.
+  function coursesWithOverrides(): any[] {
+    const ov = mergedCourseOverrides();
+    return (PARK_COURSES as any[]).map(c => (ov[c.id] ? { ...c, ...ov[c.id] } : c));
+  }
+
   app.get("/api/course-overrides", (_req, res) => {
     res.json({ success: true, overrides: mergedCourseOverrides() });
   });
@@ -604,6 +615,7 @@ async function startServer() {
     const admin = readAdminOverrides();
     admin[req.params.id] = { ...(admin[req.params.id] || {}), ...req.body };
     writeJsonFile(ADMIN_OVERRIDE_FILE, admin);
+    overridesVersion++; // 이름이 바뀌었을 수 있으니 주소표를 다시 만들게 합니다.
     res.json({ success: true, override: { ...(COURSE_OVERRIDES_SEED as any)[req.params.id], ...admin[req.params.id] } });
   });
 
@@ -1875,8 +1887,16 @@ async function startServer() {
     const indexHtmlPath = path.join(distPath, "index.html");
     const readIndexHtml = () => fs.readFileSync(indexHtmlPath, "utf-8");
 
-    // 구장 목록은 고정 자료라 서버 시작 때 한 번만 계산합니다.
-    const courseSlugs = buildSlugMaps(PARK_COURSES as any[]);
+    // 구장 주소표. 보정값(관리자 수정)이 반영된 이름으로 만들어야 화면의 링크와 일치합니다.
+    // 보정값이 바뀌지 않는 한 다시 계산하지 않습니다.
+    let slugCache: { version: number; maps: any; list: any[] } | null = null;
+    const getCourseData = (): { maps: any; list: any[] } => {
+      if (!slugCache || slugCache.version !== overridesVersion) {
+        const list = coursesWithOverrides();
+        slugCache = { version: overridesVersion, maps: buildSlugMaps(list as any[]), list };
+      }
+      return slugCache;
+    };
     const currentTournaments = () =>
       readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS as any[]);
     const currentRestaurants = () =>
@@ -1891,7 +1911,7 @@ async function startServer() {
         `<url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
         `<url><loc>${base}${encodeURI("/제작문의")}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`
       ];
-      courseSlugs.bySlug.forEach((_c, slug) => {
+      getCourseData().maps.bySlug.forEach((_c: any, slug: string) => {
         urls.push(`<url><loc>${base}${coursePath(slug)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`);
       });
       buildSlugMaps(currentTournaments().map(t => ({ ...t, name: t.title }))).bySlug.forEach((_t, slug) => {
@@ -1924,20 +1944,21 @@ async function startServer() {
 
       if (decoded.startsWith(COURSE_PREFIX)) {
         const slug = decoded.slice(COURSE_PREFIX.length);
-        const course = courseSlugs.bySlug.get(slug);
+        const { maps: courseMaps, list: courseList } = getCourseData();
+        const course: any = courseMaps.bySlug.get(slug);
         if (!course) return next();
 
         // 내용이 얇은 구장도 쓸모 있는 페이지가 되도록, 같은 지역 구장과 근처 맛집을 연결해 줍니다.
         // 같은 시·군의 구장을 먼저 채우고, 모자라면 같은 권역에서 보탭니다.
-        const others = (PARK_COURSES as any[]).filter(o => o.id !== course.id);
-        const sameCity = others.filter(o => o.subRegion === course.subRegion);
-        const sameArea = others.filter(o => o.subRegion !== course.subRegion && o.region === course.region);
+        const others = courseList.filter((o: any) => o.id !== course.id);
+        const sameCity = others.filter((o: any) => o.subRegion === course.subRegion);
+        const sameArea = others.filter((o: any) => o.subRegion !== course.subRegion && o.region === course.region);
         const picked = [...sameCity, ...sameArea].slice(0, 8);
-        const allSameCity = picked.length > 0 && picked.every(o => o.subRegion === course.subRegion);
-        const nearbyCourses = picked.map(o => ({
+        const allSameCity = picked.length > 0 && picked.every((o: any) => o.subRegion === course.subRegion);
+        const nearbyCourses = picked.map((o: any) => ({
           name: o.name,
           scale: o.courseScale,
-          path: coursePath(courseSlugs.slugById.get(o.id) || "")
+          path: coursePath(courseMaps.slugById.get(o.id) || "")
         }));
 
         const restMaps = buildSlugMaps(
