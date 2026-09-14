@@ -10,6 +10,7 @@ import {
   getRentalFeeInfo,
   checkIsFreeCourse
 } from '../utils/courseDetailsHelper';
+import { buildCourseHref } from '../utils/courseUrl';
 import {
   X,
   MapPin,
@@ -73,7 +74,7 @@ export const ParkDetailModal: React.FC = () => {
       navigator.share({
         title: `${course.name} - 파크골프마당`,
         text: `[파크골프마당] ${course.name} (${course.holes}홀) - ${course.address}`,
-        url: window.location.href
+        url: `${window.location.origin}${buildCourseHref(course.name)}`
       }).catch(() => {});
     } else {
       handleCopyAddress();

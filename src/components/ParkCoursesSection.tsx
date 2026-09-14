@@ -16,6 +16,7 @@ import {
   calculateHaversineDistance,
   formatDistance
 } from '../utils/geoCoordinatesHelper';
+import { buildCourseHref, handleCourseLinkClick } from '../utils/courseUrl';
 import {
   MapPin,
   Car,
@@ -773,12 +774,15 @@ export const ParkCoursesSection: React.FC = () => {
                               {course.reservationType}
                             </span>
                           </div>
-                          <h4
-                            onClick={() => openModal('courseDetail', course)}
-                            className="text-base font-black text-slate-900 active:text-emerald-800 transition-colors cursor-pointer truncate"
+                          <a
+                            href={buildCourseHref(course.name)}
+                            onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
+                            className="block"
                           >
-                            {course.name}
-                          </h4>
+                            <h4 className="text-base font-black text-slate-900 active:text-emerald-800 transition-colors cursor-pointer truncate">
+                              {course.name}
+                            </h4>
+                          </a>
                         </div>
                       </div>
 
@@ -805,13 +809,14 @@ export const ParkCoursesSection: React.FC = () => {
                             <PhoneCall className="w-3.5 h-3.5 text-green-700" />
                             <span>전화문의</span>
                           </a>
-                          <button
-                            onClick={() => openModal('courseDetail', course)}
+                          <a
+                            href={buildCourseHref(course.name)}
+                            onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
                             className="py-2.5 px-3 rounded-xl bg-slate-900 active:bg-black text-white font-extrabold text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                           >
                             <span>상세정보</span>
                             <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
-                          </button>
+                          </a>
                         </div>
                       </div>
                     </div>
@@ -869,12 +874,15 @@ export const ParkCoursesSection: React.FC = () => {
                         {/* Course Title & Address */}
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4
-                              className="text-lg sm:text-xl font-black text-slate-900 hover:text-emerald-800 transition-colors cursor-pointer"
-                              onClick={() => openModal('courseDetail', course)}
+                            <a
+                              href={buildCourseHref(course.name)}
+                              onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
+                              className="block"
                             >
-                              {course.name}
-                            </h4>
+                              <h4 className="text-lg sm:text-xl font-black text-slate-900 hover:text-emerald-800 transition-colors cursor-pointer">
+                                {course.name}
+                              </h4>
+                            </a>
                           </div>
                           <p className="text-xs sm:text-sm text-slate-600 font-medium flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -936,13 +944,14 @@ export const ParkCoursesSection: React.FC = () => {
                           )}
                         </div>
 
-                        <button
-                          onClick={() => openModal('courseDetail', course)}
+                        <a
+                          href={buildCourseHref(course.name)}
+                          onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
                           className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-black text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
                         >
                           <span>상세정보 & 길찾기</span>
                           <ChevronRight className="w-4 h-4 text-amber-400" />
-                        </button>
+                        </a>
                       </div>
                     </div>
                   </div>

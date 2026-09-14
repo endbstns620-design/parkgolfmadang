@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
 import { ParkCourse } from '../types';
 import { MapPin, ChevronRight, Clock } from 'lucide-react';
+import { buildCourseHref, handleCourseLinkClick } from '../utils/courseUrl';
 
 /**
  * 첫 화면 — "최근에 보신 구장".
@@ -102,10 +103,11 @@ export const HomeRecentCourses: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           {recent.map(course => (
-            <button
+            <a
               key={course.id}
-              onClick={() => openModal('courseDetail', course)}
-              className="text-left rounded-2xl border-2 border-slate-200 hover:border-green-600 bg-white p-4 sm:p-5 shadow-sm hover:shadow-md transition-all cursor-pointer"
+              href={buildCourseHref(course.name)}
+              onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
+              className="block text-left rounded-2xl border-2 border-slate-200 hover:border-green-600 bg-white p-4 sm:p-5 shadow-sm hover:shadow-md transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-sm sm:text-base font-black">
@@ -129,7 +131,7 @@ export const HomeRecentCourses: React.FC = () => {
               <p className="text-base sm:text-lg font-bold text-slate-600 leading-relaxed break-keep">
                 주차 {course.parkingAvailable ? course.parkingDetails || '가능' : '확인 필요'} · {course.reservationType}
               </p>
-            </button>
+            </a>
           ))}
         </div>
       </div>
