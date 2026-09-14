@@ -14,7 +14,10 @@
       gtag('config', 'G-Q3VKZ8PSX0');
     </script>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- 손가락으로 벌려서 화면을 키울 수 있게 열어둡니다.
+         예전에는 maximum-scale=1.0, user-scalable=no 가 들어 있어서 확대가 막혀 있었습니다.
+         글씨를 키워 보셔야 하는 분들이 주로 오시는 사이트에서는 막으면 안 되는 설정입니다. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#166534" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -27,7 +30,35 @@
     <meta property="og:title" content="파크골프마당 | 전국 552개 구장·2026 대회일정·구장 근처 맛집" />
     <meta property="og:description" content="전국 파크골프장 552곳과 2026 파크골프 대회일정을 한눈에. 구장 리뷰·동반자 모집·근처 맛집까지." />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="파크골프마당" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:url" content="https://parkgolf-madang.co.kr/" />
+    <!-- 카카오톡·밴드·문자로 주소를 보낼 때 뜨는 대표 사진입니다.
+         이게 없으면 글자만 덩그러니 나가서 아무도 안 누릅니다. -->
+    <meta property="og:image" content="https://parkgolf-madang.co.kr/images/og-cover.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="파크골프마당 — 전국 552곳 파크골프장을 한 곳에서" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://parkgolf-madang.co.kr/images/og-cover.jpg" />
+    <link rel="canonical" href="https://parkgolf-madang.co.kr/" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "파크골프마당",
+        "alternateName": "전국 파크골프장 포털",
+        "url": "https://parkgolf-madang.co.kr/",
+        "inLanguage": "ko-KR",
+        "description": "전국 파크골프장 552곳의 위치·이용료·휴무일·예약방법과 2026년 전국 대회일정을 정리해 제공합니다.",
+        "publisher": {
+          "@type": "Organization",
+          "name": "파크골프마당",
+          "email": "pjm0620@naver.com",
+          "logo": "https://parkgolf-madang.co.kr/pwa-512x512.png"
+        }
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">

@@ -37,12 +37,17 @@ function rows(pairs: [string, unknown][]): string {
     .join("\n");
 }
 
+/** 카카오톡·밴드로 주소를 보낼 때 뜨는 대표 사진 (1200x630) */
+const OG_IMAGE = `${BASE_URL}/images/og-cover.jpg`;
+
 export interface SeoPage {
   title: string;
   description: string;
   canonical: string;
   bodyHtml: string;
   jsonLd?: string;
+  /** 이 페이지 전용 대표 사진이 있으면 넣습니다. 없으면 사이트 기본 사진을 씁니다 */
+  image?: string;
 }
 
 export interface CourseContext {
@@ -151,6 +156,34 @@ ${rows([
   return { title, description, canonical: BASE_URL + path, bodyHtml };
 }
 
+/** 홈페이지 제작 문의 페이지 (/제작문의) */
+export function studioPage(path: string): SeoPage {
+  const title = `홈페이지 제작 문의 | ${SITE_NAME}`;
+  const description =
+    "전국 552곳 구장 자료를 정리하고 627개 검색 페이지를 만든 파크골프마당을 제작했습니다. 정보 정리·검색 노출·시니어 화면·관리자 기능이 필요한 홈페이지 제작 문의를 받습니다.";
+
+  const bodyHtml = `
+    <article class="seo-detail">
+      <nav class="seo-crumb"><a href="/">${SITE_NAME}</a> › <span>홈페이지 제작 문의</span></nav>
+      <h1>홈페이지 제작 문의</h1>
+      <p class="seo-lead">지금 보고 계신 이 사이트가 제가 만든 것입니다</p>
+      <p>포트폴리오를 따로 보여드리는 대신 직접 눌러보시라고 말씀드립니다. 구장을 검색해보시고, 글씨를 키워보시고, 휴대폰으로도 열어보십시오.</p>
+      <table class="seo-table"><tbody>
+        <tr><th scope="row">정리한 자료</th><td>전국 파크골프장 552곳 — 위치·이용료·휴무일·예약방법</td></tr>
+        <tr><th scope="row">검색 노출</th><td>구장·대회·맛집마다 각자 주소를 갖는 627개 페이지</td></tr>
+        <tr><th scope="row">시니어 화면</th><td>글씨 크기 3단계, 큼직한 버튼, 한 손으로 닿는 아래 탭</td></tr>
+        <tr><th scope="row">휴대폰</th><td>홈 화면에 추가해 앱처럼 사용</td></tr>
+        <tr><th scope="row">외부 연동</th><td>기상청 날씨, 카카오톡 알림</td></tr>
+        <tr><th scope="row">관리자 기능</th><td>구장·대회·공지·상품을 직접 추가하고 수정</td></tr>
+        <tr><th scope="row">문의</th><td>pjm0620@naver.com</td></tr>
+      </tbody></table>
+      <p class="seo-note">어떤 사이트가 필요하신지, 누가 주로 보실지만 알려주시면 만들 수 있는 일인지 먼저 말씀드리겠습니다.</p>
+      <p class="seo-note"><a href="/">전국 파크골프장 552곳 · 2026년 대회일정 보러가기</a></p>
+    </article>`;
+
+  return { title, description, canonical: BASE_URL + path, bodyHtml };
+}
+
 /** 맛집 하나의 검색용 페이지 내용 */
 export function restaurantPage(r: any, path: string): SeoPage {
   const title = `${r.restaurantName} - ${r.courseName} 근처 맛집 | ${SITE_NAME}`;
@@ -196,9 +229,16 @@ export function injectSeo(baseHtml: string, page: SeoPage): string {
     `<meta property="og:description" content="${esc(page.description)}" />`
   );
 
+  // 구장·대회·맛집 페이지는 각자 주소가 다르므로, 기본 index.html에 박혀 있는
+  // 홈 주소용 canonical / og:url 을 지우고 이 페이지 것으로 새로 넣습니다.
+  html = html.replace(/<link rel="canonical"[^>]*>\s*/g, "");
+  html = html.replace(/<meta property="og:url"[^>]*>\s*/g, "");
+  html = html.replace(/<meta property="og:image"[^>]*>\s*/g, "");
+
   const extraHead =
     `<link rel="canonical" href="${esc(page.canonical)}" />\n` +
     `<meta property="og:url" content="${esc(page.canonical)}" />\n` +
+    `<meta property="og:image" content="${esc(page.image || OG_IMAGE)}" />\n` +
     (page.jsonLd ? `<script type="application/ld+json">${page.jsonLd}</script>\n` : "") +
     `<style>
       .seo-detail{max-width:820px;margin:0 auto;padding:28px 20px 60px;font-family:system-ui,'Malgun Gothic',sans-serif;color:#0f172a;line-height:1.7}

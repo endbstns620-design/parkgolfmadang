@@ -15,6 +15,19 @@ export const DeepLinkOpener: React.FC = () => {
   useEffect(() => {
     if (done.current) return;
 
+    // /제작문의 주소로 들어오시면 제작 문의 화면을 엽니다.
+    let currentPath = window.location.pathname;
+    try {
+      currentPath = decodeURIComponent(currentPath);
+    } catch {
+      /* 주소가 깨져 있으면 아래 일반 처리로 넘깁니다 */
+    }
+    if (currentPath.replace(/\/$/, '') === '/제작문의') {
+      done.current = true;
+      setActiveTab('studio');
+      return;
+    }
+
     const target = parseDetailPath(window.location.pathname);
     if (!target) {
       done.current = true;

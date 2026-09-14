@@ -16,6 +16,7 @@ import { NearbyRestaurantsSection } from './components/NearbyRestaurantsSection'
 import { CoupangShopSection } from './components/CoupangShopSection';
 import { PointMarketSection } from './components/PointMarketSection';
 import { NoticeSection } from './components/NoticeSection';
+import { StudioSection } from './components/StudioSection';
 import { Footer } from './components/Footer';
 import { SeniorFloatingNav } from './components/SeniorFloatingNav';
 import { MobileBottomNav } from './components/MobileBottomNav';
@@ -75,6 +76,11 @@ const ParkGolfApp: React.FC = () => {
 
       case 'notices':
         return <NoticeSection />;
+
+      // 홈페이지 제작 문의 — 푸터 링크와 /제작문의 주소로만 들어옵니다.
+      // 구장을 찾으러 오신 분 눈에는 띄지 않는 자리입니다.
+      case 'studio':
+        return <StudioSection />;
 
       case 'associations':
         return (

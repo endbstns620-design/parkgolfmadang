@@ -59,8 +59,22 @@ export const Footer: React.FC = () => {
 
         {/* Bottom copyright & Policy Links */}
         <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <div>
-            © 2026 파크골프마당 (ParkGolfMadang). All rights reserved. 대한민국 시니어 파크골프 포털
+          <div className="flex flex-col items-center sm:items-start gap-1.5">
+            <span>
+              © 2026 파크골프마당 (ParkGolfMadang). All rights reserved. 대한민국 시니어 파크골프 포털
+            </span>
+            {/* 이 사이트를 보고 홈페이지를 맡기고 싶어진 분을 위한 한 줄입니다.
+                구장을 찾으러 오신 분께는 방해가 되지 않도록 푸터에만 둡니다. */}
+            <button
+              id="footer-link-studio"
+              onClick={() => {
+                setActiveTab('studio');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="text-slate-400 hover:text-emerald-300 transition-colors underline underline-offset-4 decoration-slate-600 cursor-pointer text-left"
+            >
+              이 사이트를 만들었습니다 · 홈페이지 제작 문의 →
+            </button>
           </div>
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 font-medium">
             <button

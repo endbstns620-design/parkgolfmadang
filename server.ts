@@ -14,7 +14,7 @@ import { INITIAL_TOURNAMENTS } from "./src/data/initialTournamentsData";
 import { COURSE_OVERRIDES_SEED } from "./server-lib/courseOverridesSeed";
 import { PARK_COURSES } from "./src/data/parkCoursesData";
 import { buildSlugMaps, coursePath, tournamentPath, restaurantPath, COURSE_PREFIX, TOURNAMENT_PREFIX, RESTAURANT_PREFIX } from "./src/utils/pageUrls";
-import { coursePage, tournamentPage, restaurantPage, injectSeo } from "./server-lib/seoPages";
+import { coursePage, tournamentPage, restaurantPage, studioPage, injectSeo } from "./server-lib/seoPages";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
 import { notifyRedemption, kakaoAuthorizeUrl, kakaoExchangeCode, kakaoStatus, kakaoReady, sendKakaoMemo, startKakaoKeepAlive } from "./server-lib/kakaoNotify";
 
@@ -1888,7 +1888,8 @@ async function startServer() {
       const base = "https://parkgolf-madang.co.kr";
       const today = new Date().toISOString().slice(0, 10);
       const urls: string[] = [
-        `<url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`
+        `<url><loc>${base}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+        `<url><loc>${base}${encodeURI("/제작문의")}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`
       ];
       courseSlugs.bySlug.forEach((_c, slug) => {
         urls.push(`<url><loc>${base}${coursePath(slug)}</loc><lastmod>${today}</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>`);
@@ -1914,6 +1915,11 @@ async function startServer() {
         decoded = decodeURIComponent(req.path);
       } catch {
         return next();
+      }
+
+      // 홈페이지 제작 문의 — 명함이나 카톡으로 이 주소만 따로 보낼 수 있게 합니다.
+      if (decoded.replace(/\/$/, "") === "/제작문의") {
+        return res.send(injectSeo(readIndexHtml(), studioPage("/제작문의")));
       }
 
       if (decoded.startsWith(COURSE_PREFIX)) {
@@ -1971,9 +1977,79 @@ async function startServer() {
       return next();
     });
 
-    app.use(express.static(distPath));
-    app.get("*", (_req, res) => {
-      res.sendFile(indexHtmlPath);
+    // 공개하면 안 되는 파일 차단.
+    //
+    // public 폴더에 예전 작업물이 남아 있었습니다 — project-source.zip(이 사이트의 소스코드),
+    // dist-for-netlify.zip, kwang-real-estate-dist.zip, 인물사진 등. 전부 주소만 알면
+    // 누구나 내려받을 수 있는 상태였습니다. 소스코드가 통째로 공개되면 안 됩니다.
+    // 파일 자체는 지우는 게 맞지만, 실수로 다시 들어와도 막히도록 여기서도 한 번 더 거릅니다.
+    app.get(/.*/, (req, res, next) => {
+      const p = req.path.toLowerCase();
+      const blocked =
+        /\.(zip|rar|7z|tar|gz|bak|sql|env|pem|key)$/.test(p) ||
+        p === "/kwang_director_portrait.jpg";
+      if (blocked) {
+        res.status(404).type("text/plain").send("Not found");
+        return;
+      }
+      next();
+    });
+
+    // 정적 파일 캐시 규칙.
+    //
+    // /assets/ 안의 파일은 이름에 내용이 바뀔 때마다 달라지는 문자열이 붙어 있습니다
+    // (예: index-BTTXqtrn.js). 그래서 한 번 받은 파일은 1년 내내 다시 받을 필요가 없습니다.
+    // 예전에는 이 설정이 없어서, 방문하실 때마다 1MB가 넘는 파일을 매번 다시 받았습니다.
+    // index.html 은 반대로 항상 최신을 받아야 새 배포가 바로 보입니다.
+    app.use(
+      express.static(distPath, {
+        etag: true,
+        lastModified: true,
+        setHeaders(res, filePath) {
+          if (/[\\/]assets[\\/]/.test(filePath)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          } else if (/\.html$/.test(filePath)) {
+            res.setHeader("Cache-Control", "no-cache");
+          } else {
+            // 사진·아이콘 등 — 하루 캐시하고, 그 뒤엔 바뀌었는지만 확인합니다
+            res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
+          }
+        }
+      })
+    );
+
+    // 여기까지 아무것도 걸리지 않은 주소입니다.
+    //
+    // 예전에는 무슨 주소를 넣어도 200(정상)으로 첫 화면을 돌려줬습니다.
+    // 그러면 검색엔진이 "없는 주소인데 정상 페이지"로 받아들여서, 오타 주소나
+    // 지워진 구장 주소까지 계속 색인하려 듭니다. 이제 없는 주소는 404로 알리고
+    // 색인하지 말라는 표시(noindex)를 붙여 보냅니다. 화면은 평소처럼 뜹니다.
+    const APP_PATHS = new Set(["/", "/구장", "/대회", "/맛집", "/공지", "/리뷰", "/동반자", "/제작문의"]);
+
+    app.get("*", (req, res) => {
+      let decoded = req.path;
+      try {
+        decoded = decodeURIComponent(req.path);
+      } catch {
+        /* 주소가 깨져 있어도 아래에서 없는 주소로 처리하면 됩니다 */
+      }
+      const isKnown = APP_PATHS.has(decoded) || APP_PATHS.has(decoded.replace(/\/$/, ""));
+
+      if (isKnown) {
+        res.setHeader("Cache-Control", "no-cache");
+        return res.sendFile(indexHtmlPath);
+      }
+
+      let html = readIndexHtml();
+      html = html.replace(/<link rel="canonical"[^>]*>\s*/g, "");
+      html = html.replace(
+        "</head>",
+        '<meta name="robots" content="noindex, follow" />\n</head>'
+      );
+      res.status(404);
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(html);
     });
   }
 
