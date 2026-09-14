@@ -49,9 +49,10 @@ export const MainHomeSection: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-5">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
             <div className="flex-1 min-w-0">
-              <p className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 leading-tight break-keep">
+              {/* 글자 모양은 그대로, 제목 태그로만 바꿨습니다 */}
+              <h2 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 leading-tight break-keep">
                 🎉 창립회원 {FOUNDER_GOAL.toLocaleString()}명 한정 모집 — 이미 {totalUsers}명이 함께하고 있어요
-              </p>
+              </h2>
               <p className="text-base sm:text-lg font-bold text-amber-800 mt-1 break-keep">
                 가입만 해도 1,000 마당P 즉시 지급 · 리뷰 쓰면 300P 추가
               </p>
@@ -207,6 +208,7 @@ export const MainHomeSection: React.FC = () => {
       {/* 5. 유튜브·블로그 채널 + 얇은 후원사 광고 띠 */}
       <section className="bg-slate-50 border-y border-slate-200 py-10 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto space-y-5">
+          <h2 className="sr-only">파크골프마당 채널 · 유튜브와 네이버 블로그</h2>
           <SocialChannelsSection />
           <SponsorCompactBanner />
         </div>

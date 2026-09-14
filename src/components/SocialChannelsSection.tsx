@@ -111,9 +111,12 @@ const AddToHomeButton: React.FC = () => {
         </span>
       </div>
 
-      <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight mb-1.5">
+      {/* 글자 모양은 그대로 두고 제목 태그로 바꿨습니다.
+          화면을 읽어주는 프로그램이 구역을 건너뛸 수 있게 하고,
+          검색엔진도 이 화면의 짜임새를 알아볼 수 있게 하기 위함입니다. */}
+      <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight mb-1.5">
         휴대폰에서도 쉽게 보세요
-      </p>
+      </h3>
       <p className="text-base text-slate-600 font-medium leading-relaxed mb-4">
         홈화면에 추가하시면 주소를 치지 않고 아이콘만 눌러 바로 들어오실 수 있습니다
       </p>
@@ -166,7 +169,7 @@ export const SocialChannelsSection: React.FC = () => {
               )}
             </div>
 
-            <p className="text-xl sm:text-2xl font-black text-slate-900 leading-tight mb-1.5">{ch.headline}</p>
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight mb-1.5">{ch.headline}</h3>
             <p className="text-base text-slate-600 font-medium leading-relaxed mb-4">{ch.detail}</p>
 
             <span

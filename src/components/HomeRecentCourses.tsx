@@ -68,6 +68,8 @@ export const HomeRecentCourses: React.FC = () => {
     return (
       <section className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-3">
+          {/* 카드가 없을 때도 이 구역의 제목은 남겨둡니다 (화면에는 안 보입니다) */}
+          <h2 className="sr-only">최근에 보신 구장</h2>
           <p className="flex items-center gap-2 text-base sm:text-lg font-bold text-slate-600">
             <Clock className="w-5 h-5 text-slate-400 shrink-0" />
             구장을 한 번 열어보시면, 다음에 오셨을 때 이 자리에 바로 나옵니다

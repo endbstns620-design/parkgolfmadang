@@ -135,6 +135,9 @@ export const HomeTodayCards: React.FC = () => {
   return (
     <section className="bg-stone-50 border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6">
+        {/* 화면에는 안 보이지만, 화면을 읽어주는 프로그램과 검색엔진에는
+            여기가 무슨 구역인지 알려주는 제목입니다. */}
+        <h2 className="sr-only">오늘의 파크골프 — 날씨 · 가장 가까운 대회 · 새 소식</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           {/* 1. 오늘 날씨 */}
           <div className={CARD}>
