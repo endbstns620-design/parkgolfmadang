@@ -334,7 +334,10 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           if (data.success && data.overrides) {
             // 서버에 저장된 "보정 정보"를 기존 구장 데이터 위에 덧씌웁니다.
             setCourses(prev =>
-              prev.map(c => (data.overrides[c.id] ? { ...c, ...data.overrides[c.id] } : c))
+              prev
+                .map(c => (data.overrides[c.id] ? { ...c, ...data.overrides[c.id] } : c))
+                // 관리자가 지운 구장은 모든 방문자 화면에서 빠집니다.
+                .filter(c => !(c as any).isDeleted)
             );
           }
         }
@@ -1094,6 +1097,14 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const deleteCourse = (id: string) => {
     if (window.confirm('정말 이 구장 정보를 삭제하시겠습니까?')) {
       setCourses(prev => prev.filter(c => c.id !== id));
+      // 구장 자료는 앱 안에 내장돼 있어서 실제로 지울 수가 없습니다. 대신 '지워진 구장'이라고
+      // 서버에 표시해두면 모든 방문자 화면과 검색용 페이지·사이트맵에서 함께 빠집니다.
+      // 이 저장이 없으면 지운 사람 브라우저에서만 사라지고 서버에는 그대로 남습니다.
+      fetch(`/api/course-overrides/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+        body: JSON.stringify({ isDeleted: true })
+      }).catch(err => console.error('구장 삭제 저장 실패:', err));
     }
   };
 

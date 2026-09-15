@@ -604,7 +604,10 @@ async function startServer() {
   // 원본 구장 자료 위에 보정값을 덧씌운, '실제로 방문자에게 보이는' 구장 목록입니다.
   function coursesWithOverrides(): any[] {
     const ov = mergedCourseOverrides();
-    return (PARK_COURSES as any[]).map(c => (ov[c.id] ? { ...c, ...ov[c.id] } : c));
+    return (PARK_COURSES as any[])
+      .map(c => (ov[c.id] ? { ...c, ...ov[c.id] } : c))
+      // 관리자가 지운 구장은 구장 페이지·사이트맵·구장 수 집계에서 모두 빠집니다.
+      .filter(c => !c.isDeleted);
   }
 
   app.get("/api/course-overrides", (_req, res) => {
