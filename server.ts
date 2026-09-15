@@ -14,7 +14,7 @@ import { INITIAL_TOURNAMENTS } from "./src/data/initialTournamentsData";
 import { COURSE_OVERRIDES_SEED } from "./server-lib/courseOverridesSeed";
 import { PARK_COURSES } from "./src/data/parkCoursesData";
 import { buildSlugMaps, coursePath, tournamentPath, restaurantPath, COURSE_PREFIX, TOURNAMENT_PREFIX, RESTAURANT_PREFIX } from "./src/utils/pageUrls";
-import { coursePage, tournamentPage, restaurantPage, studioPage, injectSeo } from "./server-lib/seoPages";
+import { coursePage, tournamentPage, restaurantPage, studioPage, injectSeo, setCourseCountProvider, applySiteCounts } from "./server-lib/seoPages";
 import type { ReviewItem, MatchingPost, AdItem, MatchingComment, CoupangProduct } from "./src/types";
 import { notifyRedemption, kakaoAuthorizeUrl, kakaoExchangeCode, kakaoStatus, kakaoReady, sendKakaoMemo, startKakaoKeepAlive } from "./server-lib/kakaoNotify";
 
@@ -1885,7 +1885,9 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     const indexHtmlPath = path.join(distPath, "index.html");
-    const readIndexHtml = () => fs.readFileSync(indexHtmlPath, "utf-8");
+    // 구장 수처럼 바뀌는 숫자는 index.html 에 {{COURSE_COUNT}} 로 적어두고
+    // 내보낼 때 실제 값으로 바꿉니다. 손으로 고치다 어긋나는 일을 없앱니다.
+    const readIndexHtml = () => applySiteCounts(fs.readFileSync(indexHtmlPath, "utf-8"));
 
     // 구장 주소표. 보정값(관리자 수정)이 반영된 이름으로 만들어야 화면의 링크와 일치합니다.
     // 보정값이 바뀌지 않는 한 다시 계산하지 않습니다.
@@ -1897,6 +1899,9 @@ async function startServer() {
       }
       return slugCache;
     };
+
+    // 글에 들어가는 구장 수는 실제 구장 목록에서 세어 씁니다.
+    setCourseCountProvider(() => getCourseData().list.length);
     const currentTournaments = () =>
       readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS as any[]);
     const currentRestaurants = () =>
@@ -2058,7 +2063,8 @@ async function startServer() {
 
       if (isKnown) {
         res.setHeader("Cache-Control", "no-cache");
-        return res.sendFile(indexHtmlPath);
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        return res.send(readIndexHtml());
       }
 
       let html = readIndexHtml();

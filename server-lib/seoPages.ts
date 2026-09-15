@@ -3,7 +3,7 @@
  *
  * 문제:
  *   우리 사이트는 화면을 브라우저가 그리는 방식(SPA)이라, 검색로봇이 주소를 열어보면
- *   내용이 텅 빈 껍데기만 받아갑니다. 그래서 구장 552곳이 검색에 하나도 안 잡혔습니다.
+ *   내용이 텅 빈 껍데기만 받아갑니다. 그래서 구장이 검색에 하나도 안 잡혔습니다.
  *
  * 해결:
  *   서버가 응답할 때 제목·설명·본문을 미리 채워서 보냅니다.
@@ -12,6 +12,30 @@
  */
 
 const SITE_NAME = "파크골프마당";
+
+/**
+ * 구장 수를 글에 직접 써넣지 않습니다.
+ * 구장을 지우거나 더할 때마다 사람이 손으로 고치면 반드시 어긋납니다.
+ * (실제로 552곳이 550곳이 된 뒤에도 문구는 552로 남아 있었습니다)
+ * 서버가 시작할 때 실제 구장 개수를 알려주고, 여기서는 그 값을 그때그때 읽습니다.
+ */
+let courseCountProvider: () => number = () => 0;
+
+export function setCourseCountProvider(fn: () => number): void {
+  courseCountProvider = fn;
+}
+
+/** 글에 넣을 구장 수 문구. 아직 못 받았으면 숫자 없이 "전국"으로만 씁니다. */
+function courseCountText(): string {
+  const n = courseCountProvider();
+  return n > 0 ? `${n}곳` : "";
+}
+
+/** index.html 등 고정 파일 안의 {{COURSE_COUNT}} 자리를 실제 개수로 바꿉니다. */
+export function applySiteCounts(html: string): string {
+  const n = courseCountProvider();
+  return html.replace(/\{\{COURSE_COUNT\}\}/g, n > 0 ? String(n) : "");
+}
 const BASE_URL = "https://parkgolf-madang.co.kr";
 
 function esc(v: unknown): string {
@@ -70,7 +94,7 @@ export function coursePage(c: any, path: string, ctx?: CourseContext): SeoPage {
     has(c.operatingHours) && `운영시간 ${c.operatingHours}`,
     has(c.closedDays) && `휴무 ${c.closedDays}`
   ].filter(Boolean);
-  const description = `${descParts.join(", ")}. 전국 파크골프장 552곳 정보를 제공하는 ${SITE_NAME}에서 확인하세요.`.slice(0, 155);
+  const description = `${descParts.join(", ")}. 전국 파크골프장 ${courseCountText()} 정보를 제공하는 ${SITE_NAME}에서 확인하세요.`.slice(0, 155);
 
   const bodyHtml = `
     <article class="seo-detail">
@@ -112,7 +136,7 @@ ${
       </section>`
     : ""
 }
-      <p class="seo-note"><a href="/">전국 파크골프장 552곳 · 2026년 대회일정 · 구장 근처 맛집 보러가기</a></p>
+      <p class="seo-note"><a href="/">전국 파크골프장 ${courseCountText()} · 2026년 대회일정 · 구장 근처 맛집 보러가기</a></p>
     </article>`;
 
   const jsonLd = JSON.stringify({
@@ -160,7 +184,7 @@ ${rows([
 export function studioPage(path: string): SeoPage {
   const title = `홈페이지 제작 문의 | ${SITE_NAME}`;
   const description =
-    "전국 552곳 구장 자료를 정리하고 627개 검색 페이지를 만든 파크골프마당을 제작했습니다. 정보 정리·검색 노출·시니어 화면·관리자 기능이 필요한 홈페이지 제작 문의를 받습니다.";
+    `전국 파크골프장 ${courseCountText()} 자료를 정리하고, 구장마다 각자 주소를 갖는 검색 페이지를 만든 파크골프마당을 제작했습니다. 정보 정리·검색 노출·시니어 화면·관리자 기능이 필요한 홈페이지 제작 문의를 받습니다.`;
 
   const bodyHtml = `
     <article class="seo-detail">
@@ -169,8 +193,8 @@ export function studioPage(path: string): SeoPage {
       <p class="seo-lead">지금 보고 계신 이 사이트가 제가 만든 것입니다</p>
       <p>포트폴리오를 따로 보여드리는 대신 직접 눌러보시라고 말씀드립니다. 구장을 검색해보시고, 글씨를 키워보시고, 휴대폰으로도 열어보십시오.</p>
       <table class="seo-table"><tbody>
-        <tr><th scope="row">정리한 자료</th><td>전국 파크골프장 552곳 — 위치·이용료·휴무일·예약방법</td></tr>
-        <tr><th scope="row">검색 노출</th><td>구장·대회·맛집마다 각자 주소를 갖는 627개 페이지</td></tr>
+        <tr><th scope="row">정리한 자료</th><td>전국 파크골프장 ${courseCountText()} — 위치·이용료·휴무일·예약방법</td></tr>
+        <tr><th scope="row">검색 노출</th><td>구장·대회·맛집마다 각자 주소를 갖는 검색 전용 페이지</td></tr>
         <tr><th scope="row">시니어 화면</th><td>글씨 크기 3단계, 큼직한 버튼, 한 손으로 닿는 아래 탭</td></tr>
         <tr><th scope="row">휴대폰</th><td>홈 화면에 추가해 앱처럼 사용</td></tr>
         <tr><th scope="row">외부 연동</th><td>기상청 날씨, 카카오톡 알림</td></tr>
@@ -178,7 +202,7 @@ export function studioPage(path: string): SeoPage {
         <tr><th scope="row">문의</th><td>pjm0620@naver.com</td></tr>
       </tbody></table>
       <p class="seo-note">어떤 사이트가 필요하신지, 누가 주로 보실지만 알려주시면 만들 수 있는 일인지 먼저 말씀드리겠습니다.</p>
-      <p class="seo-note"><a href="/">전국 파크골프장 552곳 · 2026년 대회일정 보러가기</a></p>
+      <p class="seo-note"><a href="/">전국 파크골프장 ${courseCountText()} · 2026년 대회일정 보러가기</a></p>
     </article>`;
 
   return { title, description, canonical: BASE_URL + path, bodyHtml };
