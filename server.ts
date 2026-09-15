@@ -2029,6 +2029,10 @@ async function startServer() {
     // index.html 은 반대로 항상 최신을 받아야 새 배포가 바로 보입니다.
     app.use(
       express.static(distPath, {
+        // "/" 로 들어온 요청까지 여기서 index.html 을 바로 내보내면,
+        // 아래에서 {{COURSE_COUNT}} 같은 자리를 채우는 처리를 건너뛰게 됩니다.
+        // 첫 화면은 아래 app.get("*") 이 맡도록 여기서는 넘깁니다.
+        index: false,
         etag: true,
         lastModified: true,
         setHeaders(res, filePath) {
