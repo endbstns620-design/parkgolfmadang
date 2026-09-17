@@ -22,6 +22,8 @@ import {
   History
 } from 'lucide-react';
 
+import { FavoriteButton } from './FavoriteButton';
+
 const REGION_OPTIONS: RegionCategory[] = [
   '전체',
   '서울/경기/인천',
@@ -393,11 +395,11 @@ export const TournamentSection: React.FC = () => {
                   : 'bg-slate-100 text-slate-700 border-slate-300';
 
               return (
-                <li key={tour.id} id={`tour-row-${tour.id}`}>
+                <li key={tour.id} id={`tour-row-${tour.id}`} className="flex items-center gap-2 pr-3 sm:pr-4 hover:bg-amber-50/70 transition-colors">
                   <button
                     type="button"
                     onClick={() => openModal('tournamentDetail', tour)}
-                    className="w-full text-left px-4 sm:px-5 py-4 hover:bg-amber-50/70 transition-colors cursor-pointer md:grid md:grid-cols-[56px_1fr_206px_206px_106px] md:gap-3 md:items-center"
+                    className="flex-1 min-w-0 text-left px-4 sm:px-5 py-4 cursor-pointer md:grid md:grid-cols-[56px_1fr_206px_206px_106px] md:gap-3 md:items-center"
                   >
                     {/* 번호 */}
                     <span className="hidden md:block text-center text-slate-500 font-bold text-[15px]">{no}</span>
@@ -449,6 +451,8 @@ export const TournamentSection: React.FC = () => {
                       </span>
                     </span>
                   </button>
+                  {/* 관심대회 찜하기 — 접수 마감 전에 문자로 알려드릴 대회입니다 */}
+                  <FavoriteButton kind="tournament" id={tour.id} size="icon" />
                 </li>
               );
             })}

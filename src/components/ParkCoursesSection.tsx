@@ -17,6 +17,7 @@ import {
   formatDistance
 } from '../utils/geoCoordinatesHelper';
 import { buildCourseHrefMap, handleCourseLinkClick } from '../utils/courseUrl';
+import { FavoriteButton } from './FavoriteButton';
 import {
   MapPin,
   Car,
@@ -788,6 +789,8 @@ export const ParkCoursesSection: React.FC = () => {
                             </h4>
                           </a>
                         </div>
+                        {/* 관심구장 찜하기 */}
+                        <FavoriteButton kind="course" id={course.id} size="icon" />
                       </div>
 
                       {/* Concise Info Box */}
@@ -948,14 +951,18 @@ export const ParkCoursesSection: React.FC = () => {
                           )}
                         </div>
 
-                        <a
-                          href={courseHrefs.get(course.id)}
-                          onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
-                          className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-black text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
-                        >
-                          <span>상세정보 & 길찾기</span>
-                          <ChevronRight className="w-4 h-4 text-amber-400" />
-                        </a>
+                        <div className="flex items-center gap-1.5 w-full">
+                          <a
+                            href={courseHrefs.get(course.id)}
+                            onClick={e => handleCourseLinkClick(e, () => openModal('courseDetail', course))}
+                            className="flex-1 py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-black text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 shadow-sm transition-all cursor-pointer"
+                          >
+                            <span>상세정보 & 길찾기</span>
+                            <ChevronRight className="w-4 h-4 text-amber-400" />
+                          </a>
+                          {/* 관심구장 찜하기 */}
+                          <FavoriteButton kind="course" id={course.id} size="icon" />
+                        </div>
                       </div>
                     </div>
                   </div>

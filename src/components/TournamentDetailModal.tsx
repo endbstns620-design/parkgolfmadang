@@ -19,6 +19,7 @@ import {
   Sparkles,
   Info
 } from 'lucide-react';
+import { FavoriteButton } from './FavoriteButton';
 
 export const TournamentDetailModal: React.FC = () => {
   const { activeModal, closeModal } = useParkGolf();
@@ -113,6 +114,16 @@ export const TournamentDetailModal: React.FC = () => {
 
         {/* Modal Scrollable Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm text-slate-800">
+
+          {/* 관심대회 찜하기 — 끝난 대회에는 보여드리지 않습니다 */}
+          {!isFinished && (
+            <div className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+              <FavoriteButton kind="tournament" id={tour.id} className="w-full sm:w-auto shrink-0" />
+              <p className="text-base sm:text-lg font-bold text-slate-700 leading-relaxed break-keep">
+                찜해 두시면 첫 화면에 바로 나오고, 접수 마감 전에 알려드립니다.
+              </p>
+            </div>
+          )}
 
           {/* 이미 끝난 대회 안내 */}
           {isFinished && (

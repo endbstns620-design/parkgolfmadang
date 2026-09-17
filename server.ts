@@ -1247,6 +1247,11 @@ async function startServer() {
     founderNumber: number; // 가입 순서(창립회원 번호) — 몇 번째로 가입했는지
     points: number; // 마당P (실물 없이 배지·등급용으로만 쓰다가, 마당P 장터에서 실제 상품과 교환)
     badges: string[]; // 활동으로 얻은 배지 목록 (예: '창립회원', '리뷰왕' 등)
+    // 찜하기(관심구장·관심대회) — 자세한 규칙은 아래 "찜하기" 구역에 적어 두었습니다.
+    favoriteCourseIds?: string[];
+    favoriteTournamentIds?: string[];
+    favoritePointMonth?: string;
+    favoritePointClaimed?: string[];
   }
 
   function toPublicUser(u: AppUser) {
@@ -1262,7 +1267,11 @@ async function startServer() {
       founderNumber: u.founderNumber,
       points: u.points,
       badges: u.badges || [],
-      pendingPoints: pendingPointsOf(u.id)
+      pendingPoints: pendingPointsOf(u.id),
+      favoriteCourseIds: u.favoriteCourseIds || [],
+      favoriteTournamentIds: u.favoriteTournamentIds || [],
+      favoritePointMonth: u.favoritePointMonth || "",
+      favoritePointClaimed: u.favoritePointClaimed || []
     };
   }
 
@@ -1465,6 +1474,138 @@ async function startServer() {
 
   app.get("/api/auth/me", requireUser, (req: any, res) => {
     res.json({ success: true, user: toPublicUser(req.currentUser) });
+  });
+
+  // ────────────────────────────────────────────────────────────
+  // 찜하기 — 관심구장 · 관심대회
+  //
+  // 규칙 (운영자가 정한 내용 그대로입니다)
+  //  · 구장 3개, 대회 3개까지 찜할 수 있습니다. (합쳐서 6개)
+  //  · 하나 찜할 때마다 200 마당P를 그 자리에서 드립니다. (6개 다 하면 1,200P)
+  //  · 찜을 푸시면 그 달에 받았던 200P는 도로 빠집니다.
+  //  · 같은 달에는 같은 항목으로 두 번 받을 수 없습니다.
+  //    (찜 → 취소 → 다시 찜 을 반복해서 마당P를 무한히 만드는 것을 막는 장치입니다)
+  //  · 달이 바뀌면 지급 기록이 비워집니다. 그 달에 사이트에 오셔서
+  //    [이번 달 마당P 받기] 를 누르시면 찜해 두신 개수만큼 다시 받으실 수 있습니다.
+  // ────────────────────────────────────────────────────────────
+  const FAVORITE_LIMIT = 3;   // 구장 3개 · 대회 3개
+  const FAVORITE_POINT = 200; // 하나당 마당P
+
+  /** 오늘이 몇 월인지 'YYYY-MM' 으로 (한국 시간 기준) */
+  function currentMonthKey(): string {
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    return kst.toISOString().slice(0, 7);
+  }
+
+  /** 달이 바뀌었으면 이번 달 지급 기록을 비웁니다. 바뀐 게 있으면 true */
+  function rollFavoriteMonth(u: AppUser): boolean {
+    const month = currentMonthKey();
+    if (u.favoritePointMonth === month) return false;
+    u.favoritePointMonth = month;
+    u.favoritePointClaimed = [];
+    return true;
+  }
+
+  const favKey = (kind: string, id: string) => `${kind === "tournament" ? "tour" : "course"}:${id}`;
+
+  /** 지금 찜해 두었지만 이번 달에 아직 마당P를 안 받은 항목 수 */
+  function unclaimedFavoriteCount(u: AppUser): number {
+    const claimed = new Set(u.favoritePointClaimed || []);
+    const keys = [
+      ...(u.favoriteCourseIds || []).map(id => favKey("course", id)),
+      ...(u.favoriteTournamentIds || []).map(id => favKey("tournament", id))
+    ];
+    return keys.filter(k => !claimed.has(k)).length;
+  }
+
+  /** 찜 관련 응답을 한 모양으로 맞춰 돌려줍니다 */
+  function favoriteState(u: AppUser) {
+    return {
+      favoriteCourseIds: u.favoriteCourseIds || [],
+      favoriteTournamentIds: u.favoriteTournamentIds || [],
+      favoritePointMonth: u.favoritePointMonth || "",
+      favoritePointClaimed: u.favoritePointClaimed || [],
+      unclaimedCount: unclaimedFavoriteCount(u),
+      points: u.points || 0
+    };
+  }
+
+  // 찜하기 / 찜 풀기
+  app.post("/api/favorites/toggle", requireUser, (req: any, res) => {
+    const kind = String(req.body?.kind || "");
+    const id = String(req.body?.id || "").trim();
+    if (kind !== "course" && kind !== "tournament") {
+      return res.status(400).json({ success: false, error: "잘못된 요청입니다." });
+    }
+    if (!id) return res.status(400).json({ success: false, error: "대상을 찾을 수 없습니다." });
+
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const idx = users.findIndex(u => u.id === req.currentUser.id);
+    if (idx < 0) return res.status(401).json({ success: false, error: "로그인이 필요합니다." });
+    const u = users[idx];
+    rollFavoriteMonth(u);
+
+    const listName = kind === "course" ? "favoriteCourseIds" : "favoriteTournamentIds";
+    const list: string[] = (u as any)[listName] || [];
+    const claimed: string[] = u.favoritePointClaimed || [];
+    const key = favKey(kind, id);
+    const has = list.includes(id);
+    let awarded = 0;
+
+    if (has) {
+      // ── 찜 풀기 ──
+      (u as any)[listName] = list.filter(x => x !== id);
+      if (claimed.includes(key)) {
+        // 이번 달에 받았던 200P를 도로 뺍니다. (마이너스로 내려가지는 않게 합니다)
+        awarded = -Math.min(FAVORITE_POINT, u.points || 0);
+        u.points = (u.points || 0) + awarded;
+        // 지급 기록(claimed)은 일부러 남겨 둡니다.
+        // 지우면 찜/취소를 반복해서 마당P를 무한히 만들 수 있습니다.
+      }
+    } else {
+      // ── 찜하기 ──
+      if (list.length >= FAVORITE_LIMIT) {
+        return res.status(400).json({
+          success: false,
+          error: `${kind === "course" ? "관심구장은" : "관심대회는"} ${FAVORITE_LIMIT}개까지 찜하실 수 있습니다. 하나를 먼저 풀어주세요.`,
+          ...favoriteState(u)
+        });
+      }
+      (u as any)[listName] = [...list, id];
+      if (!claimed.includes(key)) {
+        awarded = FAVORITE_POINT;
+        u.points = (u.points || 0) + FAVORITE_POINT;
+        u.favoritePointClaimed = [...claimed, key];
+      }
+    }
+
+    users[idx] = u;
+    writeJsonFile("users.json", users);
+    res.json({ success: true, favorited: !has, awarded, ...favoriteState(u), user: toPublicUser(u) });
+  });
+
+  // 이번 달 마당P 한 번에 받기 (달이 바뀌어 지급 기록이 비워졌을 때 씁니다)
+  app.post("/api/favorites/claim", requireUser, (req: any, res) => {
+    const users = readJsonFile<AppUser[]>("users.json", []);
+    const idx = users.findIndex(u => u.id === req.currentUser.id);
+    if (idx < 0) return res.status(401).json({ success: false, error: "로그인이 필요합니다." });
+    const u = users[idx];
+    rollFavoriteMonth(u);
+
+    const claimed = new Set(u.favoritePointClaimed || []);
+    const keys = [
+      ...(u.favoriteCourseIds || []).map(id => favKey("course", id)),
+      ...(u.favoriteTournamentIds || []).map(id => favKey("tournament", id))
+    ];
+    const fresh = keys.filter(k => !claimed.has(k));
+    const awarded = fresh.length * FAVORITE_POINT;
+    if (awarded > 0) {
+      u.points = (u.points || 0) + awarded;
+      u.favoritePointClaimed = [...claimed, ...fresh];
+    }
+    users[idx] = u;
+    writeJsonFile("users.json", users);
+    res.json({ success: true, awarded, ...favoriteState(u), user: toPublicUser(u) });
   });
 
   // ---- 관리자 회원관리 ----

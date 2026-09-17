@@ -10,7 +10,24 @@ export interface AppUser {
   points: number; // 실제로 지급이 끝난 마당P
   badges: string[];
   pendingPoints?: number; // 관리자 승인을 기다리는 마당P (아직 쓸 수는 없습니다)
+
+  // ── 찜하기(관심구장·관심대회) ──
+  // 구장 3개, 대회 3개까지 찜할 수 있고, 하나 찜할 때마다 200 마당P를 드립니다.
+  // 찜을 푸시면 그 달에 받은 200P는 도로 빠집니다.
+  favoriteCourseIds?: string[];      // 관심구장 (최대 3개)
+  favoriteTournamentIds?: string[];  // 관심대회 (최대 3개)
+  // 이번 달에 이미 200P를 받은 항목들입니다. 'course:pgm-0001' · 'tour:tour-2026-07' 형태.
+  // 달이 바뀌면 서버가 비워서, 그 달에 다시 한 번 받으실 수 있게 합니다.
+  favoritePointMonth?: string;       // 'YYYY-MM' — 아래 목록이 어느 달 기록인지
+  favoritePointClaimed?: string[];
 }
+
+// 찜 대상 구분 — 구장인지 대회인지
+export type FavoriteKind = 'course' | 'tournament';
+
+// 찜하기 한도와 지급액. 화면과 서버가 같은 값을 쓰도록 여기 한 곳에만 적습니다.
+export const FAVORITE_LIMIT = 3;        // 구장 3개 · 대회 3개
+export const FAVORITE_POINT = 200;      // 하나 찜할 때마다 드리는 마당P
 
 // 마당P 장터에 올라가는 상품입니다. 관리자가 쿠팡추천상품 중에서 골라 올리거나,
 // 쿠팡과 무관한 일반 상품을 직접 등록할 수 있습니다.

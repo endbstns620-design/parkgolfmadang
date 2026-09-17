@@ -12,7 +12,9 @@ import {
   AppUser,
   PointShopItem,
   FontSizeOption,
-  RegionCategory
+  RegionCategory,
+  FavoriteKind,
+  FAVORITE_LIMIT
 } from '../types';
 import {
   INITIAL_COURSES,
@@ -80,6 +82,16 @@ interface ParkGolfContextType {
   // 이 기기에서 최근에 열어본 구장 번호 (최신 순). 첫 화면에 "최근에 보신 구장"으로 보여줍니다.
   // 이 기기 안에만 저장되고 서버로 보내지 않습니다.
   recentCourseIds: string[];
+
+  // ── 찜하기 (관심구장 · 관심대회) ──
+  // 구장 3개 · 대회 3개까지, 하나 찜할 때마다 200 마당P. 달이 바뀌면 다시 받을 수 있습니다.
+  favoriteCourseIds: string[];
+  favoriteTournamentIds: string[];
+  isFavorite: (kind: FavoriteKind, id: string) => boolean;
+  toggleFavorite: (kind: FavoriteKind, id: string) => Promise<void>;
+  // 이번 달에 아직 마당P를 안 받은 찜 개수 (0이면 받을 게 없습니다)
+  unclaimedFavoriteCount: number;
+  claimFavoritePoints: () => Promise<void>;
 
   // TTS Voice
   isSpeaking: boolean;
@@ -813,6 +825,85 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.error('교환 신청 실패:', err);
       alert('교환 신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
       return { ok: false };
+    }
+  };
+
+  // ── 찜하기 (관심구장 · 관심대회) ──────────────────────────
+  // 서버(server.ts 의 /api/favorites/*)가 실제 계산을 하고, 여기서는 화면 상태만 맞춥니다.
+  const favoriteCourseIds = currentUser?.favoriteCourseIds || [];
+  const favoriteTournamentIds = currentUser?.favoriteTournamentIds || [];
+
+  const isFavorite = (kind: FavoriteKind, id: string): boolean =>
+    (kind === 'course' ? favoriteCourseIds : favoriteTournamentIds).includes(id);
+
+  // 이번 달에 아직 마당P를 안 받은 찜 개수.
+  // 달이 바뀌면 서버 기록(favoritePointMonth)이 지난달로 남아 있으므로, 그때는 찜한 것 전부가 대상입니다.
+  const unclaimedFavoriteCount = (() => {
+    if (!currentUser) return 0;
+    const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const thisMonth = kst.toISOString().slice(0, 7);
+    const total = favoriteCourseIds.length + favoriteTournamentIds.length;
+    if (currentUser.favoritePointMonth !== thisMonth) return total;
+    const claimed = new Set(currentUser.favoritePointClaimed || []);
+    const keys = [
+      ...favoriteCourseIds.map(id => `course:${id}`),
+      ...favoriteTournamentIds.map(id => `tour:${id}`)
+    ];
+    return keys.filter(k => !claimed.has(k)).length;
+  })();
+
+  const toggleFavorite = async (kind: FavoriteKind, id: string): Promise<void> => {
+    if (!currentUser) {
+      openModal('auth');
+      return;
+    }
+    try {
+      const res = await fetch('/api/favorites/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...userAuthHeaders() },
+        body: JSON.stringify({ kind, id })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        alert(data.error || '찜하기에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      setCurrentUser(data.user);
+      if (data.awarded > 0) {
+        alert(`관심${kind === 'course' ? '구장' : '대회'}으로 찜했습니다.\n마당P ${data.awarded}P를 받으셨습니다.`);
+      } else if (data.awarded < 0) {
+        alert(`찜을 풀었습니다.\n이번 달에 받으셨던 ${Math.abs(data.awarded)}P는 다시 빠집니다.`);
+      }
+    } catch (err) {
+      console.error('찜하기 실패:', err);
+      alert('찜하기 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
+
+  const claimFavoritePoints = async (): Promise<void> => {
+    if (!currentUser) {
+      openModal('auth');
+      return;
+    }
+    try {
+      const res = await fetch('/api/favorites/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...userAuthHeaders() }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        alert(data.error || '마당P 받기에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        return;
+      }
+      setCurrentUser(data.user);
+      if (data.awarded > 0) {
+        alert(`이번 달 마당P ${data.awarded}P를 받으셨습니다.`);
+      } else {
+        alert('이번 달에 받으실 마당P가 없습니다.');
+      }
+    } catch (err) {
+      console.error('마당P 받기 실패:', err);
+      alert('마당P 받기 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 
@@ -1589,6 +1680,12 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         openModal,
         closeModal,
         recentCourseIds,
+        favoriteCourseIds,
+        favoriteTournamentIds,
+        isFavorite,
+        toggleFavorite,
+        unclaimedFavoriteCount,
+        claimFavoritePoints,
         isSpeaking,
         speakText,
         stopSpeaking,

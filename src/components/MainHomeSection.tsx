@@ -4,7 +4,7 @@ import { SocialChannelsSection } from './SocialChannelsSection';
 import { SponsorCompactBanner } from './SponsorBannerSection';
 import { HomeHeroSearch } from './HomeHeroSearch';
 import { HomeTodayCards } from './HomeTodayCards';
-import { HomeRecentCourses } from './HomeRecentCourses';
+import { HomeFavorites } from './HomeFavorites';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 // 웰리타-Y 대표 사진 (가로형)
@@ -40,8 +40,8 @@ export const MainHomeSection: React.FC = () => {
              예전 맨 위 공지 띠는 이 안의 '새 소식' 칸으로 합쳤습니다. */}
       <HomeTodayCards />
 
-      {/* 3. 최근에 보신 구장 */}
-      <HomeRecentCourses />
+      {/* 3. 내 관심구장 · 관심대회 (로그인하신 분에게만 나옵니다) */}
+      <HomeFavorites />
 
       {/* 4. 창립회원 모집 — 예전에는 화면 여러 칸을 차지했는데 한 줄 띠로 줄였습니다.
              오픈이벤트 내용은 아래 '자세히 보기'에 그대로 들어 있습니다. */}

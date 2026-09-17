@@ -40,6 +40,7 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-react';
+import { FavoriteButton } from './FavoriteButton';
 
 type DetailTab = 'overview' | 'courseHoles' | 'fees' | 'reservation' | 'facilities' | 'reviews';
 
@@ -218,6 +219,14 @@ export const ParkDetailModal: React.FC = () => {
               <Share2 className="w-4 h-4" />
             </button>
           </div>
+        </div>
+
+        {/* 관심구장 찜하기 — 다음에 오시면 첫 화면에 바로 보여드립니다 */}
+        <div className="bg-amber-50 border-b-2 border-amber-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2.5 shrink-0">
+          <FavoriteButton kind="course" id={course.id} className="w-full sm:w-auto shrink-0" />
+          <p className="text-sm sm:text-base font-bold text-slate-700 leading-relaxed break-keep">
+            찜해 두시면 다음에 오셨을 때 첫 화면에 바로 나옵니다.
+          </p>
         </div>
 
         {/* ==================== 3. Tab Navigation (Dongnepg Style) ==================== */}
