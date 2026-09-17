@@ -2147,32 +2147,17 @@ async function startServer() {
   purgeExpiredMatches();
   setInterval(purgeExpiredMatches, 60 * 60 * 1000); // 1시간마다 확인 (24시간 기준이라 더 자주 체크)
 
-  // ---- 날짜 지난 대회 실시간 자동 삭제 ----
-  // 서버 시작 시 한 번, 이후로는 1시간마다 확인해서 대회 날짜(eventDate)가 지난 대회를 지웁니다.
-  // 2일 이상 진행되는 대회도 있어서, eventDate 다음날까지는 하루 여유를 두고 지웁니다.
-  function purgePastTournaments() {
-    try {
-      const tournaments = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 1); // 어제 날짜까지 지난 대회만 삭제 (오늘·내일 대회는 유지)
-      const cutoffStr = cutoff.toISOString().slice(0, 10);
-      const kept = tournaments.filter(t => {
-        // 여러 날 진행되는 대회는 "마지막 날"을 기준으로 판단합니다.
-        // (시작일만 보면 9월에 시작해 10월까지 이어지는 대회가 도중에 사라집니다)
-        const until = t.endDate || t.eventDate;
-        if (!until) return true; // 날짜 정보가 없으면 일단 유지 (실수로 다 지우는 것 방지)
-        return until >= cutoffStr;
-      });
-      if (kept.length !== tournaments.length) {
-        writeJsonFile("tournaments.json", kept);
-        console.log(`[purge] 날짜 지난 대회 ${tournaments.length - kept.length}건 자동 삭제`);
-      }
-    } catch (err) {
-      console.error("[purge] 대회 자동 삭제 처리 중 오류:", err);
-    }
+  // ---- 지난 대회는 지우지 않고 그대로 보관합니다 ----
+  // 예전에는 대회 날짜가 지나면 목록에서 자동으로 지웠지만,
+  // "작년·지난달에 어느 대회가 있었는지" 확인하려는 분들이 계셔서 삭제를 멈췄습니다.
+  // 끝난 대회는 화면에서 '대회종료' 로 표시되고, 기본 목록에서는 접어 두었다가
+  // [지난 대회 보기] 버튼을 누르면 다시 보이도록 처리합니다. (src/components/TournamentSection.tsx)
+  {
+    const allTours = readJsonFile<any[]>("tournaments.json", INITIAL_TOURNAMENTS);
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const pastCount = allTours.filter(t => (t.endDate || t.eventDate || "") < todayStr).length;
+    console.log(`[대회보관] 전체 ${allTours.length}건 중 종료된 대회 ${pastCount}건을 보관 중입니다. (자동 삭제 안 함)`);
   }
-  purgePastTournaments();
-  setInterval(purgePastTournaments, 60 * 60 * 1000); // 1시간마다
 }
 
 startServer();

@@ -18,7 +18,8 @@ import {
   Users,
   ShieldCheck,
   Eye,
-  CheckCircle2
+  CheckCircle2,
+  History
 } from 'lucide-react';
 
 const REGION_OPTIONS: RegionCategory[] = [
@@ -47,6 +48,8 @@ export const TournamentSection: React.FC = () => {
   // 대회 구분 — '전체' · '일반' · '장애인'
   const [kindFilter, setKindFilter] = useState<string>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  // 끝난 대회는 기본으로 접어 둡니다. (지우지는 않고 버튼으로 다시 펼쳐 보실 수 있습니다)
+  const [showPast, setShowPast] = useState<boolean>(false);
 
   // 일정 글자가 '2026-09-\n01'처럼 날짜 중간에서 잘리지 않도록
   // 띄어쓰기 단위로만 줄이 바뀌게 합니다.
@@ -107,11 +110,19 @@ export const TournamentSection: React.FC = () => {
     }
   };
 
+  // 이미 끝난 대회인지 판단합니다. (rank 2 = 대회종료)
+  const isFinishedTour = (t: Tournament) => getDDayInfo(t.eventDate, t.endDate).rank === 2;
+
+  // 끝난 대회 건수 — 지난 대회도 지우지 않고 보관하므로 따로 세어 둡니다.
+  const pastCount = useMemo(() => tournaments.filter(isFinishedTour).length, [tournaments]);
+  const upcomingCount = tournaments.length - pastCount;
+
   // 버튼에 건수를 같이 보여드립니다. 몇 건인지 미리 보이면 헛걸음이 줄어듭니다.
   const kindCounts = useMemo(() => {
-    const para = tournaments.filter(isParaTournament).length;
-    return { 전체: tournaments.length, 일반: tournaments.length - para, 장애인: para };
-  }, [tournaments]);
+    const base = showPast ? tournaments : tournaments.filter(t => !isFinishedTour(t));
+    const para = base.filter(isParaTournament).length;
+    return { 전체: base.length, 일반: base.length - para, 장애인: para };
+  }, [tournaments, showPast]);
 
   const filteredTournaments = useMemo(() => {
     // 정렬 기준: 진행중인 대회 → 날짜가 가까운 대회 → 끝난 대회(최근 순)
@@ -121,6 +132,8 @@ export const TournamentSection: React.FC = () => {
         if (t.region && t.region !== selectedRegion) return false;
         if (!t.region && !t.location.includes(selectedRegion.split('/')[0])) return false;
       }
+      // 끝난 대회 숨김 (지우지는 않고 [지난 대회 보기] 로 펼칩니다)
+      if (!showPast && isFinishedTour(t)) return false;
       // Status filter
       if (statusFilter !== '전체' && t.status !== statusFilter) return false;
       // 대회 구분 (일반 / 장애인)
@@ -145,7 +158,7 @@ export const TournamentSection: React.FC = () => {
       if (ka.days !== kb.days) return ka.days - kb.days;
       return a.title.localeCompare(b.title, 'ko');
     });
-  }, [tournaments, selectedRegion, statusFilter, kindFilter, searchQuery]);
+  }, [tournaments, selectedRegion, statusFilter, kindFilter, searchQuery, showPast]);
 
   return (
     <section id="section-tournaments" className="scroll-mt-28 py-8 sm:py-10 px-3 sm:px-6 max-w-7xl mx-auto bg-gradient-to-b from-amber-50/50 via-white to-stone-50/60 rounded-3xl my-8 border border-amber-200/80 shadow-sm">
@@ -159,11 +172,16 @@ export const TournamentSection: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <span>전국 대회 소식</span>
             <span className="text-sm sm:text-base font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
-              총 {tournaments.length}개 대회
+              열리는 대회 {upcomingCount}개
             </span>
           </h2>
           <p className="text-base sm:text-lg text-slate-600 mt-1.5 font-medium leading-relaxed">
             전국에서 열리는 파크골프 대회일정 및 접수요강
+            {pastCount > 0 && (
+              <span className="block text-sm sm:text-base text-slate-500 mt-0.5">
+                끝난 대회 {pastCount}개도 지우지 않고 보관하고 있습니다.
+              </span>
+            )}
           </p>
         </div>
 
@@ -296,6 +314,23 @@ export const TournamentSection: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* 지난 대회 보기 — 끝난 대회는 지우지 않고 보관합니다 */}
+        {pastCount > 0 && (
+          <button
+            id="tour-toggle-past"
+            type="button"
+            onClick={() => setShowPast(v => !v)}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-base sm:text-lg font-black transition-all cursor-pointer border ${
+              showPast
+                ? 'bg-slate-800 text-white border-slate-800'
+                : 'bg-stone-100 text-slate-700 border-slate-300 hover:bg-stone-200'
+            }`}
+          >
+            <History className="w-5 h-5 shrink-0" />
+            <span>{showPast ? `지난 대회 숨기기` : `지난 대회 보기 (${pastCount}개)`}</span>
+          </button>
+        )}
 
       </div>
 

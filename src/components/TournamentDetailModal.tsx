@@ -29,6 +29,18 @@ export const TournamentDetailModal: React.FC = () => {
 
   const tour: Tournament = activeModal.data;
 
+  // 이미 끝난 대회인지 확인합니다.
+  // 지난 대회도 지우지 않고 보관하므로, 접수가 끝난 대회인 줄 모르고 전화하시는 일이 없도록
+  // 맨 위에 크게 안내합니다.
+  const isFinished = (() => {
+    const until = tour.endDate || tour.eventDate;
+    if (!until) return false;
+    const end = new Date(until);
+    if (isNaN(end.getTime())) return false;
+    end.setHours(23, 59, 59, 999);
+    return end.getTime() < Date.now();
+  })();
+
   // 문의처에 실제 전화번호가 들어있는 대회만 "전화 걸기"를 보여줍니다.
   const phoneMatch = String(tour.contact || '').match(/0\d{1,2}[-\s]?\d{3,4}[-\s]?\d{4}/);
   const phoneNumber = phoneMatch ? phoneMatch[0].replace(/\s/g, '') : '';
@@ -101,6 +113,17 @@ export const TournamentDetailModal: React.FC = () => {
 
         {/* Modal Scrollable Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 text-xs sm:text-sm text-slate-800">
+
+          {/* 이미 끝난 대회 안내 */}
+          {isFinished && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-100 border border-slate-300 flex items-start gap-3">
+              <Info className="w-6 h-6 text-slate-600 shrink-0 mt-0.5" />
+              <p className="text-base sm:text-lg font-bold text-slate-800 leading-relaxed">
+                이미 <span className="text-slate-900 font-black">끝난 대회</span>입니다.
+                접수는 받지 않으며, 지난 기록을 확인하실 수 있도록 남겨 둔 정보입니다.
+              </p>
+            </div>
+          )}
           
           {/* Key Spec Grid */}
           <div className="bg-amber-50/80 p-4 sm:p-5 rounded-2xl border border-amber-200 space-y-3">
