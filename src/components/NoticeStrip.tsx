@@ -13,7 +13,7 @@ const toKoreanDate = (iso: string) => {
 // 메인 화면 맨 위의 한 줄 공지 띠입니다.
 // 새로 올라온 소식이 있다는 것만 알려주고, 자세한 내용은 공지사항 화면에서 봅니다.
 export const NoticeStrip: React.FC = () => {
-  const { setActiveTab } = useParkGolf();
+  const { setActiveTab, courses } = useParkGolf();
   const latest = SITE_NOTICES[0];
   if (!latest) return null;
 
@@ -37,7 +37,7 @@ export const NoticeStrip: React.FC = () => {
           {toKoreanDate(latest.date)}
         </span>
         <span className="flex-1 min-w-0 text-base sm:text-lg font-black text-slate-900 truncate">
-          {latest.title}
+          {latest.title.replace(/\{\{COURSE_COUNT\}\}/g, String(courses.length))}
         </span>
         <span className="shrink-0 inline-flex items-center gap-0.5 text-sm sm:text-base font-bold text-green-800">
           <span className="hidden sm:inline">전체 보기</span>

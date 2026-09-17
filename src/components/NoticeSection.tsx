@@ -11,6 +11,11 @@ const toKoreanDate = (iso: string) => {
   return `${m[1]}년 ${Number(m[2])}월 ${Number(m[3])}일`;
 };
 
+// 공지 글 안의 {{COURSE_COUNT}} 자리를 지금 보이는 구장 수로 바꿔줍니다.
+// 관리자 화면에서 지운 구장은 빠진 뒤의 숫자라 화면과 항상 일치합니다.
+const fillCounts = (text: string, courseCount: number) =>
+  text.replace(/\{\{COURSE_COUNT\}\}/g, String(courseCount));
+
 const KIND_STYLE: Record<SiteNoticeKind, { chip: string; icon: React.ReactNode }> = {
   대회: {
     chip: 'bg-amber-100 text-amber-900 border-amber-300',
@@ -27,7 +32,7 @@ const KIND_STYLE: Record<SiteNoticeKind, { chip: string; icon: React.ReactNode }
 };
 
 export const NoticeSection: React.FC = () => {
-  const { setActiveTab } = useParkGolf();
+  const { setActiveTab, courses } = useParkGolf();
 
   return (
     <section
@@ -78,7 +83,7 @@ export const NoticeSection: React.FC = () => {
                 </div>
 
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug mb-3">
-                  {n.title}
+                  {fillCounts(n.title, courses.length)}
                 </h3>
 
                 <div className="text-base sm:text-lg text-slate-700 font-medium leading-relaxed">
@@ -87,7 +92,7 @@ export const NoticeSection: React.FC = () => {
                       <div key={i} className="h-3" />
                     ) : (
                       <p key={i} className="mb-1">
-                        {line}
+                        {fillCounts(line, courses.length)}
                       </p>
                     )
                   )}
