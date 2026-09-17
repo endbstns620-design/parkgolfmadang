@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { getHiddenBoardIds } from '../utils/boardVisibility';
 import {
   MapPin,
   Trophy,
@@ -38,9 +39,22 @@ const MORE_TABS = [
   { id: 'associations', label: '협회 · 연맹', desc: '공인 규정과 지부 안내', icon: Building2, tone: 'text-emerald-800' }
 ];
 
+// 아래 탭 칸 수에 맞는 Tailwind 클래스입니다.
+// (문자열을 이어붙여 만들면 빌드에서 빠져버려서, 이렇게 미리 적어둡니다)
+const GRID_COLS: Record<number, string> = {
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
+  5: 'grid-cols-5'
+};
+
 export const MobileBottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, matches } = useParkGolf();
+  const { activeTab, setActiveTab, matches, reviews, isAdmin } = useParkGolf();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
+
+  // 글이 아직 거의 없는 게시판은 아래 탭에서도 함께 감춥니다 — utils/boardVisibility.ts
+  const hiddenBoardIds = getHiddenBoardIds({ matches, reviews, isAdmin });
+  const mainTabs = MAIN_TABS.filter(t => !hiddenBoardIds.includes(t.id));
+  const moreTabs = MORE_TABS.filter(t => !hiddenBoardIds.includes(t.id));
 
   const go = (tabId: string) => {
     setActiveTab(tabId);
@@ -48,7 +62,7 @@ export const MobileBottomNav: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const isMoreActive = MORE_TABS.some(t => t.id === activeTab);
+  const isMoreActive = moreTabs.some(t => t.id === activeTab);
   const openMatchCount = matches.filter(m => m.status === '모집중').length;
 
   return (
@@ -71,7 +85,7 @@ export const MobileBottomNav: React.FC = () => {
             </div>
 
             <div className="p-3 flex flex-col gap-2">
-              {MORE_TABS.map(item => {
+              {moreTabs.map(item => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
                 return (
@@ -103,10 +117,10 @@ export const MobileBottomNav: React.FC = () => {
         </div>
       )}
 
-      {/* 아래 탭 — 다섯 칸 */}
+      {/* 아래 탭 — 감춘 게시판이 있으면 칸 수가 줄어듭니다 */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-[56] bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-2xl py-1 px-1.5 safe-area-pb">
-        <div className="grid grid-cols-5 gap-0.5 items-center">
-          {MAIN_TABS.map(tab => {
+        <div className={`grid ${GRID_COLS[mainTabs.length + 1] || 'grid-cols-5'} gap-0.5 items-center`}>
+          {mainTabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (

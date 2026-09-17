@@ -1,5 +1,6 @@
 import React from 'react';
 import { useParkGolf } from '../context/ParkGolfContext';
+import { getHiddenBoardIds } from '../utils/boardVisibility';
 import {
   MapPin,
   Trophy,
@@ -49,9 +50,15 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export const HeaderNavbar: React.FC = () => {
-  const { activeTab, setActiveTab } = useParkGolf();
+  const { activeTab, setActiveTab, matches, reviews, isAdmin } = useParkGolf();
 
-  const visibleNavItems = NAV_ITEMS.filter(item => !item.hidden);
+  // 글이 아직 거의 없는 게시판은 메뉴에서 잠시 감춥니다.
+  // (관리자에게는 그대로 보이고, 글이 쌓이면 자동으로 다시 나옵니다 — utils/boardVisibility.ts)
+  const hiddenBoardIds = getHiddenBoardIds({ matches, reviews, isAdmin });
+
+  const visibleNavItems = NAV_ITEMS.filter(
+    item => !item.hidden && !hiddenBoardIds.includes(item.id)
+  );
 
   const handleNavClick = (id: string) => {
     setActiveTab(id);
