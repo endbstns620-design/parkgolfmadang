@@ -194,9 +194,12 @@ interface ParkGolfContextType {
 const ParkGolfContext = createContext<ParkGolfContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  // 전국 553개 구장 전수조사 자료로 전면 교체하면서 v4로 올렸습니다.
-  // (예전 데이터가 저장돼 있던 방문자 브라우저도 새 구장정보로 자동으로 바뀝니다)
+  // 구장 목록은 브라우저에도 저장해 두고 다음 방문 때 그대로 씁니다.
+  // 다만 새 구장이 추가되면 저장본이 낡아지므로, 바로 아래 '지문(signature)'으로
+  // 낡았는지 자동으로 알아내서 버립니다. (예전에는 이 키 이름 뒤의 v숫자를
+  //  사람이 직접 올려야 했고, 잊으면 새로 문 연 구장이 영영 안 보였습니다)
   COURSES: 'parkgolf_madang_courses_prod_v4',
+  COURSES_SIGNATURE: 'parkgolf_madang_courses_signature',
   TOURNAMENTS: 'parkgolf_madang_tournaments_prod_v1',
   NEWS: 'parkgolf_madang_news_prod_v2',
   REVIEWS: 'parkgolf_madang_reviews_prod_v1',
@@ -218,10 +221,33 @@ try {
   /* 저장소를 못 쓰는 브라우저에서도 문제없이 넘어갑니다 */
 }
 
+/**
+ * 지금 배포된 구장 목록이 어떤 내용인지 짧은 지문으로 만듭니다.
+ * 구장이 하나라도 늘거나 줄거나 이름이 바뀌면 이 값이 달라집니다.
+ * 브라우저에 저장된 목록의 지문과 다르면 저장본을 버리고 새 목록을 씁니다.
+ */
+const courseSignature = (): string => {
+  let hash = 0;
+  for (const c of INITIAL_COURSES) {
+    const text = `${c.id}|${c.name}`;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash * 31 + text.charCodeAt(i)) | 0;
+    }
+  }
+  return `${INITIAL_COURSES.length}-${hash}`;
+};
+
 export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load data from localStorage or use initial data
   const [courses, setCourses] = useState<ParkCourse[]>(() => {
     try {
+      const nowSig = courseSignature();
+      // 저장본이 지금 배포된 구장 목록과 다르면(새 구장이 들어왔으면) 버리고 새로 시작합니다.
+      if (localStorage.getItem(STORAGE_KEYS.COURSES_SIGNATURE) !== nowSig) {
+        localStorage.removeItem(STORAGE_KEYS.COURSES);
+        localStorage.setItem(STORAGE_KEYS.COURSES_SIGNATURE, nowSig);
+        return INITIAL_COURSES;
+      }
       const saved = localStorage.getItem(STORAGE_KEYS.COURSES);
       return saved ? JSON.parse(saved) : INITIAL_COURSES;
     } catch {
