@@ -156,6 +156,11 @@ export interface Tournament {
   eventDate: string; // 대회 시작일 (YYYY-MM-DD)
   endDate?: string; // 대회 종료일 — 여러 날 진행되는 대회가 도중에 사라지지 않게 합니다
   registrationPeriod: string;
+  // 접수 시작·마감 날짜 (YYYY-MM-DD). 사람이 읽는 registrationPeriod 와 달리
+  // 프로그램이 계산할 수 있는 형태입니다. 관심대회 문자알림이 이 두 칸을 씁니다.
+  // 공식 요강에 날짜가 없거나 '미정'이면 비워 둡니다 — 비어 있으면 알림을 보내지 않습니다.
+  regStartDate?: string;
+  regEndDate?: string;
   location: string;
   courseHoles?: string;
   capacity?: string;
