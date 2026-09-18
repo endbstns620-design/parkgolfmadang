@@ -54,7 +54,7 @@ export const MainHomeSection: React.FC = () => {
                 🎉 창립회원 {FOUNDER_GOAL.toLocaleString()}명 한정 모집 — 이미 {totalUsers}명이 함께하고 있어요
               </h2>
               <p className="text-base sm:text-lg font-bold text-amber-800 mt-1 break-keep">
-                가입만 해도 1,000 마당P 즉시 지급 · 리뷰 쓰면 300P 추가
+                가입 1,000P · 관심구장·대회 찜하면 최대 1,200P · 친구 소개하면 두 분 다 500P
               </p>
             </div>
 
@@ -200,6 +200,91 @@ export const MainHomeSection: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* 3번째 오픈이벤트 — 찜하기 */}
+              <div className="bg-white rounded-2xl border-2 border-emerald-300 p-4 flex flex-col">
+                <span className="self-start px-3 py-1 rounded-full bg-emerald-500 text-white text-sm sm:text-base font-black mb-2.5">
+                  3번째 오픈이벤트
+                </span>
+
+                <p className="text-slate-900 font-black text-xl sm:text-2xl leading-tight mb-3">
+                  찜 하나에 <span className="text-emerald-700">200 마당P</span> ·
+                  다 채우면 <span className="text-emerald-700">1,200P</span>
+                </p>
+
+                <div className="flex-1 bg-emerald-50 rounded-2xl px-4 py-4 border border-emerald-200 space-y-2.5">
+                  <p className="text-slate-900 font-black text-lg sm:text-xl leading-snug break-keep">
+                    ⭐ 관심구장 3곳 + 관심대회 3개
+                  </p>
+                  <p className="text-slate-700 font-bold text-base sm:text-lg leading-relaxed break-keep">
+                    자주 가시는 구장과 나가고 싶은 대회를 찜해 두세요.
+                    다음에 오시면 <span className="text-emerald-800">첫 화면에 바로</span> 보여드립니다.
+                  </p>
+                  <p className="text-slate-700 font-bold text-base sm:text-lg leading-relaxed break-keep">
+                    🗓️ <span className="text-emerald-800">매달 새로 받으실 수 있습니다.</span>{' '}
+                    달이 바뀌면 첫 화면에 받기 버튼이 다시 나옵니다.
+                  </p>
+                  <p className="text-slate-500 font-medium text-sm leading-snug break-keep">
+                    * 찜을 푸시면 그 달에 받으신 200P는 다시 빠집니다.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('courses');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="mt-auto pt-3 w-full cursor-pointer"
+                >
+                  <span className="block w-full py-2.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-300 text-emerald-900 font-black text-base sm:text-lg transition-colors">
+                    ⭐ 관심구장 찜하러 가기 →
+                  </span>
+                </button>
+              </div>
+
+              {/* 4번째 오픈이벤트 — 추천인 */}
+              <div className="bg-white rounded-2xl border-2 border-sky-300 p-4 flex flex-col">
+                <span className="self-start px-3 py-1 rounded-full bg-sky-500 text-white text-sm sm:text-base font-black mb-2.5">
+                  4번째 오픈이벤트
+                </span>
+
+                <p className="text-slate-900 font-black text-xl sm:text-2xl leading-tight mb-3">
+                  친구를 소개하면 <span className="text-sky-700">두 분 모두 500P</span>
+                </p>
+
+                <div className="flex-1 bg-sky-50 rounded-2xl px-4 py-4 border border-sky-200 space-y-2.5">
+                  <p className="text-slate-700 font-bold text-base sm:text-lg leading-relaxed break-keep">
+                    ① 가입하실 때 <span className="text-sky-800">추천인 닉네임</span> 칸에
+                    소개해 주신 분의 닉네임을 적습니다.
+                  </p>
+                  <p className="text-slate-700 font-bold text-base sm:text-lg leading-relaxed break-keep">
+                    ② 새로 오신 분이 <span className="text-sky-800">찜 3개</span>를 채우시면
+                  </p>
+                  <p className="text-slate-900 font-black text-lg sm:text-xl leading-snug break-keep">
+                    ③ 소개하신 분 500P · 가입하신 분 500P 지급 🎁
+                  </p>
+                  <p className="text-slate-500 font-medium text-sm leading-snug break-keep">
+                    * 동호회 단톡방에 알려주시면 좋습니다. 한 분이 한 달에 10명까지 받으실 수 있습니다.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (currentUser) {
+                      openModal('myPage');
+                    } else {
+                      openModal('auth');
+                    }
+                  }}
+                  className="mt-auto pt-3 w-full cursor-pointer"
+                >
+                  <span className="block w-full py-2.5 rounded-2xl bg-sky-50 hover:bg-sky-100 border-2 border-sky-300 text-sky-900 font-black text-base sm:text-lg transition-colors">
+                    {currentUser
+                      ? `👥 내 닉네임(${currentUser.nickname})을 알려주세요 →`
+                      : '👥 무료 가입하고 추천받기 →'}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
         </div>

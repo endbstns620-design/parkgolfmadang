@@ -1252,6 +1252,11 @@ async function startServer() {
     favoriteTournamentIds?: string[];
     favoritePointMonth?: string;
     favoritePointClaimed?: string[];
+    // 추천인 제도 — 자세한 규칙은 아래 "추천인" 구역에 적어 두었습니다.
+    referrerId?: string;          // 나를 초대해 준 회원의 id
+    referralRewarded?: boolean;   // 내 가입으로 추천 보상이 이미 나갔는지
+    referralRewardMonth?: string; // 'YYYY-MM' — 아래 횟수가 어느 달 기록인지
+    referralRewardCount?: number; // 이번 달에 내가 받은 추천 보상 횟수 (상한용)
   }
 
   function toPublicUser(u: AppUser) {
@@ -1271,7 +1276,9 @@ async function startServer() {
       favoriteCourseIds: u.favoriteCourseIds || [],
       favoriteTournamentIds: u.favoriteTournamentIds || [],
       favoritePointMonth: u.favoritePointMonth || "",
-      favoritePointClaimed: u.favoritePointClaimed || []
+      favoritePointClaimed: u.favoritePointClaimed || [],
+      referrerId: u.referrerId || "",
+      referralRewarded: Boolean(u.referralRewarded)
     };
   }
 
@@ -1400,7 +1407,7 @@ async function startServer() {
   }
 
   app.post("/api/auth/register", limitRegister, async (req, res) => {
-    const { name, phone, password, nickname, preferredRegion, averageScore } = req.body || {};
+    const { name, phone, password, nickname, preferredRegion, averageScore, referrerNickname } = req.body || {};
     if (!name || !phone || !password || !nickname) {
       return res.status(400).json({ success: false, error: "이름, 휴대폰번호, 비밀번호, 닉네임은 필수입니다." });
     }
@@ -1436,6 +1443,20 @@ async function startServer() {
       points: 1000, // 가입축하 마당P
       badges: ['창립회원']
     };
+
+    // ── 추천인 ──
+    // 여기서는 "누가 초대했는지"만 적어 둡니다. 마당P는 아직 주지 않습니다.
+    // 새로 오신 분이 관심구장·관심대회를 3개 찜하셨을 때 비로소 두 분께 드립니다.
+    // (가입만 해서 마당P만 받아가는 것을 막기 위한 장치입니다)
+    const refName = String(referrerNickname || "").trim();
+    if (refName) {
+      const referrer = users.find(u => u.nickname === refName);
+      if (!referrer) {
+        return res.status(400).json({ success: false, error: "추천인 닉네임을 찾을 수 없습니다. 다시 확인해주세요." });
+      }
+      newUser.referrerId = referrer.id;
+    }
+
     users.push(newUser);
     writeJsonFile("users.json", users);
 
@@ -1530,6 +1551,55 @@ async function startServer() {
     };
   }
 
+  // ────────────────────────────────────────────────────────────
+  // 추천인 제도
+  //
+  //  · 가입할 때 추천인 닉네임을 적으면 두 분 모두 500 마당P를 받습니다.
+  //  · 다만 가입 즉시가 아니라, 새로 오신 분이 **찜 3개**를 채우셨을 때 드립니다.
+  //    가입만 하고 안 쓰는 계정을 만들어 마당P만 받아가는 것을 막기 위해서입니다.
+  //  · 한 분이 한 달에 받을 수 있는 추천 보상은 10번까지입니다.
+  // ────────────────────────────────────────────────────────────
+  const REFERRAL_POINT = 500;      // 추천인·가입자 각각 받는 마당P
+  const REFERRAL_NEED_FAVORITES = 3; // 새로 오신 분이 채워야 하는 찜 개수
+  const REFERRAL_MONTHLY_CAP = 10;   // 추천인 1명이 한 달에 받을 수 있는 횟수
+
+  /**
+   * 새로 오신 분이 찜 조건을 채웠는지 보고, 채웠으면 두 분께 마당P를 드립니다.
+   * users 배열을 그 자리에서 고치고, 지급이 일어났으면 금액을 돌려줍니다. (0 = 지급 없음)
+   * 저장(writeJsonFile)은 부르는 쪽에서 합니다.
+   */
+  function settleReferral(users: AppUser[], newcomer: AppUser): number {
+    if (!newcomer.referrerId || newcomer.referralRewarded) return 0;
+    const favCount =
+      (newcomer.favoriteCourseIds || []).length + (newcomer.favoriteTournamentIds || []).length;
+    if (favCount < REFERRAL_NEED_FAVORITES) return 0;
+
+    const ri = users.findIndex(u => u.id === newcomer.referrerId);
+    if (ri < 0) return 0; // 추천인이 탈퇴한 경우 — 조용히 넘어갑니다
+    const referrer = users[ri];
+
+    // 추천인의 이번 달 보상 횟수를 확인합니다 (달이 바뀌면 0부터)
+    const month = currentMonthKey();
+    if (referrer.referralRewardMonth !== month) {
+      referrer.referralRewardMonth = month;
+      referrer.referralRewardCount = 0;
+    }
+    if ((referrer.referralRewardCount || 0) >= REFERRAL_MONTHLY_CAP) {
+      // 상한을 넘었으면 추천인에게는 안 드리고, 새로 오신 분께만 드립니다.
+      newcomer.points = (newcomer.points || 0) + REFERRAL_POINT;
+      newcomer.referralRewarded = true;
+      return REFERRAL_POINT;
+    }
+
+    referrer.points = (referrer.points || 0) + REFERRAL_POINT;
+    referrer.referralRewardCount = (referrer.referralRewardCount || 0) + 1;
+    users[ri] = referrer;
+
+    newcomer.points = (newcomer.points || 0) + REFERRAL_POINT;
+    newcomer.referralRewarded = true;
+    return REFERRAL_POINT;
+  }
+
   // 찜하기 / 찜 풀기
   app.post("/api/favorites/toggle", requireUser, (req: any, res) => {
     const kind = String(req.body?.kind || "");
@@ -1580,8 +1650,18 @@ async function startServer() {
     }
 
     users[idx] = u;
+    // 찜 3개를 채우셨으면 추천인·가입자 두 분께 500P씩 드립니다.
+    const referralAwarded = settleReferral(users, u);
+    users[idx] = u;
     writeJsonFile("users.json", users);
-    res.json({ success: true, favorited: !has, awarded, ...favoriteState(u), user: toPublicUser(u) });
+    res.json({
+      success: true,
+      favorited: !has,
+      awarded,
+      referralAwarded,
+      ...favoriteState(u),
+      user: toPublicUser(u)
+    });
   });
 
   // 이번 달 마당P 한 번에 받기 (달이 바뀌어 지급 기록이 비워졌을 때 씁니다)

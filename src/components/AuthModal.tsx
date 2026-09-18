@@ -15,7 +15,8 @@ export const AuthModal: React.FC = () => {
     passwordConfirm: '',
     nickname: '',
     preferredRegion: '',
-    averageScore: ''
+    averageScore: '',
+    referrerNickname: ''
   });
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
@@ -49,7 +50,8 @@ export const AuthModal: React.FC = () => {
       password: registerForm.password,
       nickname: registerForm.nickname,
       preferredRegion: registerForm.preferredRegion || undefined,
-      averageScore: registerForm.averageScore || undefined
+      averageScore: registerForm.averageScore || undefined,
+      referrerNickname: registerForm.referrerNickname || undefined
     });
     setIsSubmitting(false);
     if (success) closeModal();
@@ -209,6 +211,24 @@ export const AuthModal: React.FC = () => {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* 추천인 — 소개해 주신 분이 있을 때만 적습니다 */}
+            <div className="pt-2 border-t border-slate-100">
+              <label className="text-sm sm:text-base font-black text-slate-800 mb-1 block">
+                추천인 닉네임 <span className="text-slate-400 font-bold">(선택)</span>
+              </label>
+              <input
+                type="text"
+                value={registerForm.referrerNickname}
+                onChange={e => setRegisterForm({ ...registerForm, referrerNickname: e.target.value })}
+                placeholder="소개해 주신 분의 닉네임"
+                className="w-full px-3 py-2.5 border border-amber-300 bg-amber-50/60 rounded-xl text-sm sm:text-base font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+              <p className="text-xs sm:text-sm font-bold text-slate-600 mt-1.5 leading-relaxed break-keep">
+                가입 후 관심구장·관심대회를 3개 찜하시면
+                <span className="text-green-800"> 두 분 모두 500 마당P</span>를 받으십니다.
+              </p>
             </div>
 
             <div className="pt-2 border-t border-slate-100 space-y-2">

@@ -108,6 +108,7 @@ interface ParkGolfContextType {
     nickname: string;
     preferredRegion?: string;
     averageScore?: string;
+    referrerNickname?: string;
   }) => Promise<boolean>;
   loginUser: (phone: string, password: string) => Promise<boolean>;
   logoutUser: () => void;
@@ -677,6 +678,7 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     nickname: string;
     preferredRegion?: string;
     averageScore?: string;
+    referrerNickname?: string;
   }): Promise<boolean> => {
     try {
       const res = await fetch('/api/auth/register', {
@@ -869,7 +871,15 @@ export const ParkGolfProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return;
       }
       setCurrentUser(data.user);
-      if (data.awarded > 0) {
+      if (data.referralAwarded > 0) {
+        // 찜 3개를 채우셔서 추천 보상까지 나간 경우 — 한 번에 안내합니다.
+        alert(
+          `관심${kind === 'course' ? '구장' : '대회'}으로 찜했습니다.\n` +
+            `마당P ${data.awarded}P를 받으셨습니다.\n\n` +
+            `찜 3개를 채우셔서 추천 감사 마당P ${data.referralAwarded}P도 함께 드렸습니다.\n` +
+            `소개해 주신 분께도 ${data.referralAwarded}P가 지급되었습니다.`
+        );
+      } else if (data.awarded > 0) {
         alert(`관심${kind === 'course' ? '구장' : '대회'}으로 찜했습니다.\n마당P ${data.awarded}P를 받으셨습니다.`);
       } else if (data.awarded < 0) {
         alert(`찜을 풀었습니다.\n이번 달에 받으셨던 ${Math.abs(data.awarded)}P는 다시 빠집니다.`);
